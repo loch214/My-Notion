@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Task, Event } from '../types';
-import { Calendar, CheckSquare, Clock, Plus, X } from 'lucide-react';
+import { Calendar, CheckSquare, Clock, Plus } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 interface PersonalDashboardProps {
@@ -25,105 +25,119 @@ export function PersonalDashboard({ tasks, events, onToggleTask, onAddTask }: Pe
   };
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+    <div className="animate-fade-up text-white">
       <header className="mb-8">
-        <h1 className="text-3xl font-semibold tracking-tight mb-2 text-slate-900">Personal Dashboard</h1>
-        <p className="text-slate-500">Organize your tasks, schedule, and non-academic notes.</p>
+        <p className="text-xs uppercase tracking-[0.24em] text-muted">Personal space</p>
+        <h1 className="mt-2 text-3xl font-semibold">Tasks, events, and daily focus</h1>
+        <p className="mt-2 max-w-2xl text-sm text-muted">Track what needs attention today without leaving the workspace.</p>
       </header>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Tasks Column */}
-        <div className="col-span-2">
-            <h2 className="text-lg font-semibold mb-4 flex items-center text-slate-800">
-              <CheckSquare className="w-5 h-5 mr-2 text-indigo-500" /> Today's Tasks
-            </h2>
-            <div className="space-y-3">
-              {tasks.map((t) => (
-                <div key={t.id} className={cn(
-                  "flex items-center p-3.5 rounded-xl border shadow-sm transition-all cursor-pointer hover:shadow-md",
-                  t.done ? 'bg-slate-50 border-slate-100 opacity-60' : 'bg-white border-slate-200'
-                )} onClick={() => onToggleTask(t.id)}>
-                    <input 
-                      type="checkbox" 
-                      checked={t.done} 
-                      readOnly
-                      className="w-4.5 h-4.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 mr-4 shrink-0 transition-colors cursor-pointer" 
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className={cn("text-sm truncate", t.done ? 'line-through text-slate-400' : 'text-slate-700 font-medium')}>{t.title}</p>
-                    </div>
-                    {t.priority === 'high' && !t.done && <span className="w-2 h-2 rounded-full bg-red-400 mx-3 shadow-sm"></span>}
-                    <div className="flex items-center text-xs text-slate-400 bg-slate-50 px-2 py-1 rounded border border-slate-100">
-                      <Clock className="w-3.5 h-3.5 mr-1" /> {t.time}
-                    </div>
+
+      <div className="grid gap-8 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <div className="mb-4 flex items-center gap-2 text-lg font-semibold">
+            <CheckSquare className="h-5 w-5 text-accent" /> Today's tasks
+          </div>
+
+          <div className="space-y-3">
+            {tasks.map((task) => (
+              <button
+                key={task.id}
+                onClick={() => onToggleTask(task.id)}
+                className={cn(
+                  'surface-soft flex w-full items-center rounded-3xl px-4 py-4 text-left transition hover:-translate-y-0.5',
+                  task.done ? 'opacity-55' : ''
+                )}
+              >
+                <input
+                  type="checkbox"
+                  checked={task.done}
+                  readOnly
+                  className="mr-4 h-4 w-4 rounded border-white/20 text-accent focus:ring-accent"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className={cn('truncate text-sm font-medium', task.done ? 'text-muted line-through' : 'text-white')}>
+                    {task.title}
+                  </p>
                 </div>
-              ))}
-              {isAddingTask ? (
-                <form onSubmit={handleAddTask} className="p-4 rounded-xl border border-indigo-200 bg-indigo-50/50 flex flex-col gap-3">
-                  <input
-                    autoFocus
-                    value={newTaskTitle}
-                    onChange={(e) => setNewTaskTitle(e.target.value)}
-                    placeholder="What needs to be done?"
-                    className="w-full text-sm px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400"
-                  />
-                  <div className="flex justify-between items-center">
-                    <select
-                      value={newTaskPriority}
-                      onChange={(e) => setNewTaskPriority(e.target.value as any)}
-                      className="text-xs font-medium border border-slate-200 rounded py-1 px-2 focus:outline-none focus:ring-1 focus:ring-indigo-300 text-slate-600 bg-white"
-                    >
-                      <option value="high">High Priority</option>
-                      <option value="medium">Medium Priority</option>
-                      <option value="low">Low Priority</option>
-                    </select>
-                    <div className="flex gap-2">
-                       <button type="button" onClick={() => setIsAddingTask(false)} className="px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200 rounded-md transition-colors">Cancel</button>
-                       <button type="submit" className="px-3 py-1.5 text-xs font-medium bg-indigo-600 text-white hover:bg-indigo-700 rounded-md transition-colors shadow-sm">Save Task</button>
-                    </div>
+                {task.priority === 'high' && !task.done && <span className="mx-3 h-2 w-2 rounded-full bg-rose-400" />}
+                <div className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-muted">
+                  <Clock className="h-3.5 w-3.5" /> {task.time}
+                </div>
+              </button>
+            ))}
+
+            {isAddingTask ? (
+              <form onSubmit={handleAddTask} className="surface rounded-3xl p-4">
+                <input
+                  autoFocus
+                  value={newTaskTitle}
+                  onChange={(e) => setNewTaskTitle(e.target.value)}
+                  placeholder="What needs to be done?"
+                  className="surface-soft mb-3 w-full rounded-2xl px-4 py-3 text-sm outline-none transition focus:ring-2 focus:ring-indigo-500/40"
+                />
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <select
+                    value={newTaskPriority}
+                    onChange={(e) => setNewTaskPriority(e.target.value as any)}
+                    className="surface-soft rounded-2xl px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-indigo-500/40"
+                  >
+                    <option value="high">High priority</option>
+                    <option value="medium">Medium priority</option>
+                    <option value="low">Low priority</option>
+                  </select>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => setIsAddingTask(false)} className="surface-soft rounded-2xl px-4 py-2 text-sm text-muted transition hover:text-white">
+                      Cancel
+                    </button>
+                    <button type="submit" className="rounded-2xl bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5">
+                      Save task
+                    </button>
                   </div>
-                </form>
-              ) : (
-                <button 
-                  onClick={() => setIsAddingTask(true)}
-                  className="w-full text-left p-3.5 text-sm text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl border border-dashed border-slate-300 transition-colors flex items-center justify-center font-medium"
-                >
-                  <Plus className="mr-2 w-4 h-4" /> Add new task
-                </button>
-              )}
-            </div>
+                </div>
+              </form>
+            ) : (
+              <button
+                onClick={() => setIsAddingTask(true)}
+                className="surface-soft flex w-full items-center justify-center gap-2 rounded-3xl border border-dashed border-white/10 px-4 py-4 text-sm text-muted transition hover:text-white"
+              >
+                <Plus className="h-4 w-4" /> Add new task
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Schedule / Upcoming */}
         <div>
-            <h2 className="text-lg font-semibold mb-4 flex items-center text-slate-800">
-              <Calendar className="w-5 h-5 mr-2 text-indigo-500" /> Upcoming
-            </h2>
-            <div className="border border-slate-200 rounded-xl bg-white overflow-hidden shadow-sm">
-              <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/80">
-                  <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Tomorrow</div>
-              </div>
-              <div className="p-4 space-y-4 relative">
-                  <div className="absolute left-[23px] top-4 bottom-4 w-px bg-slate-100"></div>
-                  {events.map((ev) => (
-                    <div key={ev.id} className="flex relative items-start group">
-                      <div className={cn("w-3 h-3 rounded-full mt-1 mr-4 relative z-10 border-2 border-white shadow-sm ring-1", 
-                        ev.color === 'blue' ? 'bg-blue-500 ring-blue-100' : 
-                        ev.color === 'amber' ? 'bg-amber-500 ring-amber-100' : 'bg-purple-500 ring-purple-100'
-                      )}></div>
-                      <div className="group-hover:translate-x-1 transition-transform">
-                        <p className="text-sm font-medium text-slate-800">{ev.title}</p>
-                        <p className="text-xs text-slate-500 mt-0.5">{ev.startTime} - {ev.endTime}</p>
-                        {ev.description && (
-                          <p className="text-[11px] text-slate-400 mt-1 max-w-[200px] bg-slate-50 border border-slate-100 px-2 py-1 rounded line-clamp-2">
-                            {ev.description}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-              </div>
+          <div className="mb-4 flex items-center gap-2 text-lg font-semibold">
+            <Calendar className="h-5 w-5 text-accent" /> Upcoming
+          </div>
+
+          <div className="surface-strong rounded-[2rem] overflow-hidden">
+            <div className="border-b border-subtle px-4 py-3">
+              <div className="text-[11px] uppercase tracking-[0.24em] text-muted">Tomorrow</div>
             </div>
+            <div className="relative space-y-4 p-4">
+              <div className="absolute left-[23px] top-4 bottom-4 w-px bg-white/10" />
+              {events.map((event) => (
+                <div key={event.id} className="group relative flex items-start">
+                  <div
+                    className={cn(
+                      'relative z-10 mr-4 mt-1 h-3 w-3 rounded-full border-2 border-black/30 shadow-sm',
+                      event.color === 'blue' ? 'bg-sky-400' : event.color === 'amber' ? 'bg-amber-400' : 'bg-violet-400'
+                    )}
+                  />
+                  <div className="transition group-hover:translate-x-1">
+                    <p className="text-sm font-medium text-white">{event.title}</p>
+                    <p className="mt-0.5 text-xs text-muted">{event.startTime} - {event.endTime}</p>
+                    {event.description && (
+                      <p className="mt-1 max-w-[220px] rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] text-muted">
+                        {event.description}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>

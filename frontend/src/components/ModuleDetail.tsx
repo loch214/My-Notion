@@ -3,6 +3,7 @@ import { Module, UploadedFile, ChatMessage } from '../types';
 import { ChevronLeft, FileText, Upload, FileUp, Sparkles, MessageSquare, Loader2, X } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import Markdown from 'react-markdown';
+import { AI_MODELS, AIModelId, DEFAULT_AI_MODEL } from '../lib/models';
 
 interface ModuleDetailProps {
   module: Module;
@@ -15,7 +16,7 @@ export function ModuleDetail({ module, onBack, updateModule }: ModuleDetailProps
   const [isUploading, setIsUploading] = useState(false);
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
-  const [chatModel, setChatModel] = useState('gemini-2.5-flash');
+  const [chatModel, setChatModel] = useState(DEFAULT_AI_MODEL);
   const [fileSort, setFileSort] = useState<'newest' | 'oldest' | 'alpha'>('newest');
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
@@ -36,22 +37,22 @@ export function ModuleDetail({ module, onBack, updateModule }: ModuleDetailProps
     try {
       const res = await fetch('/api/upload', {
         method: 'POST',
-        body: formData
+        body: formData,
       });
       const data = await res.json();
-      
+
       if (data.id) {
         const newFile: UploadedFile = {
           id: data.id,
           name: data.name,
           size: data.size,
           geminiFileUri: data.geminiFileUri,
-          uploadedAt: new Date().toISOString()
+          uploadedAt: new Date().toISOString(),
         };
         updateModule(module.id, { files: [...module.files, newFile] });
       }
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error(error);
     } finally {
       setIsUploading(false);
     }
@@ -64,9 +65,9 @@ export function ModuleDetail({ module, onBack, updateModule }: ModuleDetailProps
       id: uuidv4(),
       role: 'user',
       text: chatInput,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
-    
+
     const newHistory = [...module.chatHistory, userMessage];
     updateModule(module.id, { chatHistory: newHistory });
     setChatInput('');
@@ -81,188 +82,199 @@ export function ModuleDetail({ module, onBack, updateModule }: ModuleDetailProps
           moduleName: module.title,
           history: module.chatHistory,
           files: module.files,
-          model: chatModel
-        })
+          model: chatModel,
+        }),
       });
       const data = await res.json();
-      
+
       const modelMessage: ChatMessage = {
         id: uuidv4(),
         role: 'model',
         text: data.text || 'Error generating response',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
-      
+
       updateModule(module.id, { chatHistory: [...newHistory, modelMessage] });
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error(error);
     } finally {
       setIsChatLoading(false);
     }
   };
 
   return (
-    <div className="animate-in fade-in flex flex-col h-[calc(100vh-80px)]">
-      {/* Header */}
-      <header className="mb-6 flex shrink-0 items-center justify-between">
+    <div className="flex min-h-[calc(100vh-190px)] flex-col text-white">
+      <header className="mb-6 flex shrink-0 items-start justify-between gap-4">
         <div>
-          <button onClick={onBack} className="text-sm font-medium text-slate-500 hover:text-slate-800 mb-2 flex items-center transition-colors">
-            <ChevronLeft className="w-4 h-4 mr-1" /> Back to Overview
+          <button onClick={onBack} className="mb-3 inline-flex items-center gap-2 text-sm text-muted transition hover:text-white">
+            <ChevronLeft className="h-4 w-4" /> Back to overview
           </button>
-          <div className="flex items-center">
-            <h1 className="text-3xl font-semibold tracking-tight text-slate-900 mr-4">{module.title}</h1>
-            <span className="text-xs font-mono text-slate-500 bg-slate-100 border border-slate-200 px-2 py-1 rounded">{module.code}</span>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-semibold tracking-tight">{module.title}</h1>
+            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-mono text-muted">{module.code}</span>
           </div>
         </div>
       </header>
 
-      {/* Tabs */}
-      <div className="flex justify-between items-end border-b border-slate-200 mb-6 shrink-0">
-        <div className="flex space-x-6">
-          <button 
+      <div className="mb-6 flex items-end justify-between gap-4 border-b border-subtle pb-2">
+        <div className="flex gap-3">
+          <button
             onClick={() => setActiveTab('files')}
-            className={`pb-3 text-sm font-medium transition-colors border-b-2 ${activeTab === 'files' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm transition ${activeTab === 'files' ? 'bg-white text-slate-950' : 'text-muted hover:text-white'}`}
           >
-            <div className="flex items-center"><FileText className="w-4 h-4 mr-2" /> Context Files</div>
+            <FileText className="h-4 w-4" /> Files
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('chat')}
-            className={`pb-3 text-sm font-medium transition-colors border-b-2 ${activeTab === 'chat' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm transition ${activeTab === 'chat' ? 'bg-white text-slate-950' : 'text-muted hover:text-white'}`}
           >
-            <div className="flex items-center"><MessageSquare className="w-4 h-4 mr-2" /> Study Assistant</div>
+            <MessageSquare className="h-4 w-4" /> Study chat
           </button>
         </div>
-        
+
         {activeTab === 'chat' && (
-           <select 
-              value={chatModel}
-              onChange={(e) => setChatModel(e.target.value)}
-              className="mb-2 text-xs font-semibold bg-slate-50 border border-slate-200 text-slate-600 rounded py-1 px-2 focus:outline-none focus:ring-1 focus:ring-indigo-300"
-            >
-              <option value="gemini-2.5-flash">Gemini Flash (Free)</option>
-              <option value="gemini-2.5-pro">Gemini Pro</option>
-            </select>
+          <select
+            value={chatModel}
+            onChange={(e) => setChatModel(e.target.value as AIModelId)}
+            className="surface-soft rounded-2xl px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-indigo-500/40"
+          >
+            {AI_MODELS.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
+          </select>
         )}
       </div>
 
-      {/* Content */}
       <div className="flex-1 overflow-hidden">
         {activeTab === 'files' && (
-          <div className="h-full overflow-y-auto pb-8 animate-in slide-in-from-bottom-2">
-             <div className="bg-slate-50 border border-dashed border-slate-300 rounded-xl p-8 flex flex-col items-center justify-center text-center mb-6">
-                <div className="w-12 h-12 bg-white border border-slate-200 rounded-full flex items-center justify-center mb-4 shadow-sm">
-                  {isUploading ? <Loader2 className="w-5 h-5 text-indigo-600 animate-spin" /> : <Upload className="w-5 h-5 text-indigo-600" />}
-                </div>
-                <h3 className="font-medium text-slate-900 mb-1">Upload lecture notes or reading materials</h3>
-                <p className="text-sm text-slate-500 mb-4 max-w-sm">The AI will read these PDFs/DOCXs to help you answer questions contextually.</p>
-                <label className="cursor-pointer bg-indigo-600 text-white px-4 py-2 rounded-md font-medium text-sm hover:bg-indigo-700 transition-colors shadow-sm">
-                  <span>Select Files</span>
-                  <input type="file" className="hidden" onChange={handleFileUpload} accept=".pdf,.doc,.docx,.txt" disabled={isUploading} />
-                </label>
-             </div>
+          <div className="h-full overflow-y-auto pb-8 animate-fade-up">
+            <div className="surface rounded-[2rem] p-6 text-center">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-white shadow-lg shadow-indigo-500/20">
+                {isUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
+              </div>
+              <h3 className="text-xl font-semibold">Upload lecture notes or reading materials</h3>
+              <p className="mx-auto mt-2 max-w-lg text-sm text-muted">
+                Add PDFs, DOCX, or text files and use them as study context for your module AI.
+              </p>
+              <label className="mt-5 inline-flex cursor-pointer items-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5">
+                Select files
+                <input type="file" className="hidden" onChange={handleFileUpload} accept=".pdf,.doc,.docx,.txt" disabled={isUploading} />
+              </label>
+            </div>
 
-             <div className="flex justify-between items-center mb-4">
-               <h3 className="font-medium text-slate-800">Uploaded Files ({module.files.length})</h3>
-               <select
-                 value={fileSort}
-                 onChange={(e) => setFileSort(e.target.value as any)}
-                 className="text-xs font-medium border border-slate-200 rounded py-1 px-2 focus:outline-none focus:ring-1 focus:ring-indigo-300 text-slate-600"
-               >
-                 <option value="newest">Newest First</option>
-                 <option value="oldest">Oldest First</option>
-                 <option value="alpha">Alphabetical</option>
-               </select>
-             </div>
+            <div className="mt-6 flex items-center justify-between gap-4">
+              <h3 className="text-lg font-semibold">Uploaded files ({module.files.length})</h3>
+              <select
+                value={fileSort}
+                onChange={(e) => setFileSort(e.target.value as any)}
+                className="surface-soft rounded-2xl px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-indigo-500/40"
+              >
+                <option value="newest">Newest first</option>
+                <option value="oldest">Oldest first</option>
+                <option value="alpha">Alphabetical</option>
+              </select>
+            </div>
 
-             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                {[...module.files].sort((a, b) => {
+            <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {[...module.files]
+                .sort((a, b) => {
                   if (fileSort === 'alpha') return a.name.localeCompare(b.name);
                   if (fileSort === 'oldest') return new Date(a.uploadedAt).getTime() - new Date(b.uploadedAt).getTime();
                   return new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime();
-                }).map(f => (
-                  <div key={f.id} className="group border border-slate-200 bg-white rounded-lg p-4 flex items-start shadow-sm hover:shadow-md transition-shadow relative">
-                    <FileUp className="w-8 h-8 text-rose-500 bg-rose-50 p-1.5 rounded mr-3 shrink-0" />
-                    <div className="min-w-0 pr-6">
-                      <p className="font-medium text-sm text-slate-800 truncate" title={f.name}>{f.name}</p>
-                      <p className="text-xs text-slate-400 mt-1">{(f.size / 1024 / 1024).toFixed(2)} MB • {new Date(f.uploadedAt).toLocaleDateString()}</p>
+                })
+                .map((file) => (
+                  <div key={file.id} className="surface-soft group relative rounded-3xl p-4 transition hover:-translate-y-0.5">
+                    <div className="flex items-start gap-3">
+                      <div className="rounded-2xl bg-white/5 p-3 text-accent">
+                        <FileUp className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0 flex-1 pr-8">
+                        <p className="truncate text-sm font-semibold" title={file.name}>{file.name}</p>
+                        <p className="mt-1 text-xs text-muted">
+                          {(file.size / 1024 / 1024).toFixed(2)} MB · {new Date(file.uploadedAt).toLocaleDateString()}
+                        </p>
+                      </div>
                     </div>
-                    <button 
-                      onClick={() => {
-                        updateModule(module.id, { files: module.files.filter(file => file.id !== f.id) });
-                      }}
-                      className="absolute top-2 right-2 p-1.5 text-slate-400 opacity-0 group-hover:opacity-100 hover:text-red-500 hover:bg-red-50 rounded transition-all"
+                    <button
+                      onClick={() => updateModule(module.id, { files: module.files.filter((currentFile) => currentFile.id !== file.id) })}
+                      className="absolute right-3 top-3 rounded-full p-2 text-muted opacity-70 transition hover:bg-white/10 hover:text-white"
                     >
-                      <X className="w-4 h-4" />
+                      <X className="h-4 w-4" />
                     </button>
                   </div>
                 ))}
-                {module.files.length === 0 && (
-                  <div className="col-span-full py-8 text-center text-slate-400 text-sm">No files uploaded yet.</div>
-                )}
-             </div>
+              {module.files.length === 0 && <div className="col-span-full py-10 text-center text-muted">No files uploaded yet.</div>}
+            </div>
           </div>
         )}
 
         {activeTab === 'chat' && (
-          <div className="h-full flex flex-col border border-slate-200 rounded-xl bg-slate-50/50 shadow-sm overflow-hidden animate-in slide-in-from-bottom-2">
-            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6" ref={scrollRef}>
+          <div className="flex h-full flex-col overflow-hidden rounded-[2rem] surface">
+            <div className="flex-1 space-y-5 overflow-y-auto p-4 md:p-6" ref={scrollRef}>
               {module.chatHistory.length === 0 && (
-                <div className="flex flex-col items-center justify-center text-center h-full max-w-sm mx-auto text-slate-500">
-                  <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-4 shadow-sm border border-slate-200">
-                    <Sparkles className="w-6 h-6 text-indigo-500" />
+                <div className="mx-auto flex h-full max-w-md flex-col items-center justify-center text-center text-muted">
+                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-white shadow-lg shadow-indigo-500/20">
+                    <Sparkles className="h-6 w-6" />
                   </div>
-                  <h3 className="font-medium text-slate-900 mb-2">Module AI Assistant</h3>
-                  <p className="text-sm">Ask me to summarize uploaded lectures, explain concepts, or generate flashcards based on your {module.code} files.</p>
+                  <h3 className="text-xl font-semibold text-white">Module AI assistant</h3>
+                  <p className="mt-2 text-sm leading-6">
+                    Ask for summaries, explanations, flashcards, or exam-style questions based on {module.code} materials.
+                  </p>
                 </div>
               )}
-              {module.chatHistory.map(msg => (
-                <div key={msg.id} className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                  <div className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${msg.role === 'user' ? 'bg-slate-800' : 'bg-indigo-100 border border-indigo-200'}`}>
-                     {msg.role === 'user' ? <span className="text-sm font-bold text-white">L</span> : <Sparkles className="w-4 h-4 text-indigo-600" />}
+
+              {module.chatHistory.map((message) => (
+                <div key={message.id} className={`flex gap-4 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                  <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${message.role === 'user' ? 'bg-white text-slate-950' : 'bg-accent text-white'}`}>
+                    {message.role === 'user' ? <span className="text-sm font-bold">L</span> : <Sparkles className="h-4 w-4" />}
                   </div>
-                  <div className={`p-4 rounded-2xl max-w-[80%] text-sm shadow-sm overflow-hidden leading-relaxed ${
-                    msg.role === 'user' 
-                      ? 'bg-slate-800 text-white rounded-tr-sm' 
-                      : 'bg-white border border-slate-200 text-slate-800 rounded-tl-sm'
-                  }`}>
-                    <div className={`prose prose-sm max-w-none ${msg.role === 'user' ? 'prose-invert' : ''}`}>
-                      <Markdown>{msg.text}</Markdown>
+                  <div className={`max-w-[82%] rounded-3xl border px-4 py-3 text-sm leading-relaxed shadow-sm ${message.role === 'user' ? 'border-transparent bg-white text-slate-950' : 'border-subtle bg-white/5 text-white'}`}>
+                    <div className={`prose prose-sm max-w-none ${message.role === 'user' ? 'prose-slate' : 'prose-invert'}`}>
+                      <Markdown>{message.text}</Markdown>
                     </div>
                   </div>
                 </div>
               ))}
+
               {isChatLoading && (
                 <div className="flex gap-4">
-                  <div className="shrink-0 w-8 h-8 rounded-full bg-indigo-100 border border-indigo-200 flex items-center justify-center">
-                    <Sparkles className="w-4 h-4 text-indigo-600" />
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-white">
+                    <Sparkles className="h-4 w-4" />
                   </div>
-                  <div className="p-4 bg-white border border-slate-200 rounded-2xl rounded-tl-sm shadow-sm flex items-center text-sm text-slate-600">
-                     <Loader2 className="w-4 h-4 animate-spin text-indigo-500 mr-2" /> AI is synthesizing...
+                  <div className="flex items-center rounded-3xl border border-subtle bg-white/5 px-4 py-3 text-sm text-muted">
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin text-accent" /> AI is synthesizing...
                   </div>
                 </div>
               )}
             </div>
-            
-            <div className="p-4 bg-white border-t border-slate-200">
-              <div className="flex gap-2 max-w-4xl mx-auto items-end">
-                <textarea 
+
+            <div className="border-t border-subtle bg-transparent p-4">
+              <div className="mx-auto flex max-w-4xl gap-2 items-end">
+                <textarea
                   value={chatInput}
-                  onChange={e => setChatInput(e.target.value)}
-                  onKeyDown={e => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); }}}
-                  className="flex-1 resize-none bg-slate-50 border border-slate-200 rounded-xl p-3 max-h-32 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 transition-all text-slate-700"
+                  onChange={(e) => setChatInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
+                  className="surface-soft min-h-[54px] flex-1 resize-none rounded-2xl px-4 py-3 text-sm outline-none transition focus:ring-2 focus:ring-indigo-500/40"
                   rows={2}
                   placeholder="Ask a question about the uploaded materials..."
                 />
-                <button 
+                <button
                   onClick={handleSendMessage}
                   disabled={isChatLoading || !chatInput.trim()}
-                  className="shrink-0 p-3 bg-indigo-600 text-white rounded-xl shadow-sm hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center justify-center"
+                  className="flex h-[54px] shrink-0 items-center justify-center rounded-2xl bg-accent px-4 text-white transition hover:-translate-y-0.5 disabled:opacity-50"
                 >
-                  <MessageSquare className="w-5 h-5" />
+                  <MessageSquare className="h-5 w-5" />
                 </button>
               </div>
-              <div className="text-center mt-3 text-[11px] text-slate-400 font-medium">
-                Responses are generated by AI grounded in your {module.files.length} uploaded files.
+              <div className="mt-3 text-center text-[10px] uppercase tracking-[0.24em] text-muted">
+                Responses are grounded in your module files
               </div>
             </div>
           </div>

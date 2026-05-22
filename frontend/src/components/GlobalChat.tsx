@@ -1,8 +1,9 @@
 import React from 'react';
-import { Sparkles, ChevronRight, Loader2, X } from 'lucide-react';
+import { ChevronRight, Loader2, Sparkles, X } from 'lucide-react';
 import { AppState, ChatMessage } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import Markdown from 'react-markdown';
+import { AI_MODELS, AIModelId, DEFAULT_AI_MODEL } from '../lib/models';
 
 interface GlobalChatProps {
   onClose: () => void;
@@ -13,7 +14,7 @@ interface GlobalChatProps {
 export function GlobalChat({ onClose, state, updateState }: GlobalChatProps) {
   const [input, setInput] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
-  const [model, setModel] = React.useState('gemini-2.5-flash');
+  const [model, setModel] = React.useState(DEFAULT_AI_MODEL);
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
@@ -29,10 +30,10 @@ export function GlobalChat({ onClose, state, updateState }: GlobalChatProps) {
       id: uuidv4(),
       role: 'user',
       text: input,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
-    updateState(prev => ({ ...prev, globalChatHistory: [...prev.globalChatHistory, userMessage] }));
+    updateState((prev) => ({ ...prev, globalChatHistory: [...prev.globalChatHistory, userMessage] }));
     setInput('');
     setIsLoading(true);
 
@@ -47,21 +48,25 @@ export function GlobalChat({ onClose, state, updateState }: GlobalChatProps) {
           context: {
             tasks: state.tasks,
             events: state.events,
-            modules: state.modules.map(m => m.title)
-          }
-        })
+            modules: state.modules.map((module) => ({
+              title: module.title,
+              code: module.code,
+              fileCount: module.files.length,
+            })),
+          },
+        }),
       });
-      
+
       const data = await response.json();
-      
+
       const modelMessage: ChatMessage = {
         id: uuidv4(),
         role: 'model',
         text: data.text || 'Sorry, I encountered an error.',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
-      updateState(prev => ({ ...prev, globalChatHistory: [...prev.globalChatHistory, modelMessage] }));
+      updateState((prev) => ({ ...prev, globalChatHistory: [...prev.globalChatHistory, modelMessage] }));
     } catch (error) {
       console.error(error);
     } finally {
@@ -70,93 +75,91 @@ export function GlobalChat({ onClose, state, updateState }: GlobalChatProps) {
   };
 
   return (
-    <div className="fixed inset-y-0 right-0 w-[400px] bg-white shadow-2xl border-l border-slate-200 flex flex-col z-50 animate-in slide-in-from-right duration-300">
-      <div className="h-14 border-b border-slate-100 flex items-center justify-between px-4 bg-indigo-50/30 text-indigo-900 border-l-[3px] border-l-indigo-500">
-        <div className="flex items-center space-x-3">
-          <div className="flex items-center">
-            <Sparkles className="w-4 h-4 mr-2" />
-            <span className="font-semibold text-sm">AI Assistant</span>
+    <div className="surface-strong fixed inset-y-0 right-0 z-50 flex w-full max-w-[430px] flex-col border-l border-subtle animate-fade-up md:w-[430px]">
+      <div className="flex items-center justify-between border-b border-subtle px-4 py-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-accent text-white shadow-lg shadow-indigo-500/20">
+            <Sparkles className="h-4.5 w-4.5" />
           </div>
-          <select 
-            value={model}
-            onChange={(e) => setModel(e.target.value)}
-            className="text-[10px] uppercase tracking-wider font-semibold bg-white/50 border border-indigo-100 text-indigo-600 rounded py-0.5 px-1 focus:outline-none focus:ring-1 focus:ring-indigo-300"
-          >
-            <option value="gemini-2.5-flash">Flash (Free)</option>
-            <option value="gemini-2.5-pro">Pro</option>
-          </select>
+          <div>
+            <p className="text-xs uppercase tracking-[0.24em] text-muted">Global assistant</p>
+            <h2 className="text-base font-semibold">AI anywhere in the workspace</h2>
+          </div>
         </div>
-        <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors p-1" aria-label="Close chat">
-          <X className="w-5 h-5" />
+        <button onClick={onClose} className="rounded-full p-2 text-muted transition hover:bg-white/5 hover:text-white" aria-label="Close chat">
+          <X className="h-5 w-5" />
         </button>
       </div>
-      
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 text-sm bg-slate-50/50" ref={scrollRef}>
+
+      <div className="border-b border-subtle px-4 py-3">
+        <select
+          value={model}
+          onChange={(e) => setModel(e.target.value as AIModelId)}
+          className="surface-soft w-full rounded-2xl px-3 py-3 text-sm outline-none transition focus:ring-2 focus:ring-indigo-500/40"
+        >
+          {AI_MODELS.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.label} · {option.badge}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 text-sm" ref={scrollRef}>
         {state.globalChatHistory.length === 0 && (
-          <div className="flex gap-3">
-            <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center shrink-0 mt-1">
-              <Sparkles className="w-3 h-3 text-indigo-600" />
+          <div className="surface rounded-3xl p-4 text-sm text-muted">
+            <p className="text-base text-white">Start with a question about tasks, schedule, or modules.</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button onClick={() => setInput('What do I need to finish this week?')} className="surface-soft rounded-full px-3 py-1.5 text-xs transition hover:text-white">Due this week</button>
+              <button onClick={() => setInput('Summarize my modules and file counts.')} className="surface-soft rounded-full px-3 py-1.5 text-xs transition hover:text-white">Module summary</button>
             </div>
-            <div className="bg-white border border-slate-200 p-3 rounded-2xl rounded-tl-sm shadow-sm text-slate-700">
-              <p>Hi! I'm your global assistant. I know about your tasks, schedule, and uploaded modules.</p>
-              <div className="flex flex-wrap gap-2 mt-3">
-                  <button onClick={() => setInput("What do I have due today?")} className="px-2.5 py-1 text-xs border border-slate-200 rounded-full hover:bg-slate-50 text-slate-600 transition-colors">What's due today?</button>
-                  <button onClick={() => setInput("What modules am I taking?")} className="px-2.5 py-1 text-xs border border-slate-200 rounded-full hover:bg-slate-50 text-slate-600 transition-colors">My modules</button>
+          </div>
+        )}
+
+        {state.globalChatHistory.map((message) => (
+          <div key={message.id} className={`flex gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}>
+            <div className={`mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${message.role === 'user' ? 'bg-white text-slate-950' : 'bg-accent text-white'}`}>
+              {message.role === 'user' ? <span className="text-xs font-bold">L</span> : <Sparkles className="h-3.5 w-3.5" />}
+            </div>
+            <div className={`max-w-[85%] rounded-3xl border px-4 py-3 shadow-sm ${message.role === 'user' ? 'border-transparent bg-white text-slate-950' : 'border-subtle bg-white/5 text-white'}`}>
+              <div className={`prose prose-sm max-w-none ${message.role === 'user' ? 'prose-slate' : 'prose-invert'}`}>
+                <Markdown>{message.text}</Markdown>
               </div>
             </div>
           </div>
-        )}
-
-        {state.globalChatHistory.map(msg => (
-          <div key={msg.id} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-             <div className={`shrink-0 mt-1 flex items-center justify-center w-6 h-6 rounded-full ${msg.role === 'user' ? 'bg-slate-800' : 'bg-indigo-100'}`}>
-                {msg.role === 'user' ? 
-                  <span className="text-xs font-bold text-white">L</span> : 
-                  <Sparkles className="w-3 h-3 text-indigo-600" />
-                }
-             </div>
-             <div className={`p-3 rounded-2xl shadow-sm border max-w-[85%] overflow-hidden ${
-               msg.role === 'user' 
-                ? 'bg-slate-800 text-white border-transparent rounded-tr-sm' 
-                : 'bg-white border-slate-200 text-slate-700 rounded-tl-sm'
-             }`}>
-               <div className={`prose prose-sm max-w-none ${msg.role === 'user' ? 'prose-invert' : ''}`}>
-                 <Markdown>{msg.text}</Markdown>
-               </div>
-             </div>
-          </div>
         ))}
+
         {isLoading && (
           <div className="flex gap-3">
-             <div className="shrink-0 mt-1 flex items-center justify-center w-6 h-6 rounded-full bg-indigo-100">
-                 <Sparkles className="w-3 h-3 text-indigo-600" />
-             </div>
-             <div className="p-3 bg-white border border-slate-200 text-slate-700 rounded-2xl rounded-tl-sm shadow-sm flex items-center">
-                <Loader2 className="w-4 h-4 animate-spin text-indigo-500 mr-2" />
-                <span className="text-xs text-slate-500">AI is thinking...</span>
-             </div>
+            <div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent text-white">
+              <Sparkles className="h-3.5 w-3.5" />
+            </div>
+            <div className="flex items-center rounded-3xl border border-subtle bg-white/5 px-4 py-3 text-sm text-muted">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin text-accent" />
+              AI is thinking...
+            </div>
           </div>
         )}
       </div>
 
-      <div className="p-4 bg-white border-t border-slate-100">
+      <div className="border-t border-subtle p-4">
         <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="relative flex">
-            <input 
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-3 pr-10 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 transition-shadow"
-              placeholder="Ask anything about your tasks, schedule, or files..."
-            />
-            <button 
-              type="submit"
-              disabled={isLoading || !input.trim()}
-              className="absolute right-2 top-1.5 bottom-1.5 px-2 text-white bg-indigo-600 rounded-lg shadow hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:hover:bg-indigo-600 flex items-center justify-center"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            className="surface-soft w-full rounded-2xl px-4 py-3 pr-12 text-sm outline-none transition focus:ring-2 focus:ring-indigo-500/40"
+            placeholder="Ask anything about your tasks, schedule, or files..."
+          />
+          <button
+            type="submit"
+            disabled={isLoading || !input.trim()}
+            className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center justify-center rounded-xl bg-accent px-3 py-2 text-white transition hover:scale-[1.02] disabled:opacity-50"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
         </form>
-        <div className="text-[10px] text-center mt-2 text-slate-400">
-          The AI uses RAG to access your uploaded module files and tasks.
+        <div className="mt-2 text-center text-[10px] uppercase tracking-[0.24em] text-muted">
+          Global memory · context aware · RAG-ready
         </div>
       </div>
     </div>

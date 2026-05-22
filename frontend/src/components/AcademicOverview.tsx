@@ -18,12 +18,12 @@ export function AcademicOverview({ modules, onOpenModule, onAddModule }: Academi
 
   const getBadgeColors = (color: Module['color']) => {
     switch (color) {
-      case 'amber': return 'bg-amber-100 text-amber-700';
-      case 'blue': return 'bg-blue-100 text-blue-700';
-      case 'emerald': return 'bg-emerald-100 text-emerald-700';
-      case 'purple': return 'bg-purple-100 text-purple-700';
-      case 'rose': return 'bg-rose-100 text-rose-700';
-      default: return 'bg-slate-100 text-slate-700';
+      case 'amber': return 'bg-amber-400/15 text-amber-300';
+      case 'blue': return 'bg-sky-400/15 text-sky-300';
+      case 'emerald': return 'bg-emerald-400/15 text-emerald-300';
+      case 'purple': return 'bg-violet-400/15 text-violet-300';
+      case 'rose': return 'bg-rose-400/15 text-rose-300';
+      default: return 'bg-white/5 text-white';
     }
   };
 
@@ -43,100 +43,128 @@ export function AcademicOverview({ modules, onOpenModule, onAddModule }: Academi
     }
     return 0;
   });
-  
+
   if (sortOrder === 'newest') {
     sortedModules.reverse();
   }
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-      <header className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+    <div className="animate-fade-up text-white">
+      <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight mb-2 text-slate-900">Academic Overview</h1>
-          <p className="text-slate-500">Manage your university modules, files, and AI study sessions.</p>
+          <p className="text-xs uppercase tracking-[0.24em] text-muted">Academic space</p>
+          <h1 className="mt-2 text-3xl font-semibold">Modules, files, and AI study rooms</h1>
+          <p className="mt-2 max-w-2xl text-sm text-muted">Create a module, then attach lecture files and study with a model of your choice.</p>
         </div>
-        <div className="flex items-center space-x-2">
-          <span className="text-sm font-medium text-slate-500">Sort by:</span>
-          <select 
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted">Sort</span>
+          <select
             value={sortOrder}
             onChange={(e) => setSortOrder(e.target.value as any)}
-            className="text-sm border border-slate-200 rounded-md py-1.5 px-3 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400"
+            className="surface-soft rounded-2xl px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-indigo-500/40"
           >
-            <option value="newest">Recently Added</option>
-            <option value="alpha">Alphabetical (A-Z)</option>
+            <option value="newest">Recently added</option>
+            <option value="alpha">Alphabetical</option>
           </select>
         </div>
       </header>
 
-      {/* Modules Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-          {sortedModules.map((mod) => (
-            <div 
-              key={mod.id} 
-              onClick={() => onOpenModule(mod.id)}
-              className="group border border-slate-200 rounded-xl p-5 hover:shadow-md transition-all cursor-pointer bg-white flex flex-col"
-            >
-                <div className="flex justify-between items-start mb-4">
-                  <div className={cn('p-2 rounded-lg', getBadgeColors(mod.color))}>
-                    <BookOpen className="w-5 h-5" />
-                  </div>
-                  <span className="text-xs font-mono text-slate-400 bg-slate-50 px-2 py-1 rounded">{mod.code}</span>
-                </div>
-                <h3 className="font-semibold mb-1 group-hover:text-indigo-600 transition-colors">{mod.title}</h3>
-                <div className="flex items-center text-xs text-slate-500 space-x-3 mt-auto pt-4">
-                  <span className="flex items-center"><FileText className="w-3 h-3 mr-1"/> {mod.files.length} files</span>
-                  <span className="flex items-center"><MessageSquare className="w-3 h-3 mr-1"/> {Math.floor(mod.chatHistory.length / 2)} chats</span>
-                </div>
-            </div>
-          ))}
-          <div 
-            onClick={() => setIsAdding(true)}
-            className="border border-dashed border-slate-300 rounded-xl p-5 flex flex-col items-center justify-center text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors cursor-pointer min-h-[140px]"
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {sortedModules.map((module) => (
+          <button
+            key={module.id}
+            onClick={() => onOpenModule(module.id)}
+            className="surface-soft group rounded-3xl p-5 text-left transition hover:-translate-y-0.5 hover:bg-white/10"
           >
-              <span className="p-2 rounded-full bg-slate-100 mb-2 group-hover:bg-slate-200 transition-colors"><Plus className="w-5 h-5 text-slate-400" /></span>
-              <span className="text-sm font-medium">New Module</span>
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div className={cn('rounded-2xl p-3', getBadgeColors(module.color))}>
+                <BookOpen className="h-5 w-5" />
+              </div>
+              <span className="rounded-full border border-white/10 px-3 py-1 text-xs uppercase tracking-[0.2em] text-muted">{module.code}</span>
+            </div>
+            <h3 className="text-xl font-semibold group-hover:text-white">{module.title}</h3>
+            <div className="mt-4 flex items-center justify-between text-xs text-muted">
+              <span className="inline-flex items-center gap-1.5"><FileText className="h-3.5 w-3.5" /> {module.files.length} files</span>
+              <span className="inline-flex items-center gap-1.5"><MessageSquare className="h-3.5 w-3.5" /> {Math.floor(module.chatHistory.length / 2)} chats</span>
+            </div>
+          </button>
+        ))}
+
+        <button
+          onClick={() => setIsAdding(true)}
+          className="surface rounded-3xl border border-dashed border-white/15 p-5 text-left transition hover:-translate-y-0.5 hover:bg-white/10"
+        >
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5 text-accent">
+            <Plus className="h-5 w-5" />
           </div>
+          <h3 className="mt-5 text-xl font-semibold">New module</h3>
+          <p className="mt-1 text-sm text-muted">Create a fresh academic workspace.</p>
+        </button>
       </div>
 
       {isAdding && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-              <h2 className="text-lg font-semibold text-slate-800">Add New Module</h2>
-              <button onClick={() => setIsAdding(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
-                <X className="w-5 h-5" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm animate-fade-in">
+          <div className="surface-strong w-full max-w-lg rounded-[2rem] p-6 text-white">
+            <div className="mb-6 flex items-center justify-between gap-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.24em] text-muted">Create module</p>
+                <h2 className="mt-1 text-2xl font-semibold">Add a new academic space</h2>
+              </div>
+              <button onClick={() => setIsAdding(false)} className="rounded-full p-2 text-muted transition hover:bg-white/5 hover:text-white">
+                <X className="h-5 w-5" />
               </button>
             </div>
-            <form onSubmit={handleAddSubmit} className="p-6">
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Module Title</label>
-                  <input required autoFocus value={newTitle} onChange={e => setNewTitle(e.target.value)} type="text" placeholder="e.g. Artificial Intelligence" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 text-sm" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Module Code</label>
-                  <input required value={newCode} onChange={e => setNewCode(e.target.value)} type="text" placeholder="e.g. CS-301" className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400 text-sm font-mono" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Color Label</label>
-                  <div className="flex gap-3">
-                    {(['blue', 'amber', 'emerald', 'purple', 'rose'] as Module['color'][]).map(c => (
-                      <div 
-                        key={c} 
-                        onClick={() => setNewColor(c)}
-                        className={cn(
-                          "w-8 h-8 rounded-full cursor-pointer flex items-center justify-center border-2 transition-all",
-                          newColor === c ? "border-slate-400 scale-110" : "border-transparent hover:scale-110",
-                          c === 'blue' ? 'bg-blue-400' : c === 'amber' ? 'bg-amber-400' : c === 'emerald' ? 'bg-emerald-400' : c === 'purple' ? 'bg-purple-400' : 'bg-rose-400'
-                        )}
-                      />
-                    ))}
-                  </div>
+
+            <form onSubmit={handleAddSubmit} className="space-y-4">
+              <div>
+                <label className="mb-2 block text-sm text-muted">Module title</label>
+                <input
+                  required
+                  autoFocus
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  type="text"
+                  placeholder="Artificial Intelligence"
+                  className="surface-soft w-full rounded-2xl px-4 py-3 text-sm outline-none transition focus:ring-2 focus:ring-indigo-500/40"
+                />
+              </div>
+              <div>
+                <label className="mb-2 block text-sm text-muted">Module code</label>
+                <input
+                  required
+                  value={newCode}
+                  onChange={(e) => setNewCode(e.target.value)}
+                  type="text"
+                  placeholder="CS-301"
+                  className="surface-soft w-full rounded-2xl px-4 py-3 text-sm outline-none transition focus:ring-2 focus:ring-indigo-500/40"
+                />
+              </div>
+              <div>
+                <label className="mb-3 block text-sm text-muted">Accent color</label>
+                <div className="flex flex-wrap gap-3">
+                  {(['blue', 'amber', 'emerald', 'purple', 'rose'] as Module['color'][]).map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      onClick={() => setNewColor(color)}
+                      className={cn(
+                        'h-10 rounded-full px-4 text-sm font-medium transition',
+                        newColor === color ? 'bg-white text-slate-950' : 'surface-soft text-muted'
+                      )}
+                    >
+                      {color}
+                    </button>
+                  ))}
                 </div>
               </div>
-              <div className="mt-6 flex gap-3">
-                <button type="button" onClick={() => setIsAdding(false)} className="flex-1 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors">Cancel</button>
-                <button type="submit" className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">Create Module</button>
+
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setIsAdding(false)} className="surface-soft flex-1 rounded-2xl px-4 py-3 text-sm font-medium text-muted transition hover:text-white">
+                  Cancel
+                </button>
+                <button type="submit" className="flex-1 rounded-2xl bg-accent px-4 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5">
+                  Create module
+                </button>
               </div>
             </form>
           </div>
