@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Module, UploadedFile, ChatMessage } from '../types';
-import { ChevronLeft, FileText, Upload, FileUp, Sparkles, MessageSquare, Loader2, X } from 'lucide-react';
+import { ChevronLeft, FileText, Upload, FileUp, Sparkles, MessageSquare, Loader2, X, ChevronDown } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import Markdown from 'react-markdown';
 import { AI_MODELS, AIModelId, DEFAULT_AI_MODEL } from '../lib/models';
@@ -18,6 +18,8 @@ export function ModuleDetail({ module, onBack, updateModule }: ModuleDetailProps
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [chatModel, setChatModel] = useState(DEFAULT_AI_MODEL);
   const [fileSort, setFileSort] = useState<'newest' | 'oldest' | 'alpha'>('newest');
+  const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
+  const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
@@ -103,15 +105,15 @@ export function ModuleDetail({ module, onBack, updateModule }: ModuleDetailProps
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-190px)] flex-col text-white">
+    <div className="flex min-h-[calc(100vh-190px)] flex-col text-[color:var(--text)]">
       <header className="mb-6 flex shrink-0 items-start justify-between gap-4">
         <div>
-          <button onClick={onBack} className="mb-3 inline-flex items-center gap-2 text-sm text-muted transition hover:text-white">
+          <button onClick={onBack} className="mb-3 inline-flex items-center gap-2 text-sm text-muted transition hover:text-[color:var(--text)]">
             <ChevronLeft className="h-4 w-4" /> Back to overview
           </button>
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-semibold tracking-tight">{module.title}</h1>
-            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-mono text-muted">{module.code}</span>
+            <span className="rounded-full border border-subtle surface-soft px-3 py-1 text-xs font-mono text-muted">{module.code}</span>
           </div>
         </div>
       </header>
@@ -120,30 +122,47 @@ export function ModuleDetail({ module, onBack, updateModule }: ModuleDetailProps
         <div className="flex gap-3">
           <button
             onClick={() => setActiveTab('files')}
-            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm transition ${activeTab === 'files' ? 'bg-white text-slate-950' : 'text-muted hover:text-white'}`}
+            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm transition ${activeTab === 'files' ? 'bg-[color:var(--text)] text-[color:var(--app-bg)]' : 'text-muted hover:text-[color:var(--text)]'}`}
           >
             <FileText className="h-4 w-4" /> Files
           </button>
           <button
             onClick={() => setActiveTab('chat')}
-            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm transition ${activeTab === 'chat' ? 'bg-white text-slate-950' : 'text-muted hover:text-white'}`}
+            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm transition ${activeTab === 'chat' ? 'bg-[color:var(--text)] text-[color:var(--app-bg)]' : 'text-muted hover:text-[color:var(--text)]'}`}
           >
             <MessageSquare className="h-4 w-4" /> Study chat
           </button>
         </div>
 
         {activeTab === 'chat' && (
-          <select
-            value={chatModel}
-            onChange={(e) => setChatModel(e.target.value as AIModelId)}
-            className="surface-soft rounded-2xl px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-indigo-500/40"
-          >
-            {AI_MODELS.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <button
+              onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
+              className="surface-soft flex items-center gap-2 rounded-2xl px-4 py-2 text-sm outline-none transition focus:ring-2 focus:ring-indigo-500/40"
+            >
+              {AI_MODELS.find(m => m.id === chatModel)?.label}
+              <ChevronDown className="h-4 w-4 text-muted" />
+            </button>
+            {isModelDropdownOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setIsModelDropdownOpen(false)} />
+                <div className="absolute right-0 top-full z-20 mt-2 min-w-[180px] overflow-hidden rounded-2xl surface border border-subtle shadow-xl p-1.5">
+                  {AI_MODELS.map((option) => (
+                    <button
+                      key={option.id}
+                      onClick={() => {
+                        setChatModel(option.id);
+                        setIsModelDropdownOpen(false);
+                      }}
+                      className={`w-full rounded-xl px-4 py-2.5 text-left text-sm transition ${chatModel === option.id ? 'bg-accent text-white font-medium' : 'text-[color:var(--text)] hover:surface-soft'}`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         )}
       </div>
 
@@ -166,15 +185,38 @@ export function ModuleDetail({ module, onBack, updateModule }: ModuleDetailProps
 
             <div className="mt-6 flex items-center justify-between gap-4">
               <h3 className="text-lg font-semibold">Uploaded files ({module.files.length})</h3>
-              <select
-                value={fileSort}
-                onChange={(e) => setFileSort(e.target.value as any)}
-                className="surface-soft rounded-2xl px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-indigo-500/40"
-              >
-                <option value="newest">Newest first</option>
-                <option value="oldest">Oldest first</option>
-                <option value="alpha">Alphabetical</option>
-              </select>
+              <div className="relative">
+                <button
+                  onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
+                  className="surface-soft flex items-center gap-2 rounded-2xl px-4 py-2 text-sm outline-none transition focus:ring-2 focus:ring-indigo-500/40"
+                >
+                  {fileSort === 'newest' ? 'Newest first' : fileSort === 'oldest' ? 'Oldest first' : 'Alphabetical'}
+                  <ChevronDown className="h-4 w-4 text-muted" />
+                </button>
+                {isSortDropdownOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setIsSortDropdownOpen(false)} />
+                    <div className="absolute right-0 top-full z-20 mt-2 min-w-[160px] overflow-hidden rounded-2xl surface border border-subtle shadow-xl p-1.5">
+                      {[
+                        { id: 'newest', label: 'Newest first' },
+                        { id: 'oldest', label: 'Oldest first' },
+                        { id: 'alpha', label: 'Alphabetical' },
+                      ].map((option) => (
+                        <button
+                          key={option.id}
+                          onClick={() => {
+                            setFileSort(option.id as any);
+                            setIsSortDropdownOpen(false);
+                          }}
+                          className={`w-full rounded-xl px-4 py-2.5 text-left text-sm transition ${fileSort === option.id ? 'bg-accent text-white font-medium' : 'text-[color:var(--text)] hover:surface-soft'}`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
 
             <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -187,7 +229,7 @@ export function ModuleDetail({ module, onBack, updateModule }: ModuleDetailProps
                 .map((file) => (
                   <div key={file.id} className="surface-soft group relative rounded-3xl p-4 transition hover:-translate-y-0.5">
                     <div className="flex items-start gap-3">
-                      <div className="rounded-2xl bg-white/5 p-3 text-accent">
+                      <div className="rounded-2xl surface-soft p-3 text-accent border border-subtle">
                         <FileUp className="h-5 w-5" />
                       </div>
                       <div className="min-w-0 flex-1 pr-8">
@@ -199,7 +241,7 @@ export function ModuleDetail({ module, onBack, updateModule }: ModuleDetailProps
                     </div>
                     <button
                       onClick={() => updateModule(module.id, { files: module.files.filter((currentFile) => currentFile.id !== file.id) })}
-                      className="absolute right-3 top-3 rounded-full p-2 text-muted opacity-70 transition hover:bg-white/10 hover:text-white"
+                      className="absolute right-3 top-3 rounded-full p-2 text-muted opacity-70 transition hover:surface-soft hover:text-[color:var(--text)]"
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -218,7 +260,7 @@ export function ModuleDetail({ module, onBack, updateModule }: ModuleDetailProps
                   <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-white shadow-lg shadow-indigo-500/20">
                     <Sparkles className="h-6 w-6" />
                   </div>
-                  <h3 className="text-xl font-semibold text-white">Module AI assistant</h3>
+                  <h3 className="text-xl font-semibold text-[color:var(--text)]">Module AI assistant</h3>
                   <p className="mt-2 text-sm leading-6">
                     Ask for summaries, explanations, flashcards, or exam-style questions based on {module.code} materials.
                   </p>
@@ -227,10 +269,10 @@ export function ModuleDetail({ module, onBack, updateModule }: ModuleDetailProps
 
               {module.chatHistory.map((message) => (
                 <div key={message.id} className={`flex gap-4 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                  <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${message.role === 'user' ? 'bg-white text-slate-950' : 'bg-accent text-white'}`}>
+                  <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${message.role === 'user' ? 'bg-[color:var(--text)] text-[color:var(--app-bg)]' : 'bg-accent text-white'}`}>
                     {message.role === 'user' ? <span className="text-sm font-bold">L</span> : <Sparkles className="h-4 w-4" />}
                   </div>
-                  <div className={`max-w-[82%] rounded-3xl border px-4 py-3 text-sm leading-relaxed shadow-sm ${message.role === 'user' ? 'border-transparent bg-white text-slate-950' : 'border-subtle bg-white/5 text-white'}`}>
+                  <div className={`max-w-[82%] rounded-3xl border px-4 py-3 text-sm leading-relaxed shadow-sm ${message.role === 'user' ? 'border-transparent bg-[color:var(--text)] text-[color:var(--app-bg)]' : 'border-subtle surface-soft text-[color:var(--text)]'}`}>
                     <div className={`prose prose-sm max-w-none ${message.role === 'user' ? 'prose-slate' : 'prose-invert'}`}>
                       <Markdown>{message.text}</Markdown>
                     </div>
@@ -243,7 +285,7 @@ export function ModuleDetail({ module, onBack, updateModule }: ModuleDetailProps
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-white">
                     <Sparkles className="h-4 w-4" />
                   </div>
-                  <div className="flex items-center rounded-3xl border border-subtle bg-white/5 px-4 py-3 text-sm text-muted">
+                  <div className="flex items-center rounded-3xl border border-subtle surface-soft px-4 py-3 text-sm text-muted">
                     <Loader2 className="mr-2 h-4 w-4 animate-spin text-accent" /> AI is synthesizing...
                   </div>
                 </div>

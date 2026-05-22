@@ -25,7 +25,7 @@ export function PersonalDashboard({ tasks, events, onToggleTask, onAddTask }: Pe
   };
 
   return (
-    <div className="animate-fade-up text-white">
+    <div className="animate-fade-up text-[color:var(--text)]">
       <header className="mb-8">
         <p className="text-xs uppercase tracking-[0.24em] text-muted">Personal space</p>
         <h1 className="mt-2 text-3xl font-semibold">Tasks, events, and daily focus</h1>
@@ -55,12 +55,12 @@ export function PersonalDashboard({ tasks, events, onToggleTask, onAddTask }: Pe
                   className="mr-4 h-4 w-4 rounded border-white/20 text-accent focus:ring-accent"
                 />
                 <div className="min-w-0 flex-1">
-                  <p className={cn('truncate text-sm font-medium', task.done ? 'text-muted line-through' : 'text-white')}>
+                  <p className={cn('truncate text-sm font-medium', task.done ? 'text-muted line-through' : 'text-[color:var(--text)]')}>
                     {task.title}
                   </p>
                 </div>
                 {task.priority === 'high' && !task.done && <span className="mx-3 h-2 w-2 rounded-full bg-rose-400" />}
-                <div className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-muted">
+                <div className="inline-flex items-center gap-1.5 rounded-full border border-subtle surface-soft px-3 py-1.5 text-xs text-muted">
                   <Clock className="h-3.5 w-3.5" /> {task.time}
                 </div>
               </button>
@@ -86,7 +86,7 @@ export function PersonalDashboard({ tasks, events, onToggleTask, onAddTask }: Pe
                     <option value="low">Low priority</option>
                   </select>
                   <div className="flex gap-2">
-                    <button type="button" onClick={() => setIsAddingTask(false)} className="surface-soft rounded-2xl px-4 py-2 text-sm text-muted transition hover:text-white">
+                    <button type="button" onClick={() => setIsAddingTask(false)} className="surface-soft rounded-2xl px-4 py-2 text-sm text-muted transition hover:text-[color:var(--text)]">
                       Cancel
                     </button>
                     <button type="submit" className="rounded-2xl bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:-translate-y-0.5">
@@ -98,7 +98,7 @@ export function PersonalDashboard({ tasks, events, onToggleTask, onAddTask }: Pe
             ) : (
               <button
                 onClick={() => setIsAddingTask(true)}
-                className="surface-soft flex w-full items-center justify-center gap-2 rounded-3xl border border-dashed border-white/10 px-4 py-4 text-sm text-muted transition hover:text-white"
+                className="surface-soft flex w-full items-center justify-center gap-2 rounded-3xl border border-dashed border-subtle px-4 py-4 text-sm text-muted transition hover:text-[color:var(--text)]"
               >
                 <Plus className="h-4 w-4" /> Add new task
               </button>
@@ -116,7 +116,7 @@ export function PersonalDashboard({ tasks, events, onToggleTask, onAddTask }: Pe
               <div className="text-[11px] uppercase tracking-[0.24em] text-muted">Tomorrow</div>
             </div>
             <div className="relative space-y-4 p-4">
-              <div className="absolute left-[23px] top-4 bottom-4 w-px bg-white/10" />
+              <div className="absolute left-[23px] top-4 bottom-4 w-px bg-current opacity-10" />
               {events.map((event) => (
                 <div key={event.id} className="group relative flex items-start">
                   <div
@@ -126,10 +126,10 @@ export function PersonalDashboard({ tasks, events, onToggleTask, onAddTask }: Pe
                     )}
                   />
                   <div className="transition group-hover:translate-x-1">
-                    <p className="text-sm font-medium text-white">{event.title}</p>
+                    <p className="text-sm font-medium text-[color:var(--text)]">{event.title}</p>
                     <p className="mt-0.5 text-xs text-muted">{event.startTime} - {event.endTime}</p>
                     {event.description && (
-                      <p className="mt-1 max-w-[220px] rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] text-muted">
+                      <p className="mt-1 max-w-[220px] rounded-2xl border border-subtle surface-soft px-3 py-2 text-[11px] text-muted">
                         {event.description}
                       </p>
                     )}

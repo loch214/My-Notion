@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronRight, Loader2, Sparkles, X } from 'lucide-react';
+import { ChevronRight, Loader2, Sparkles, X, ChevronDown } from 'lucide-react';
 import { AppState, ChatMessage } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import Markdown from 'react-markdown';
@@ -15,6 +15,7 @@ export function GlobalChat({ onClose, state, updateState }: GlobalChatProps) {
   const [input, setInput] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
   const [model, setModel] = React.useState(DEFAULT_AI_MODEL);
+  const [isModelDropdownOpen, setIsModelDropdownOpen] = React.useState(false);
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
@@ -75,7 +76,7 @@ export function GlobalChat({ onClose, state, updateState }: GlobalChatProps) {
   };
 
   return (
-    <div className="surface-strong fixed inset-y-0 right-0 z-50 flex w-full max-w-[430px] flex-col border-l border-subtle animate-fade-up md:w-[430px]">
+    <div className="surface-strong fixed inset-y-0 right-0 z-50 flex w-full max-w-[430px] flex-col border-l border-subtle animate-fade-up md:w-[430px] text-[color:var(--text)]">
       <div className="flex items-center justify-between border-b border-subtle px-4 py-4">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-accent text-white shadow-lg shadow-indigo-500/20">
@@ -86,42 +87,59 @@ export function GlobalChat({ onClose, state, updateState }: GlobalChatProps) {
             <h2 className="text-base font-semibold">AI anywhere in the workspace</h2>
           </div>
         </div>
-        <button onClick={onClose} className="rounded-full p-2 text-muted transition hover:bg-white/5 hover:text-white" aria-label="Close chat">
+        <button onClick={onClose} className="rounded-full p-2 text-muted transition hover:surface-soft hover:text-[color:var(--text)]" aria-label="Close chat">
           <X className="h-5 w-5" />
         </button>
       </div>
 
       <div className="border-b border-subtle px-4 py-3">
-        <select
-          value={model}
-          onChange={(e) => setModel(e.target.value as AIModelId)}
-          className="surface-soft w-full rounded-2xl px-3 py-3 text-sm outline-none transition focus:ring-2 focus:ring-indigo-500/40"
-        >
-          {AI_MODELS.map((option) => (
-            <option key={option.id} value={option.id}>
-              {option.label} · {option.badge}
-            </option>
-          ))}
-        </select>
+        <div className="relative">
+          <button
+            onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
+            className="surface-soft flex w-full items-center justify-between rounded-2xl px-4 py-3 text-sm outline-none transition focus:ring-2 focus:ring-indigo-500/40"
+          >
+            {AI_MODELS.find(m => m.id === model)?.label} · {AI_MODELS.find(m => m.id === model)?.badge}
+            <ChevronDown className="h-4 w-4 text-muted" />
+          </button>
+          {isModelDropdownOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setIsModelDropdownOpen(false)} />
+              <div className="absolute left-0 right-0 top-full z-20 mt-2 overflow-hidden rounded-2xl surface border border-subtle shadow-xl p-1.5">
+                {AI_MODELS.map((option) => (
+                  <button
+                    key={option.id}
+                    onClick={() => {
+                      setModel(option.id as AIModelId);
+                      setIsModelDropdownOpen(false);
+                    }}
+                    className={`w-full rounded-xl px-4 py-3 text-left text-sm transition ${model === option.id ? 'bg-accent text-white font-medium' : 'text-[color:var(--text)] hover:surface-soft'}`}
+                  >
+                    {option.label} · <span className={model === option.id ? 'text-indigo-100' : 'text-muted'}>{option.badge}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 text-sm" ref={scrollRef}>
         {state.globalChatHistory.length === 0 && (
           <div className="surface rounded-3xl p-4 text-sm text-muted">
-            <p className="text-base text-white">Start with a question about tasks, schedule, or modules.</p>
+            <p className="text-base text-[color:var(--text)]">Start with a question about tasks, schedule, or modules.</p>
             <div className="mt-3 flex flex-wrap gap-2">
-              <button onClick={() => setInput('What do I need to finish this week?')} className="surface-soft rounded-full px-3 py-1.5 text-xs transition hover:text-white">Due this week</button>
-              <button onClick={() => setInput('Summarize my modules and file counts.')} className="surface-soft rounded-full px-3 py-1.5 text-xs transition hover:text-white">Module summary</button>
+              <button onClick={() => setInput('What do I need to finish this week?')} className="surface-soft rounded-full px-3 py-1.5 text-xs transition hover:text-[color:var(--text)]">Due this week</button>
+              <button onClick={() => setInput('Summarize my modules and file counts.')} className="surface-soft rounded-full px-3 py-1.5 text-xs transition hover:text-[color:var(--text)]">Module summary</button>
             </div>
           </div>
         )}
 
         {state.globalChatHistory.map((message) => (
           <div key={message.id} className={`flex gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}>
-            <div className={`mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${message.role === 'user' ? 'bg-white text-slate-950' : 'bg-accent text-white'}`}>
+            <div className={`mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${message.role === 'user' ? 'bg-[color:var(--text)] text-[color:var(--app-bg)]' : 'bg-accent text-white'}`}>
               {message.role === 'user' ? <span className="text-xs font-bold">L</span> : <Sparkles className="h-3.5 w-3.5" />}
             </div>
-            <div className={`max-w-[85%] rounded-3xl border px-4 py-3 shadow-sm ${message.role === 'user' ? 'border-transparent bg-white text-slate-950' : 'border-subtle bg-white/5 text-white'}`}>
+            <div className={`max-w-[85%] rounded-3xl border px-4 py-3 shadow-sm ${message.role === 'user' ? 'border-transparent bg-[color:var(--text)] text-[color:var(--app-bg)]' : 'border-subtle surface-soft text-[color:var(--text)]'}`}>
               <div className={`prose prose-sm max-w-none ${message.role === 'user' ? 'prose-slate' : 'prose-invert'}`}>
                 <Markdown>{message.text}</Markdown>
               </div>
@@ -134,7 +152,7 @@ export function GlobalChat({ onClose, state, updateState }: GlobalChatProps) {
             <div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent text-white">
               <Sparkles className="h-3.5 w-3.5" />
             </div>
-            <div className="flex items-center rounded-3xl border border-subtle bg-white/5 px-4 py-3 text-sm text-muted">
+            <div className="flex items-center rounded-3xl border border-subtle surface-soft px-4 py-3 text-sm text-muted">
               <Loader2 className="mr-2 h-4 w-4 animate-spin text-accent" />
               AI is thinking...
             </div>

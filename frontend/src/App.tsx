@@ -73,144 +73,52 @@ export default function App() {
   const navItemClass = (isActive: boolean) => cn(
     'w-full flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition-all duration-200',
     isActive
-      ? 'bg-white/10 text-white shadow-[0_10px_40px_rgba(0,0,0,0.16)]'
-      : 'text-slate-300 hover:bg-white/5 hover:text-white'
+      ? 'surface-soft text-[color:var(--text)] font-medium shadow-sm'
+      : 'text-muted hover:surface-soft hover:text-[color:var(--text)]'
   );
 
   if (appStage === 'landing') {
     return (
-      <div className="app-shell relative overflow-hidden">
+      <div className="app-shell relative overflow-hidden text-[color:var(--text)]">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute -left-24 top-16 h-80 w-80 rounded-full bg-indigo-500/15 blur-3xl animate-drift" />
           <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-cyan-400/10 blur-3xl animate-drift" />
           <div className="absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-black/20 to-transparent" />
         </div>
 
-        <div className="relative mx-auto flex min-h-screen max-w-7xl flex-col px-4 py-5 sm:px-6 lg:px-8">
-          <header className="surface flex items-center justify-between rounded-3xl px-4 py-3 animate-fade-up">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-accent text-white shadow-lg shadow-indigo-500/25">
-                <Sparkles className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-[0.24em] text-muted">StudentOS</p>
-                <h1 className="text-base font-semibold">My-Notion workspace</h1>
-              </div>
+        <div className="relative flex min-h-screen flex-col items-center justify-center px-4">
+          <div className="absolute right-6 top-6">
+            <button
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className="surface-soft rounded-full p-3 text-muted transition hover:text-[color:var(--text)]"
+              aria-label="Toggle theme"
+            >
+              {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </button>
+          </div>
+
+          <main className="flex w-full max-w-2xl flex-col items-center text-center animate-fade-up">
+            <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-[2rem] bg-accent text-white shadow-xl shadow-indigo-500/25">
+              <Sparkles className="h-10 w-10" />
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                className="surface-soft rounded-full p-2.5 text-muted transition hover:text-white"
-                aria-label="Toggle theme"
-              >
-                {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              </button>
+            
+            <h1 className="text-6xl font-bold tracking-tight sm:text-7xl lg:text-8xl">
+              My-Notion
+            </h1>
+            
+            <p className="mt-6 text-lg text-muted sm:text-xl">
+              Manage your academic modules, tasks, and calendar.
+            </p>
+
+            <div className="mt-10">
               <button
                 onClick={() => setAppStage('workspace')}
-                className="rounded-full bg-white px-4 py-2 text-sm font-medium text-slate-950 transition hover:scale-[1.02]"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-accent px-8 py-4 text-base font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all hover:-translate-y-1 hover:shadow-indigo-500/40"
               >
                 Enter workspace
+                <ArrowRight className="h-5 w-5" />
               </button>
             </div>
-          </header>
-
-          <main className="grid flex-1 items-center gap-10 py-8 lg:grid-cols-[1.2fr_0.8fr] lg:py-14">
-            <section className="animate-fade-up">
-              <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs uppercase tracking-[0.24em] text-muted">
-                <WandSparkles className="h-3.5 w-3.5 text-accent" />
-                2026 student command center
-              </span>
-              <h2 className="mt-6 max-w-3xl text-5xl font-semibold leading-[0.95] tracking-tight sm:text-6xl lg:text-7xl">
-                A single calm place for your university life.
-              </h2>
-              <p className="mt-6 max-w-2xl text-lg leading-8 text-muted sm:text-xl">
-                Academic modules, lecture files, tasks, calendar, and AI study help in one modern workspace. No login maze, no extra clutter.
-              </p>
-
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-                <button
-                  onClick={() => setAppStage('workspace')}
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-accent px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/20 transition hover:-translate-y-0.5"
-                >
-                  Start the workspace
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                  className="inline-flex items-center justify-center gap-2 rounded-full border border-white/10 bg-white/5 px-6 py-3.5 text-sm font-medium text-white transition hover:bg-white/10"
-                >
-                  {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                  {theme === 'dark' ? 'Switch to light' : 'Switch to dark'}
-                </button>
-              </div>
-
-              <div className="mt-10 grid gap-4 sm:grid-cols-3">
-                <StatCard label="Modules" value={`${state.modules.length}`} hint="Academic spaces ready for files and chat." icon={BookOpen} />
-                <StatCard label="Tasks" value={`${state.tasks.length}`} hint="Personal work and deadlines in one view." icon={CheckSquare} />
-                <StatCard label="Events" value={`${state.events.length}`} hint="Study sessions and calendar reminders." icon={Calendar} />
-              </div>
-            </section>
-
-            <aside className="grid gap-4 animate-fade-up lg:justify-self-end">
-              <div className="surface-strong hero-ring rounded-[2rem] p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.24em] text-muted">AI stack</p>
-                    <h3 className="mt-2 text-2xl font-semibold">Gemini + Claude</h3>
-                  </div>
-                  <div className="rounded-2xl bg-white/5 p-3 text-accent">
-                    <Sparkles className="h-5 w-5" />
-                  </div>
-                </div>
-                <div className="mt-5 grid gap-3">
-                  <div className="surface-soft rounded-2xl px-4 py-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="font-medium">Gemini Flash</span>
-                      <span className="text-xs text-muted">fast</span>
-                    </div>
-                  </div>
-                  <div className="surface-soft rounded-2xl px-4 py-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="font-medium">Gemini 3.1 Pro</span>
-                      <span className="text-xs text-muted">deep reasoning</span>
-                    </div>
-                  </div>
-                  <div className="surface-soft rounded-2xl px-4 py-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="font-medium">Claude Sonnet / Opus</span>
-                      <span className="text-xs text-muted">writing + analysis</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="surface rounded-[2rem] p-6">
-                <p className="text-xs uppercase tracking-[0.24em] text-muted">What is inside</p>
-                <div className="mt-4 space-y-4">
-                  <div className="flex items-start gap-3">
-                    <div className="rounded-2xl bg-white/5 p-2 text-accent"><Library className="h-4 w-4" /></div>
-                    <div>
-                      <h4 className="font-semibold">Academic dashboard</h4>
-                      <p className="text-sm text-muted">Modules, lecture files, and AI study chats.</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="rounded-2xl bg-white/5 p-2 text-accent"><LayoutDashboard className="h-4 w-4" /></div>
-                    <div>
-                      <h4 className="font-semibold">Personal dashboard</h4>
-                      <p className="text-sm text-muted">Tasks, calendar, and daily planning.</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="rounded-2xl bg-white/5 p-2 text-accent"><Sparkles className="h-4 w-4" /></div>
-                    <div>
-                      <h4 className="font-semibold">Global AI memory</h4>
-                      <p className="text-sm text-muted">One assistant across the whole workspace.</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </aside>
           </main>
         </div>
       </div>
@@ -233,17 +141,10 @@ export default function App() {
             </div>
             <button
               onClick={() => setIsSidebarOpen(false)}
-              className="rounded-full p-2 text-muted transition hover:bg-white/5 hover:text-white"
+              className="rounded-full p-2 text-muted transition hover:surface-soft hover:text-[color:var(--text)]"
               aria-label="Collapse sidebar"
             >
               <PanelLeftClose className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="mt-4">
-            <button className="surface-soft flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm text-muted transition hover:text-white">
-              <Search className="h-4 w-4" />
-              Search, ask, or jump to a module
-              <span className="ml-auto rounded-full border border-white/10 px-2 py-1 text-[10px] uppercase tracking-[0.2em] text-muted">⌘K</span>
             </button>
           </div>
         </div>
@@ -283,55 +184,63 @@ export default function App() {
         </div>
 
         <div className="surface-strong mt-auto rounded-3xl p-4">
-          <button
-            onClick={() => setIsAiPanelOpen(true)}
-            className="flex w-full items-center justify-between rounded-2xl bg-accent px-4 py-3 text-left text-sm font-semibold text-white transition hover:-translate-y-0.5"
-          >
-            <span className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4" /> Ask AI Assistant
-            </span>
-            <span className="rounded-full bg-white/15 px-2 py-1 text-[10px] uppercase tracking-[0.2em]">AI</span>
-          </button>
+          <div className="flex w-full items-center justify-between rounded-2xl surface-soft px-4 py-3 text-left text-sm font-medium text-muted">
+            <span>My-Notion v1.0</span>
+          </div>
         </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="surface-strong sticky top-0 z-20 m-4 mb-0 flex items-center justify-between rounded-3xl px-4 py-3">
-          <div className="flex items-center gap-3">
+        <header className="surface-strong sticky top-0 z-20 m-4 mb-0 flex items-center justify-between rounded-3xl px-4 py-3 gap-4">
+          <div className="flex items-center gap-3 flex-1">
             <button
               onClick={() => setIsSidebarOpen((open) => !open)}
-              className="rounded-full p-2 text-muted transition hover:bg-white/5 hover:text-white md:hidden"
+              className={cn("rounded-full p-2 text-muted transition hover:surface-soft hover:text-[color:var(--text)]", isSidebarOpen ? "md:hidden" : "")}
               aria-label="Toggle sidebar"
             >
               <PanelLeftOpen className="h-4 w-4" />
             </button>
             <div>
               <div className="flex items-center gap-2 text-sm text-muted">
-                <span>Workspace</span>
-                <ChevronRight className="h-3.5 w-3.5" />
-                <span className="capitalize text-white">{activeTab}</span>
+                <span className="hidden sm:inline">Workspace</span>
+                <ChevronRight className="hidden sm:inline h-3.5 w-3.5" />
+                <span className="capitalize text-[color:var(--text)]">{activeTab}</span>
                 {activeModule && (
                   <>
                     <ChevronRight className="h-3.5 w-3.5" />
-                    <span className="max-w-[180px] truncate text-accent">{activeModule.code}</span>
+                    <span className="max-w-[150px] sm:max-w-[180px] truncate text-accent">{activeModule.code}</span>
                   </>
                 )}
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="hidden sm:flex flex-1 justify-center max-w-md w-full">
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
+              <input 
+                type="text" 
+                placeholder="Search, ask, or jump..." 
+                className="w-full surface-soft border border-subtle rounded-full py-2 pl-10 pr-4 text-sm text-[color:var(--text)] placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
+              />
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full border border-subtle px-2 py-0.5 text-[10px] uppercase tracking-[0.2em] text-muted pointer-events-none">
+                ⌘K
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 flex-1">
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="surface-soft rounded-full p-2.5 text-muted transition hover:text-white"
+              className="surface-soft rounded-full p-2.5 text-muted transition hover:text-[color:var(--text)]"
               aria-label="Toggle theme"
             >
               {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
-            <button className="surface-soft rounded-full p-2.5 text-muted transition hover:text-white">
+            <button className="surface-soft rounded-full p-2.5 text-muted transition hover:text-[color:var(--text)] hidden sm:block">
               <Bell className="h-4 w-4" />
             </button>
-            <button className="surface-soft rounded-full p-2.5 text-muted transition hover:text-white">
+            <button className="surface-soft rounded-full p-2.5 text-muted transition hover:text-[color:var(--text)] hidden sm:block">
               <Settings className="h-4 w-4" />
             </button>
           </div>
@@ -342,15 +251,15 @@ export default function App() {
             {activeTab === 'home' && (
               <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
                 <div className="surface-strong hero-ring rounded-[2rem] p-6 sm:p-8 animate-fade-up">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs uppercase tracking-[0.24em] text-muted">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-subtle surface-soft px-3 py-1 text-xs uppercase tracking-[0.24em] text-muted">
                     <Sparkles className="h-3.5 w-3.5 text-accent" />
-                    Today inside StudentOS
+                    Today inside My-Notion
                   </div>
                   <h1 className="mt-5 max-w-2xl text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl">
-                    A focused dashboard for study, planning, and AI support.
+                    Welcome to your personal workspace.
                   </h1>
                   <p className="mt-5 max-w-2xl text-base leading-7 text-muted sm:text-lg">
-                    Start from here, then jump into academics or personal planning. The whole workspace uses one clean visual system and keeps your AI access available everywhere.
+                    Overview of your academics, personal tasks, and upcoming events. Keep everything organized and accessible in one place.
                   </p>
                   <div className="mt-7 flex flex-wrap gap-3">
                     <button
@@ -360,8 +269,14 @@ export default function App() {
                       Open academics <ArrowRight className="h-4 w-4" />
                     </button>
                     <button
+                      onClick={() => navigateToTab('personal')}
+                      className="inline-flex items-center gap-2 rounded-full border border-subtle surface-soft px-5 py-3 text-sm font-medium text-[color:var(--text)] transition hover:brightness-110"
+                    >
+                      Open personal <ArrowRight className="h-4 w-4" />
+                    </button>
+                    <button
                       onClick={() => setIsAiPanelOpen(true)}
-                      className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-3 text-sm font-medium text-white transition hover:bg-white/10"
+                      className="inline-flex items-center gap-2 rounded-full border border-subtle surface-soft px-5 py-3 text-sm font-medium text-[color:var(--text)] transition hover:brightness-110"
                     >
                       <Sparkles className="h-4 w-4" /> Ask AI
                     </button>
@@ -382,15 +297,15 @@ export default function App() {
                     <div className="mt-5 space-y-3 text-sm text-muted">
                       <div className="flex items-center justify-between rounded-2xl surface-soft px-4 py-3">
                         <span>Academic modules</span>
-                        <span className="font-semibold text-white">{state.modules.length}</span>
+                        <span className="font-semibold text-[color:var(--text)]">{state.modules.length}</span>
                       </div>
                       <div className="flex items-center justify-between rounded-2xl surface-soft px-4 py-3">
                         <span>Personal tasks</span>
-                        <span className="font-semibold text-white">{state.tasks.length}</span>
+                        <span className="font-semibold text-[color:var(--text)]">{state.tasks.length}</span>
                       </div>
                       <div className="flex items-center justify-between rounded-2xl surface-soft px-4 py-3">
                         <span>Calendar events</span>
-                        <span className="font-semibold text-white">{state.events.length}</span>
+                        <span className="font-semibold text-[color:var(--text)]">{state.events.length}</span>
                       </div>
                     </div>
                   </div>
@@ -398,11 +313,11 @@ export default function App() {
                   <div className="surface rounded-[2rem] p-5 animate-fade-up">
                     <p className="text-xs uppercase tracking-[0.24em] text-muted">Entry points</p>
                     <div className="mt-4 space-y-3 text-sm">
-                      <button onClick={() => navigateToTab('academic')} className="surface-soft flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left transition hover:text-white">
+                      <button onClick={() => navigateToTab('academic')} className="surface-soft flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left transition hover:text-[color:var(--text)]">
                         <span>Academic dashboard</span>
                         <ArrowRight className="h-4 w-4 text-accent" />
                       </button>
-                      <button onClick={() => navigateToTab('personal')} className="surface-soft flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left transition hover:text-white">
+                      <button onClick={() => navigateToTab('personal')} className="surface-soft flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left transition hover:text-[color:var(--text)]">
                         <span>Personal dashboard</span>
                         <ArrowRight className="h-4 w-4 text-accent" />
                       </button>
