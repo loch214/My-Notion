@@ -5,6 +5,8 @@ import fs from 'fs';
 import cors from 'cors';
 import { GoogleGenAI } from '@google/genai';
 import Anthropic from '@anthropic-ai/sdk';
+import 'dotenv/config';
+import connectDB from './db.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -20,9 +22,9 @@ const upload = multer({ dest: uploadDir });
 
 const MODEL_PROVIDERS = {
   'gemini-2.5-flash': 'gemini',
-  'gemini-3.1-pro': 'gemini',
-  'claude-sonnet-4': 'claude',
-  'claude-opus-4': 'claude',
+  'gemini-2.0-pro': 'gemini',
+  'claude-sonnet-4-5': 'claude',
+  'claude-opus-4-5': 'claude',
 } as const;
 
 type SupportedModel = keyof typeof MODEL_PROVIDERS;
@@ -72,9 +74,7 @@ function mockResponse(message: string, model: SupportedModel, contextLabel: stri
 
 async function runGemini(model: SupportedModel, systemInstruction: string, history: any[], message: string) {
   const client = getGeminiClient();
-  if (!client) {
-    return null;
-  }
+  if (!client) return null;
 
   const contents = history.map((msg) => ({
     role: msg.role === 'user' ? 'user' : 'model',
@@ -92,9 +92,7 @@ async function runGemini(model: SupportedModel, systemInstruction: string, histo
 
 async function runClaude(model: SupportedModel, systemInstruction: string, history: any[], message: string) {
   const client = getClaudeClient();
-  if (!client) {
-    return null;
-  }
+  if (!client) return null;
 
   const messages = history.map((msg) => ({
     role: (msg.role === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
@@ -126,14 +124,10 @@ async function generateChatReply(params: {
   try {
     if (provider === 'gemini') {
       const text = await runGemini(params.model, params.systemInstruction, params.history, params.message);
-      if (text !== null) {
-        return text;
-      }
+      if (text !== null) return text;
     } else {
       const text = await runClaude(params.model, params.systemInstruction, params.history, params.message);
-      if (text !== null) {
-        return text;
-      }
+      if (text !== null) return text;
     }
   } catch (error) {
     console.error(`${provider} chat error:`, error);
@@ -209,6 +203,7 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Backend server is running' });
 });
 
+connectDB();
 app.listen(PORT, () => {
   console.log(`\n✅ Backend server running on http://localhost:${PORT}`);
   console.log(`📝 Make sure frontend is running on http://localhost:5173`);
