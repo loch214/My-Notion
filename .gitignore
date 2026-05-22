@@ -1,4 +1,43 @@
+# Dependencies
 node_modules/
+/.pnp
+.pnp.js
+
+# Testing
+/coverage
+
+# Production
+/dist
+/build
+
+# Misc
+.DS_Store
+.env
+.env.local
+.env.*.local
+.env.production.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor directories and files
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Backend specific
+uploads/
+*.db
+*.sqlite
+
+# Frontend build
+frontend/dist/
 build/
 dist/
 coverage/

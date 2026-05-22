@@ -212,7 +212,7 @@ export function ModuleDetail({ module, onBack, updateModule }: ModuleDetailProps
                     <Sparkles className="w-6 h-6 text-indigo-500" />
                   </div>
                   <h3 className="font-medium text-slate-900 mb-2">Module AI Assistant</h3>
-                  <p className="text-sm">Ask me to summarize uploaded lectures, explain concepts, or generate flashcards based on your ${module.code} files.</p>
+                  <p className="text-sm">Ask me to summarize uploaded lectures, explain concepts, or generate flashcards based on your {module.code} files.</p>
                 </div>
               )}
               {module.chatHistory.map(msg => (

@@ -41,9 +41,7 @@ export function AcademicOverview({ modules, onOpenModule, onAddModule }: Academi
     if (sortOrder === 'alpha') {
       return a.title.localeCompare(b.title);
     }
-    // Simple id comparison for newest assuming id is sequentially generated or we just reverse
-    // In our app store we just push to array, so reverse array is newest first
-    return 0; // We'll handle 'newest' by reversing the original array order
+    return 0;
   });
   
   if (sortOrder === 'newest') {
@@ -144,29 +142,6 @@ export function AcademicOverview({ modules, onOpenModule, onAddModule }: Academi
           </div>
         </div>
       )}
-
-      {/* Upcoming Assignments / Activity */}
-      <div>
-        <h2 className="text-lg font-semibold mb-4 text-slate-800">Recent AI Conversations</h2>
-          <div className="bg-white border text-sm border-slate-200 rounded-lg overflow-hidden shadow-sm">
-            <div className="flex items-center px-4 py-3 border-b border-slate-100 hover:bg-slate-50 cursor-pointer">
-              <MessageSquare className="w-4 h-4 text-slate-400 mr-3 shrink-0" />
-              <div className="flex-1 truncate space-x-2">
-                  <span className="font-medium text-slate-700">"Explain ACID properties from Lecture 4"</span>
-                  <span className="text-slate-500 text-xs px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200">Database Systems</span>
-              </div>
-              <span className="text-slate-400 text-xs ml-4">2 hours ago</span>
-            </div>
-            <div className="flex items-center px-4 py-3 border-b border-slate-100 hover:bg-slate-50 cursor-pointer">
-              <MessageSquare className="w-4 h-4 text-slate-400 mr-3 shrink-0" />
-              <div className="flex-1 truncate space-x-2">
-                  <span className="font-medium text-slate-700">"Summary of Agile vs Waterfall requirements"</span>
-                  <span className="text-slate-500 text-xs px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200">Software Engineering</span>
-              </div>
-              <span className="text-slate-400 text-xs ml-4">Yesterday</span>
-            </div>
-          </div>
-      </div>
     </div>
   );
 }

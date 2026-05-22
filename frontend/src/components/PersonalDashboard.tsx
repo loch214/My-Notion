@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Task, Event } from '../types';
 import { Calendar, CheckSquare, Clock, Plus, X } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { v4 as uuidv4 } from 'uuid';
 
 interface PersonalDashboardProps {
   tasks: Task[];
@@ -106,7 +105,7 @@ export function PersonalDashboard({ tasks, events, onToggleTask, onAddTask }: Pe
               </div>
               <div className="p-4 space-y-4 relative">
                   <div className="absolute left-[23px] top-4 bottom-4 w-px bg-slate-100"></div>
-                  {events.map((ev, i) => (
+                  {events.map((ev) => (
                     <div key={ev.id} className="flex relative items-start group">
                       <div className={cn("w-3 h-3 rounded-full mt-1 mr-4 relative z-10 border-2 border-white shadow-sm ring-1", 
                         ev.color === 'blue' ? 'bg-blue-500 ring-blue-100' : 

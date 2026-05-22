@@ -3,12 +3,14 @@ import path from 'path';
 import multer from 'multer';
 import fs from 'fs';
 import { GoogleGenAI } from '@google/genai';
-import { createServer as createViteServer } from 'vite';
+import cors from 'cors';
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3001;
 
+// Middleware
 app.use(express.json());
+app.use(cors());
 
 // Set up temporary local storage for uploaded files before sending to Gemini
 const uploadDir = path.join(process.cwd(), 'uploads');
@@ -112,12 +114,6 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
     
-    // In a real app we'd upload to Gemini File API here:
-    // const aiClient = getAI();
-    // const uploadResult = await aiClient.files.upload({ file: req.file.path, mimeType: req.file.mimetype });
-    // return res.json({ id: req.file.filename, geminiFileUri: uploadResult.uri })
-    
-    // For now, simulate success
     res.json({ 
       id: req.file.filename,
       name: req.file.originalname,
@@ -130,26 +126,16 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
   }
 });
 
-// Vite Middleware for development
-async function startServer() {
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    // Support Express v4 syntax
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
+// Health check
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', message: 'Backend server is running' });
+});
+
+// Start server
+app.listen(PORT, () => {
+  console.log(`\n✅ Backend server running on http://localhost:${PORT}`);
+  console.log(`📝 Make sure frontend is running on http://localhost:5173`);
+  if (!process.env.GEMINI_API_KEY) {
+    console.log(`⚠️  GEMINI_API_KEY not set - AI features will be mocked`);
   }
-
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://0.0.0.0:${PORT}`);
-  });
-}
-
-startServer();
+});
