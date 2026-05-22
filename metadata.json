@@ -1,0 +1,6 @@
+{
+  "name": "StudentOS",
+  "description": "Productivity and academic management platform for students with AI-assisted file learning.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
