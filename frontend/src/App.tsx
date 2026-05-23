@@ -43,7 +43,7 @@ function StatCard({ label, value, hint, icon: Icon }: { label: string; value: st
 }
 
 export default function App() {
-  const { state, updateState, toggleTask, addModule, addTask } = useAppStore();
+  const { state, updateState, toggleTask, addModule, addTask, removeTask, updateTask } = useAppStore();
   const [appStage, setAppStage] = useState<'landing' | 'workspace'>('landing');
   const [activeTab, setActiveTab] = useState<'home' | 'academic' | 'personal'>('home');
   const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
@@ -164,24 +164,26 @@ export default function App() {
           </nav>
         </div>
 
-        <div className="surface-strong rounded-3xl p-3">
-          <div className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-muted">Modules</div>
-          <div className="space-y-1">
-            {state.modules.map((module) => (
-              <button
-                key={module.id}
-                onClick={() => {
-                  setActiveTab('academic');
-                  setActiveModuleId(module.id);
-                }}
-                className={navItemClass(activeModuleId === module.id)}
-              >
-                <BookOpen className={cn('h-4 w-4', activeModuleId === module.id ? 'text-accent' : 'text-muted')} />
-                <span className="truncate">{module.title}</span>
-              </button>
-            ))}
+        {activeTab === 'academic' && (
+          <div className="surface-strong rounded-3xl p-3">
+            <div className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-muted">Modules</div>
+            <div className="space-y-1">
+              {state.modules.map((module) => (
+                <button
+                  key={module.id}
+                  onClick={() => {
+                    setActiveTab('academic');
+                    setActiveModuleId(module.id);
+                  }}
+                  className={navItemClass(activeModuleId === module.id)}
+                >
+                  <BookOpen className={cn('h-4 w-4', activeModuleId === module.id ? 'text-accent' : 'text-muted')} />
+                  <span className="truncate">{module.title}</span>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="surface-strong mt-auto rounded-3xl p-4 md:sticky md:bottom-4">
           <div className="flex w-full items-center justify-between rounded-2xl surface-soft px-4 py-3 text-left text-sm font-medium text-muted">
@@ -329,7 +331,16 @@ export default function App() {
 
             {activeTab === 'academic' && !activeModuleId && (
               <div className="surface-strong rounded-[2rem] p-5 sm:p-6 animate-fade-up">
-                <AcademicOverview modules={state.modules} onOpenModule={setActiveModuleId} onAddModule={addModule} />
+                <AcademicOverview
+                  modules={state.modules}
+                  tasks={state.tasks}
+                  onOpenModule={setActiveModuleId}
+                  onAddModule={addModule}
+                  onToggleTask={toggleTask}
+                  onAddTask={addTask}
+                  onEditTask={updateTask}
+                  onRemoveTask={removeTask}
+                />
               </div>
             )}
 
@@ -339,7 +350,9 @@ export default function App() {
                   module={activeModule}
                   tasks={state.tasks.filter(t => t.moduleId === activeModule.id)}
                   onToggleTask={toggleTask}
-                  onAddTask={(title, priority, dueDate) => addTask(title, priority, dueDate, activeModule.id)}
+                  onAddTask={(title, dueDate) => addTask(title, dueDate, activeModule.id)}
+                  onEditTask={(id, updates) => updateTask(id, updates)}
+                  onRemoveTask={(id) => removeTask(id)}
                   onBack={() => setActiveModuleId(null)}
                   updateModule={(id: string, updates: Partial<typeof activeModule>) => updateState((prev) => ({
                     ...prev,
@@ -356,6 +369,8 @@ export default function App() {
                   events={state.events}
                   onToggleTask={toggleTask}
                   onAddTask={addTask}
+                  onEditTask={updateTask}
+                  onRemoveTask={removeTask}
                 />
               </div>
             )}

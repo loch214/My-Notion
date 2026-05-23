@@ -29,7 +29,6 @@ export interface Task {
   dueDate?: string;
   moduleId?: string;
   done: boolean;
-  priority: 'low' | 'medium' | 'high';
 }
 
 export interface Event {

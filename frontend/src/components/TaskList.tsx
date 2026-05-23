@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Task } from '../types';
-import { CheckSquare, ChevronDown, ChevronLeft, ChevronRight, Clock, Plus, CalendarIcon } from 'lucide-react';
+import { CheckSquare, ChevronDown, ChevronLeft, ChevronRight, Plus, CalendarIcon, Edit3, Trash2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import {
   addMonths,
@@ -22,28 +22,29 @@ import {
 interface TaskListProps {
   tasks: Task[];
   onToggleTask: (taskId: string) => void;
-  onAddTask: (title: string, priority: 'high' | 'medium' | 'low', dueDate?: string) => void;
+  onAddTask: (title: string, dueDate?: string) => void;
+  onEditTask?: (taskId: string, updates: Partial<Task>) => void;
+  onRemoveTask?: (taskId: string) => void;
+  showAddControls?: boolean;
+  showTaskGroups?: boolean;
   title?: string;
   icon?: React.ElementType;
 }
 
-export function TaskList({ tasks, onToggleTask, onAddTask, title = "Tasks", icon: Icon = CheckSquare }: TaskListProps) {
+export function TaskList({ tasks, onToggleTask, onAddTask, onEditTask, onRemoveTask, showAddControls = true, showTaskGroups = true, title = "Tasks", icon: Icon = CheckSquare }: TaskListProps) {
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [newTaskPriority, setNewTaskPriority] = useState<'high' | 'medium' | 'low'>('medium');
   const [newTaskDueDate, setNewTaskDueDate] = useState('');
-  const [isPriorityOpen, setIsPriorityOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState('');
+  const [editingDueDate, setEditingDueDate] = useState('');
   const [isDateOpen, setIsDateOpen] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(startOfMonth(new Date()));
-  const priorityRef = useRef<HTMLDivElement>(null);
   const dateRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const onPointerDown = (event: PointerEvent) => {
       const target = event.target as Node;
-      if (priorityRef.current && !priorityRef.current.contains(target)) {
-        setIsPriorityOpen(false);
-      }
       if (dateRef.current && !dateRef.current.contains(target)) {
         setIsDateOpen(false);
       }
@@ -60,12 +61,6 @@ export function TaskList({ tasks, onToggleTask, onAddTask, title = "Tasks", icon
     }
   }, [isDateOpen, newTaskDueDate]);
 
-  const priorityOptions: Array<{ id: 'high' | 'medium' | 'low'; label: string }> = useMemo(() => ([
-    { id: 'high', label: 'High priority' },
-    { id: 'medium', label: 'Medium priority' },
-    { id: 'low', label: 'Low priority' },
-  ]), []);
-
   const calendarDays = useMemo(() => {
     const start = startOfWeek(startOfMonth(calendarMonth), { weekStartsOn: 0 });
     const end = endOfWeek(endOfMonth(calendarMonth), { weekStartsOn: 0 });
@@ -75,9 +70,8 @@ export function TaskList({ tasks, onToggleTask, onAddTask, title = "Tasks", icon
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTaskTitle.trim()) return;
-    onAddTask(newTaskTitle, newTaskPriority, newTaskDueDate || undefined);
+    onAddTask(newTaskTitle, newTaskDueDate || undefined);
     setNewTaskTitle('');
-    setNewTaskPriority('medium');
     setNewTaskDueDate('');
     setIsAddingTask(false);
   };
@@ -115,32 +109,53 @@ export function TaskList({ tasks, onToggleTask, onAddTask, title = "Tasks", icon
         <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.15em] text-muted ml-2">{label}</h3>
         <div className="space-y-3">
           {groupTasks.map((task) => (
-            <button
+            <div
               key={task.id}
-              onClick={() => onToggleTask(task.id)}
-              className={cn(
-                'surface-soft flex w-full items-center rounded-3xl px-4 py-3 text-left transition hover:-translate-y-0.5',
-                task.done ? 'opacity-55' : ''
-              )}
+              className={cn('surface-soft flex w-full items-start gap-3 rounded-3xl px-4 py-3 text-left transition hover:-translate-y-0.5 sm:items-center', task.done ? 'opacity-55' : '')}
             >
               <input
                 type="checkbox"
                 checked={task.done}
-                readOnly
-                className="mr-4 h-4 w-4 rounded border-subtle text-accent focus:ring-[color:var(--accent)]/40"
+                onChange={() => onToggleTask(task.id)}
+                className="mt-1 h-4 w-4 shrink-0 rounded border-subtle text-accent focus:ring-[color:var(--accent)]/40 sm:mt-0"
               />
               <div className="min-w-0 flex-1">
-                <p className={cn('truncate text-sm font-medium', task.done ? 'text-muted line-through' : 'text-[color:var(--text)]')}>
-                  {task.title}
-                </p>
+                {editingId === task.id ? (
+                  <div>
+                    <input value={editingTitle} onChange={(e) => setEditingTitle(e.target.value)} className="surface-soft w-full rounded-2xl px-3 py-2 text-sm" />
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <input type="date" value={editingDueDate} onChange={(e) => setEditingDueDate(e.target.value)} className="surface-soft min-w-[150px] rounded-2xl px-3 py-1 text-sm" />
+                    </div>
+                  </div>
+                ) : (
+                  <p className={cn('truncate text-sm font-medium', task.done ? 'text-muted line-through' : 'text-[color:var(--text)]')}>
+                    {task.title}
+                  </p>
+                )}
               </div>
-              {task.priority === 'high' && !task.done && <span className="mx-3 h-2 w-2 rounded-full bg-rose-400" />}
-              {task.dueDate && (
+              {task.dueDate && editingId !== task.id && (
                 <div className="inline-flex items-center gap-1.5 rounded-full border border-subtle surface-soft px-3 py-1.5 text-xs text-muted ml-2">
                   <CalendarIcon className="h-3.5 w-3.5" /> {format(parseISO(task.dueDate), 'MMM d')}
                 </div>
               )}
-            </button>
+              <div className="ml-auto flex shrink-0 gap-2 self-start sm:self-center">
+                {editingId === task.id ? (
+                  <>
+                    <button onClick={async () => { if (editingTitle.trim()) { await (onEditTask?.(task.id, { title: editingTitle, dueDate: editingDueDate || undefined }) ); setEditingId(null); } }} className="btn-primary px-3 py-1 text-sm">Save</button>
+                    <button onClick={() => setEditingId(null)} className="btn-secondary px-3 py-1 text-sm">Cancel</button>
+                  </>
+                ) : (
+                  <>
+                    <button onClick={() => { setEditingId(task.id); setEditingTitle(task.title); setEditingDueDate(task.dueDate || ''); }} className="surface-soft rounded-full p-2 text-muted transition hover:surface-soft">
+                      <Edit3 className="h-4 w-4" />
+                    </button>
+                    <button onClick={() => onRemoveTask?.(task.id)} className="surface-soft rounded-full p-2 text-muted transition hover:surface-soft">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
           ))}
         </div>
       </div>
@@ -155,7 +170,7 @@ export function TaskList({ tasks, onToggleTask, onAddTask, title = "Tasks", icon
         <div className="flex items-center gap-2 text-lg font-semibold">
           <Icon className="h-5 w-5 text-accent" /> {title}
         </div>
-        {!isAddingTask && (
+        {showAddControls && !isAddingTask && (
           <button
             onClick={() => setIsAddingTask(true)}
             className="btn-secondary px-3 py-2 text-sm font-medium"
@@ -166,12 +181,12 @@ export function TaskList({ tasks, onToggleTask, onAddTask, title = "Tasks", icon
       </div>
 
       <div className="space-y-2">
-        {renderGroup("Today & Overdue", today)}
-        {renderGroup("Tomorrow", tomorrow)}
-        {renderGroup("Upcoming", upcoming)}
-        {renderGroup("No Date", noDate)}
+        {showTaskGroups && renderGroup("Today & Overdue", today)}
+        {showTaskGroups && renderGroup("Tomorrow", tomorrow)}
+        {showTaskGroups && renderGroup("Upcoming", upcoming)}
+        {showTaskGroups && renderGroup("No Date", noDate)}
 
-        {isAddingTask ? (
+        {showAddControls && isAddingTask ? (
           <form onSubmit={handleAddTask} className="surface rounded-3xl p-4 mt-2">
             <input
               autoFocus
@@ -182,34 +197,6 @@ export function TaskList({ tasks, onToggleTask, onAddTask, title = "Tasks", icon
             />
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-wrap gap-2">
-                <div ref={priorityRef} className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setIsPriorityOpen((open) => !open)}
-                    className="surface-soft flex items-center gap-2 rounded-2xl px-4 py-2 text-sm transition hover:text-[color:var(--text)]"
-                  >
-                    {priorityOptions.find((option) => option.id === newTaskPriority)?.label}
-                    <ChevronDown className="h-4 w-4 text-muted" />
-                  </button>
-                  {isPriorityOpen && (
-                    <div className="absolute left-0 top-full z-20 mt-2 min-w-48 overflow-hidden rounded-2xl surface border border-subtle p-1.5 shadow-xl">
-                      {priorityOptions.map((option) => (
-                        <button
-                          key={option.id}
-                          type="button"
-                          onClick={() => {
-                            setNewTaskPriority(option.id);
-                            setIsPriorityOpen(false);
-                          }}
-                          className={`w-full rounded-xl px-4 py-2.5 text-left text-sm transition ${newTaskPriority === option.id ? 'bg-accent text-white font-medium' : 'text-[color:var(--text)] hover:surface-soft'}`}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
                 <div ref={dateRef} className="relative">
                   <button
                     type="button"
@@ -221,14 +208,14 @@ export function TaskList({ tasks, onToggleTask, onAddTask, title = "Tasks", icon
                     <ChevronDown className="h-4 w-4 text-muted" />
                   </button>
                   {isDateOpen && (
-                    <div className="absolute left-0 top-full z-20 mt-2 w-80 overflow-hidden rounded-3xl surface border border-subtle p-4 shadow-xl">
-                      <div className="mb-4 flex items-center justify-between gap-3">
+                    <div className="absolute bottom-full left-0 z-30 mb-2 w-64 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl surface border border-subtle p-2.5 shadow-xl">
+                      <div className="mb-2.5 flex items-center justify-between gap-2">
                         <button
                           type="button"
                           onClick={() => setCalendarMonth((month) => subMonths(month, 1))}
-                          className="surface-soft rounded-full p-2 text-muted transition hover:text-[color:var(--text)]"
+                          className="surface-soft rounded-full p-1.5 text-muted transition hover:text-[color:var(--text)]"
                         >
-                          <ChevronLeft className="h-4 w-4" />
+                          <ChevronLeft className="h-3.5 w-3.5" />
                         </button>
                         <div className="text-sm font-semibold text-[color:var(--text)]">
                           {format(calendarMonth, 'MMMM yyyy')}
@@ -236,19 +223,19 @@ export function TaskList({ tasks, onToggleTask, onAddTask, title = "Tasks", icon
                         <button
                           type="button"
                           onClick={() => setCalendarMonth((month) => addMonths(month, 1))}
-                          className="surface-soft rounded-full p-2 text-muted transition hover:text-[color:var(--text)]"
+                          className="surface-soft rounded-full p-1.5 text-muted transition hover:text-[color:var(--text)]"
                         >
-                          <ChevronRight className="h-4 w-4" />
+                          <ChevronRight className="h-3.5 w-3.5" />
                         </button>
                       </div>
 
-                      <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-muted">
+                      <div className="grid grid-cols-7 gap-0.5 text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">
                         {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => (
                           <div key={day} className="py-1">{day}</div>
                         ))}
                       </div>
 
-                      <div className="mt-2 grid grid-cols-7 gap-1">
+                      <div className="mt-1.5 grid grid-cols-7 gap-0.5">
                         {calendarDays.map((day) => {
                           const isCurrentMonth = isSameMonth(day, calendarMonth);
                           const isSelected = selectedDueDate ? isSameDay(day, selectedDueDate) : false;
@@ -262,7 +249,7 @@ export function TaskList({ tasks, onToggleTask, onAddTask, title = "Tasks", icon
                                 setIsDateOpen(false);
                               }}
                               className={cn(
-                                'flex h-10 items-center justify-center rounded-xl text-sm transition',
+                                'flex h-8 items-center justify-center rounded-lg text-xs transition',
                                 isCurrentMonth ? 'text-[color:var(--text)]' : 'text-muted/60',
                                 isSelected ? 'bg-accent text-white font-medium' : 'hover:surface-soft',
                                 isTodayDate && !isSelected ? 'ring-1 ring-[color:var(--accent)]/35' : ''
@@ -274,14 +261,14 @@ export function TaskList({ tasks, onToggleTask, onAddTask, title = "Tasks", icon
                         })}
                       </div>
 
-                      <div className="mt-4 flex items-center justify-between gap-2">
+                      <div className="mt-2.5 flex items-center justify-between gap-2">
                         <button
                           type="button"
                           onClick={() => {
                             setNewTaskDueDate('');
                             setIsDateOpen(false);
                           }}
-                          className="btn-secondary px-3 py-2 text-xs font-medium"
+                          className="btn-secondary px-2.5 py-1.5 text-xs font-medium"
                         >
                           Clear
                         </button>
@@ -292,7 +279,7 @@ export function TaskList({ tasks, onToggleTask, onAddTask, title = "Tasks", icon
                             setCalendarMonth(startOfMonth(new Date()));
                             setIsDateOpen(false);
                           }}
-                          className="btn-secondary px-3 py-2 text-xs font-medium"
+                          className="btn-secondary px-2.5 py-1.5 text-xs font-medium"
                         >
                           Today
                         </button>
@@ -313,13 +300,15 @@ export function TaskList({ tasks, onToggleTask, onAddTask, title = "Tasks", icon
           </form>
         ) : tasks.length === 0 ? (
           <div className="surface-soft rounded-3xl border border-dashed border-subtle px-4 py-6 text-center">
-            <p className="text-sm text-muted">No tasks yet. Start with your next priority.</p>
-            <button
-              onClick={() => setIsAddingTask(true)}
-              className="btn-primary mt-4 px-4 py-2 text-sm font-semibold"
-            >
-              <Plus className="h-4 w-4" /> Add first task
-            </button>
+            <p className="text-sm text-muted">No tasks yet. Start with your next task.</p>
+            {showAddControls && (
+              <button
+                onClick={() => setIsAddingTask(true)}
+                className="btn-primary mt-4 px-4 py-2 text-sm font-semibold"
+              >
+                <Plus className="h-4 w-4" /> Add first task
+              </button>
+            )}
           </div>
         ) : null}
       </div>

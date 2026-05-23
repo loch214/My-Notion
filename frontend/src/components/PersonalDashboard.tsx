@@ -9,10 +9,12 @@ interface PersonalDashboardProps {
   tasks: Task[];
   events: Event[];
   onToggleTask: (taskId: string) => void;
-  onAddTask: (title: string, priority: 'high' | 'medium' | 'low', dueDate?: string) => void;
+  onAddTask: (title: string, dueDate?: string) => void;
+  onEditTask?: (taskId: string, updates: Partial<Task>) => void;
+  onRemoveTask?: (taskId: string) => void;
 }
 
-export function PersonalDashboard({ tasks, events, onToggleTask, onAddTask }: PersonalDashboardProps) {
+export function PersonalDashboard({ tasks, events, onToggleTask, onAddTask, onEditTask, onRemoveTask }: PersonalDashboardProps) {
 
   const completedCount = tasks.filter((task) => task.done).length;
   const openCount = tasks.length - completedCount;
@@ -52,53 +54,53 @@ export function PersonalDashboard({ tasks, events, onToggleTask, onAddTask }: Pe
         ))}
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <TaskList 
-            tasks={tasks.filter(t => !t.moduleId)} 
-            onToggleTask={onToggleTask} 
-            onAddTask={(title, priority, dueDate) => onAddTask(title, priority, dueDate)} 
-            title="Personal Tasks" 
-          />
-        </div>
+          <div className="space-y-8">
+            <TaskList 
+              tasks={tasks.filter(t => !t.moduleId)} 
+              onToggleTask={onToggleTask} 
+              onAddTask={(title, dueDate) => onAddTask(title, dueDate)} 
+              onEditTask={onEditTask}
+              onRemoveTask={onRemoveTask}
+              title="Personal Tasks" 
+            />
 
-        <div>
-          <div className="mb-4 flex items-center gap-2 text-lg font-semibold">
-            <Calendar className="h-5 w-5 text-accent" /> Upcoming tasks
-          </div>
+            <div>
+              <div className="mb-4 flex items-center gap-2 text-lg font-semibold">
+                <Calendar className="h-5 w-5 text-accent" /> Upcoming tasks
+              </div>
 
-          <div className="surface-strong rounded-[2rem] overflow-hidden">
-            {upcomingTasks.length > 0 ? (
-              <div className="space-y-3 p-4">
-                {upcomingTasks.map((task) => (
-                  <button
-                    key={task.id}
-                    onClick={() => onToggleTask(task.id)}
-                    className={cn(
-                      'surface-soft flex w-full items-center justify-between rounded-3xl px-4 py-3 text-left transition hover:-translate-y-0.5',
-                      task.done ? 'opacity-55' : ''
-                    )}
-                  >
-                    <div className="min-w-0">
-                      <p className={cn('truncate text-sm font-medium', task.done ? 'text-muted line-through' : 'text-[color:var(--text)]')}>
-                        {task.title}
-                      </p>
-                      <p className="mt-0.5 text-xs text-muted">
-                        Due {format(parseISO(task.dueDate as string), 'MMM d')}
-                      </p>
-                    </div>
-                    <ArrowRight className="h-4 w-4 shrink-0 text-accent" />
-                  </button>
-                ))}
+              <div className="surface-strong rounded-[2rem] overflow-hidden">
+                {upcomingTasks.length > 0 ? (
+                  <div className="space-y-3 p-4">
+                    {upcomingTasks.map((task) => (
+                      <button
+                        key={task.id}
+                        onClick={() => onToggleTask(task.id)}
+                        className={cn(
+                          'surface-soft flex w-full items-center justify-between rounded-3xl px-4 py-3 text-left transition hover:-translate-y-0.5',
+                          task.done ? 'opacity-55' : ''
+                        )}
+                      >
+                        <div className="min-w-0">
+                          <p className={cn('truncate text-sm font-medium', task.done ? 'text-muted line-through' : 'text-[color:var(--text)]')}>
+                            {task.title}
+                          </p>
+                          <p className="mt-0.5 text-xs text-muted">
+                            Due {format(parseISO(task.dueDate as string), 'MMM d')}
+                          </p>
+                        </div>
+                        <ArrowRight className="h-4 w-4 shrink-0 text-accent" />
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-6 text-center text-sm text-muted">
+                    No upcoming tasks.
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="p-6 text-center text-sm text-muted">
-                No upcoming tasks.
-              </div>
-            )}
+            </div>
           </div>
-        </div>
-      </div>
     </div>
   );
 }

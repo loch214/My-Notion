@@ -10,12 +10,14 @@ interface ModuleDetailProps {
   module: Module;
   tasks: Task[];
   onToggleTask: (taskId: string) => void;
-  onAddTask: (title: string, priority: 'high' | 'medium' | 'low', dueDate?: string) => void;
+  onAddTask: (title: string, dueDate?: string) => void;
+  onEditTask?: (taskId: string, updates: Partial<Task>) => void;
+  onRemoveTask?: (taskId: string) => void;
   onBack: () => void;
   updateModule: (moduleId: string, updates: Partial<Module>) => void;
 }
 
-export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onBack, updateModule }: ModuleDetailProps) {
+export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTask, onRemoveTask, onBack, updateModule }: ModuleDetailProps) {
   const [activeTab, setActiveTab] = useState<'files' | 'chat' | 'tasks'>('files');
   const [isUploading, setIsUploading] = useState(false);
   const [chatInput, setChatInput] = useState('');
@@ -337,6 +339,8 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onBack, u
               tasks={tasks}
               onToggleTask={onToggleTask}
               onAddTask={onAddTask}
+              onEditTask={onEditTask}
+              onRemoveTask={onRemoveTask}
               title={`${module.title} Tasks`}
             />
           </div>

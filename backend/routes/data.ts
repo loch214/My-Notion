@@ -106,14 +106,13 @@ router.get('/tasks', async (req, res) => {
 
 router.post('/tasks', async (req, res) => {
   try {
-    const { title, priority, dueDate, moduleId } = req.body;
+    const { title, dueDate, moduleId } = req.body;
     const workspace = await getOrCreateWorkspace();
 
     const task = {
       id: uuidv4(),
       title,
       done: false,
-      priority: priority || 'medium',
       dueDate: dueDate || undefined,
       moduleId: moduleId || undefined
     };

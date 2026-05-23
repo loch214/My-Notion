@@ -1,15 +1,22 @@
 import React, { useState } from 'react';
 import { Module } from '../types';
-import { BookOpen, FileText, MessageSquare, Plus, X, ChevronDown } from 'lucide-react';
+import { BookOpen, FileText, MessageSquare, Plus, X, ChevronDown, Calendar } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { TaskList } from './TaskList';
 
 interface AcademicOverviewProps {
   modules: Module[];
+  tasks: import('../types').Task[];
   onOpenModule: (moduleId: string) => void;
   onAddModule: (title: string, code: string, color: Module['color']) => void;
+  onToggleTask: (taskId: string) => void;
+  onAddTask: (title: string, dueDate?: string, moduleId?: string) => void;
+  onEditTask?: (taskId: string, updates: Partial<import('../types').Task>) => void;
+  onRemoveTask?: (taskId: string) => void;
 }
 
-export function AcademicOverview({ modules, onOpenModule, onAddModule }: AcademicOverviewProps) {
+export function AcademicOverview({ modules, tasks = [], onOpenModule, onAddModule, onToggleTask, onAddTask, onEditTask, onRemoveTask }: AcademicOverviewProps) {
+  const ACADEMIC_GENERAL_ID = '__academic__';
   const [isAdding, setIsAdding] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newCode, setNewCode] = useState('');
@@ -51,6 +58,7 @@ export function AcademicOverview({ modules, onOpenModule, onAddModule }: Academi
 
   const totalFiles = modules.reduce((sum, module) => sum + module.files.length, 0);
   const totalChats = modules.reduce((sum, module) => sum + Math.floor(module.chatHistory.length / 2), 0);
+  const academicTasks = tasks.filter((task) => task.moduleId === ACADEMIC_GENERAL_ID);
 
   return (
     <div className="animate-fade-up text-[color:var(--text)]">
@@ -124,26 +132,62 @@ export function AcademicOverview({ modules, onOpenModule, onAddModule }: Academi
         </div>
       </div>
 
-      <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {sortedModules.map((module) => (
-          <button
-            key={module.id}
-            onClick={() => onOpenModule(module.id)}
-            className="surface-soft group rounded-3xl p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md"
-          >
-            <div className="mb-5 flex items-start justify-between gap-4">
-              <div className={cn('rounded-2xl p-3', getBadgeColors(module.color))}>
-                <BookOpen className="h-5 w-5" />
-              </div>
-              <span className="rounded-full border border-subtle px-3 py-1 text-xs uppercase tracking-[0.2em] text-muted">{module.code}</span>
-            </div>
-            <h3 className="text-xl font-semibold group-hover:text-accent transition-colors">{module.title}</h3>
-            <div className="mt-4 flex items-center justify-between text-xs text-muted">
-              <span className="inline-flex items-center gap-1.5"><FileText className="h-3.5 w-3.5" /> {module.files.length} files</span>
-              <span className="inline-flex items-center gap-1.5"><MessageSquare className="h-3.5 w-3.5" /> {Math.floor(module.chatHistory.length / 2)} chats</span>
-            </div>
-          </button>
-        ))}
+      <div className="mt-8 grid gap-8 lg:grid-cols-[1.35fr_1fr]">
+        <div>
+          <div className="grid gap-4 md:grid-cols-2">
+            {sortedModules.map((module) => (
+              <button
+                key={module.id}
+                onClick={() => onOpenModule(module.id)}
+                className="surface-soft group rounded-3xl p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md"
+              >
+                <div className="mb-5 flex items-start justify-between gap-4">
+                  <div className={cn('rounded-2xl p-3', getBadgeColors(module.color))}>
+                    <BookOpen className="h-5 w-5" />
+                  </div>
+                  <span className="rounded-full border border-subtle px-3 py-1 text-xs uppercase tracking-[0.2em] text-muted">{module.code}</span>
+                </div>
+                <h3 className="text-xl font-semibold group-hover:text-accent transition-colors">{module.title}</h3>
+                <div className="mt-4 flex items-center justify-between text-xs text-muted">
+                  <span className="inline-flex items-center gap-1.5"><FileText className="h-3.5 w-3.5" /> {module.files.length} files</span>
+                  <span className="inline-flex items-center gap-1.5"><MessageSquare className="h-3.5 w-3.5" /> {Math.floor(module.chatHistory.length / 2)} chats</span>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-6 surface-strong rounded-[2rem] p-4">
+            <TaskList
+              tasks={academicTasks}
+              onToggleTask={onToggleTask}
+              onAddTask={(title, dueDate) => onAddTask(title, dueDate, ACADEMIC_GENERAL_ID)}
+              onEditTask={onEditTask}
+              onRemoveTask={onRemoveTask}
+              showAddControls={true}
+              showTaskGroups={false}
+              title="Create academic task"
+            />
+          </div>
+        </div>
+
+        <div>
+          <div className="mb-4 flex items-center gap-2 text-lg font-semibold">
+            <Calendar className="h-5 w-5 text-accent" /> Academic tasks
+          </div>
+
+          <div className="surface-strong rounded-[2rem] overflow-visible p-4">
+            <TaskList
+              tasks={academicTasks}
+              onToggleTask={onToggleTask}
+              onAddTask={(title, dueDate) => onAddTask(title, dueDate, ACADEMIC_GENERAL_ID)}
+              onEditTask={onEditTask}
+              onRemoveTask={onRemoveTask}
+              showAddControls={false}
+              showTaskGroups={true}
+              title="Academic Tasks"
+            />
+          </div>
+        </div>
       </div>
 
       {isAdding && (
