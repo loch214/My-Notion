@@ -1,8 +1,23 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Task } from '../types';
-import { CheckSquare, Clock, Plus, CalendarIcon } from 'lucide-react';
+import { CheckSquare, ChevronDown, ChevronLeft, ChevronRight, Clock, Plus, CalendarIcon } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { format, isToday, isTomorrow, isPast, parseISO } from 'date-fns';
+import {
+  addMonths,
+  eachDayOfInterval,
+  endOfMonth,
+  endOfWeek,
+  format,
+  isPast,
+  isSameDay,
+  isSameMonth,
+  isToday,
+  isTomorrow,
+  parseISO,
+  startOfMonth,
+  startOfWeek,
+  subMonths,
+} from 'date-fns';
 
 interface TaskListProps {
   tasks: Task[];
@@ -17,6 +32,45 @@ export function TaskList({ tasks, onToggleTask, onAddTask, title = "Tasks", icon
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskPriority, setNewTaskPriority] = useState<'high' | 'medium' | 'low'>('medium');
   const [newTaskDueDate, setNewTaskDueDate] = useState('');
+  const [isPriorityOpen, setIsPriorityOpen] = useState(false);
+  const [isDateOpen, setIsDateOpen] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState(startOfMonth(new Date()));
+  const priorityRef = useRef<HTMLDivElement>(null);
+  const dateRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (priorityRef.current && !priorityRef.current.contains(target)) {
+        setIsPriorityOpen(false);
+      }
+      if (dateRef.current && !dateRef.current.contains(target)) {
+        setIsDateOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => document.removeEventListener('pointerdown', onPointerDown);
+  }, []);
+
+  useEffect(() => {
+    if (isDateOpen) {
+      const baseDate = newTaskDueDate ? parseISO(newTaskDueDate) : new Date();
+      setCalendarMonth(startOfMonth(baseDate));
+    }
+  }, [isDateOpen, newTaskDueDate]);
+
+  const priorityOptions: Array<{ id: 'high' | 'medium' | 'low'; label: string }> = useMemo(() => ([
+    { id: 'high', label: 'High priority' },
+    { id: 'medium', label: 'Medium priority' },
+    { id: 'low', label: 'Low priority' },
+  ]), []);
+
+  const calendarDays = useMemo(() => {
+    const start = startOfWeek(startOfMonth(calendarMonth), { weekStartsOn: 0 });
+    const end = endOfWeek(endOfMonth(calendarMonth), { weekStartsOn: 0 });
+    return eachDayOfInterval({ start, end });
+  }, [calendarMonth]);
 
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,6 +147,8 @@ export function TaskList({ tasks, onToggleTask, onAddTask, title = "Tasks", icon
     );
   };
 
+  const selectedDueDate = newTaskDueDate ? parseISO(newTaskDueDate) : null;
+
   return (
     <div>
       <div className="mb-4 flex items-center justify-between gap-3">
@@ -125,22 +181,125 @@ export function TaskList({ tasks, onToggleTask, onAddTask, title = "Tasks", icon
               className="surface-soft mb-3 w-full rounded-2xl px-4 py-3 text-sm outline-none transition focus:ring-2 focus:ring-[color:var(--accent)]/40 text-[color:var(--text)]"
             />
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex gap-2">
-                <select
-                  value={newTaskPriority}
-                  onChange={(e) => setNewTaskPriority(e.target.value as any)}
-                  className="surface-soft rounded-2xl pl-3 pr-8 py-2 text-sm outline-none transition focus:ring-2 focus:ring-[color:var(--accent)]/40"
-                >
-                  <option value="high">High priority</option>
-                  <option value="medium">Medium priority</option>
-                  <option value="low">Low priority</option>
-                </select>
-                <input
-                  type="date"
-                  value={newTaskDueDate}
-                  onChange={(e) => setNewTaskDueDate(e.target.value)}
-                  className="surface-soft rounded-2xl px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-[color:var(--accent)]/40 text-[color:var(--text)]"
-                />
+              <div className="flex flex-wrap gap-2">
+                <div ref={priorityRef} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setIsPriorityOpen((open) => !open)}
+                    className="surface-soft flex items-center gap-2 rounded-2xl px-4 py-2 text-sm transition hover:text-[color:var(--text)]"
+                  >
+                    {priorityOptions.find((option) => option.id === newTaskPriority)?.label}
+                    <ChevronDown className="h-4 w-4 text-muted" />
+                  </button>
+                  {isPriorityOpen && (
+                    <div className="absolute left-0 top-full z-20 mt-2 min-w-48 overflow-hidden rounded-2xl surface border border-subtle p-1.5 shadow-xl">
+                      {priorityOptions.map((option) => (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() => {
+                            setNewTaskPriority(option.id);
+                            setIsPriorityOpen(false);
+                          }}
+                          className={`w-full rounded-xl px-4 py-2.5 text-left text-sm transition ${newTaskPriority === option.id ? 'bg-accent text-white font-medium' : 'text-[color:var(--text)] hover:surface-soft'}`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div ref={dateRef} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setIsDateOpen((open) => !open)}
+                    className="surface-soft flex items-center gap-2 rounded-2xl px-4 py-2 text-sm transition hover:text-[color:var(--text)]"
+                  >
+                    <CalendarIcon className="h-4 w-4 text-muted" />
+                    {selectedDueDate ? format(selectedDueDate, 'MMM d, yyyy') : 'No due date'}
+                    <ChevronDown className="h-4 w-4 text-muted" />
+                  </button>
+                  {isDateOpen && (
+                    <div className="absolute left-0 top-full z-20 mt-2 w-80 overflow-hidden rounded-3xl surface border border-subtle p-4 shadow-xl">
+                      <div className="mb-4 flex items-center justify-between gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setCalendarMonth((month) => subMonths(month, 1))}
+                          className="surface-soft rounded-full p-2 text-muted transition hover:text-[color:var(--text)]"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </button>
+                        <div className="text-sm font-semibold text-[color:var(--text)]">
+                          {format(calendarMonth, 'MMMM yyyy')}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setCalendarMonth((month) => addMonths(month, 1))}
+                          className="surface-soft rounded-full p-2 text-muted transition hover:text-[color:var(--text)]"
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-semibold uppercase tracking-[0.2em] text-muted">
+                        {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => (
+                          <div key={day} className="py-1">{day}</div>
+                        ))}
+                      </div>
+
+                      <div className="mt-2 grid grid-cols-7 gap-1">
+                        {calendarDays.map((day) => {
+                          const isCurrentMonth = isSameMonth(day, calendarMonth);
+                          const isSelected = selectedDueDate ? isSameDay(day, selectedDueDate) : false;
+                          const isTodayDate = isToday(day);
+                          return (
+                            <button
+                              key={day.toISOString()}
+                              type="button"
+                              onClick={() => {
+                                setNewTaskDueDate(format(day, 'yyyy-MM-dd'));
+                                setIsDateOpen(false);
+                              }}
+                              className={cn(
+                                'flex h-10 items-center justify-center rounded-xl text-sm transition',
+                                isCurrentMonth ? 'text-[color:var(--text)]' : 'text-muted/60',
+                                isSelected ? 'bg-accent text-white font-medium' : 'hover:surface-soft',
+                                isTodayDate && !isSelected ? 'ring-1 ring-[color:var(--accent)]/35' : ''
+                              )}
+                            >
+                              {format(day, 'd')}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div className="mt-4 flex items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNewTaskDueDate('');
+                            setIsDateOpen(false);
+                          }}
+                          className="btn-secondary px-3 py-2 text-xs font-medium"
+                        >
+                          Clear
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setNewTaskDueDate(format(new Date(), 'yyyy-MM-dd'));
+                            setCalendarMonth(startOfMonth(new Date()));
+                            setIsDateOpen(false);
+                          }}
+                          className="btn-secondary px-3 py-2 text-xs font-medium"
+                        >
+                          Today
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="flex gap-2">
                 <button type="button" onClick={() => setIsAddingTask(false)} className="btn-secondary px-4 py-2 text-sm font-medium">
