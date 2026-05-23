@@ -7,6 +7,7 @@ import { GoogleGenAI } from '@google/genai';
 import Anthropic from '@anthropic-ai/sdk';
 import 'dotenv/config';
 import connectDB from './db.js';
+import { Module, Task, Event } from './models.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -201,6 +202,147 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Backend server is running' });
+});
+
+// ===== TASKS API =====
+app.get('/api/tasks', async (req, res) => {
+  try {
+    const tasks = await Task.find().sort({ createdAt: -1 });
+    res.json(tasks);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/tasks', async (req, res) => {
+  try {
+    const { id, title, time, done, priority } = req.body;
+    const task = new Task({ id, title, time, done, priority });
+    await task.save();
+    res.status(201).json(task);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/tasks/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    const task = await Task.findOneAndUpdate({ id }, { ...updates, updatedAt: new Date() }, { new: true });
+    res.json(task);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.delete('/api/tasks/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await Task.deleteOne({ id });
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ===== MODULES API =====
+app.get('/api/modules', async (req, res) => {
+  try {
+    const modules = await Module.find().sort({ createdAt: -1 });
+    res.json(modules);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/modules', async (req, res) => {
+  try {
+    const { id, code, title, color } = req.body;
+    const module = new Module({ id, code, title, color, files: [], chatHistory: [] });
+    await module.save();
+    res.status(201).json(module);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/modules/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const module = await Module.findOne({ id });
+    if (!module) return res.status(404).json({ error: 'Module not found' });
+    res.json(module);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put('/api/modules/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    const module = await Module.findOneAndUpdate({ id }, { ...updates, updatedAt: new Date() }, { new: true });
+    res.json(module);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ===== EVENTS API =====
+app.get('/api/events', async (req, res) => {
+  try {
+    const events = await Event.find().sort({ createdAt: -1 });
+    res.json(events);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/events', async (req, res) => {
+  try {
+    const { id, title, startTime, endTime, description, color } = req.body;
+    const event = new Event({ id, title, startTime, endTime, description, color });
+    await event.save();
+    res.status(201).json(event);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ===== GLOBAL CHAT API =====
+app.get('/api/chat/global/history', async (req, res) => {
+  try {
+    const module = await Module.findOne({ code: '__global__' });
+    const history = module?.chatHistory || [];
+    res.json(history);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/chat/global/save', async (req, res) => {
+  try {
+    const { message } = req.body;
+    let globalModule = await Module.findOne({ code: '__global__' });
+    if (!globalModule) {
+      globalModule = new Module({
+        id: '__global__',
+        code: '__global__',
+        title: 'Global Chat',
+        color: 'blue',
+        files: [],
+        chatHistory: [message],
+      });
+    } else {
+      globalModule.chatHistory.push(message);
+      globalModule.updatedAt = new Date();
+    }
+    await globalModule.save();
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 connectDB();

@@ -9,9 +9,10 @@ interface GlobalChatProps {
   onClose: () => void;
   state: AppState;
   updateState: (updates: (prev: AppState) => AppState) => void;
+  saveGlobalChat?: (message: ChatMessage) => Promise<void>;
 }
 
-export function GlobalChat({ onClose, state, updateState }: GlobalChatProps) {
+export function GlobalChat({ onClose, state, updateState, saveGlobalChat }: GlobalChatProps) {
   const [input, setInput] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
   const [model, setModel] = React.useState(DEFAULT_AI_MODEL);
@@ -35,6 +36,7 @@ export function GlobalChat({ onClose, state, updateState }: GlobalChatProps) {
     };
 
     updateState((prev) => ({ ...prev, globalChatHistory: [...prev.globalChatHistory, userMessage] }));
+    if (saveGlobalChat) await saveGlobalChat(userMessage);
     setInput('');
     setIsLoading(true);
 
@@ -68,6 +70,7 @@ export function GlobalChat({ onClose, state, updateState }: GlobalChatProps) {
       };
 
       updateState((prev) => ({ ...prev, globalChatHistory: [...prev.globalChatHistory, modelMessage] }));
+      if (saveGlobalChat) await saveGlobalChat(modelMessage);
     } catch (error) {
       console.error(error);
     } finally {
@@ -79,7 +82,7 @@ export function GlobalChat({ onClose, state, updateState }: GlobalChatProps) {
     <div className="surface-strong fixed inset-y-0 right-0 z-50 flex w-full max-w-[430px] flex-col border-l border-subtle animate-fade-up md:w-[430px] text-[color:var(--text)]">
       <div className="flex items-center justify-between border-b border-subtle px-4 py-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-accent text-white shadow-lg shadow-indigo-500/20">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-accent text-white shadow-lg shadow-black/20">
             <Sparkles className="h-4.5 w-4.5" />
           </div>
           <div>
@@ -96,7 +99,7 @@ export function GlobalChat({ onClose, state, updateState }: GlobalChatProps) {
         <div className="relative">
           <button
             onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
-            className="surface-soft flex w-full items-center justify-between rounded-2xl px-4 py-3 text-sm outline-none transition focus:ring-2 focus:ring-indigo-500/40"
+            className="surface-soft flex w-full items-center justify-between rounded-2xl px-4 py-3 text-sm outline-none transition focus:ring-2 focus:ring-[color:var(--accent)]/40"
           >
             {AI_MODELS.find(m => m.id === model)?.label} · {AI_MODELS.find(m => m.id === model)?.badge}
             <ChevronDown className="h-4 w-4 text-muted" />
@@ -165,7 +168,7 @@ export function GlobalChat({ onClose, state, updateState }: GlobalChatProps) {
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            className="surface-soft w-full rounded-2xl px-4 py-3 pr-12 text-sm outline-none transition focus:ring-2 focus:ring-indigo-500/40"
+            className="surface-soft w-full rounded-2xl px-4 py-3 pr-12 text-sm outline-none transition focus:ring-2 focus:ring-[color:var(--accent)]/40"
             placeholder="Ask anything about your tasks, schedule, or files..."
           />
           <button

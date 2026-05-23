@@ -43,7 +43,7 @@ function StatCard({ label, value, hint, icon: Icon }: { label: string; value: st
 }
 
 export default function App() {
-  const { state, updateState, toggleTask, addModule, addTask } = useAppStore();
+  const { state, updateState, toggleTask, addModule, addTask, saveModule, saveGlobalChat } = useAppStore();
   const [appStage, setAppStage] = useState<'landing' | 'workspace'>('landing');
   const [activeTab, setActiveTab] = useState<'home' | 'academic' | 'personal'>('home');
   const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
@@ -81,7 +81,7 @@ export default function App() {
     return (
       <div className="app-shell relative overflow-hidden text-[color:var(--text)]">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute -left-24 top-16 h-80 w-80 rounded-full bg-indigo-500/15 blur-3xl animate-drift" />
+          <div className="absolute -left-24 top-16 h-80 w-80 rounded-full bg-sky-500/12 blur-3xl animate-drift" />
           <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-cyan-400/10 blur-3xl animate-drift" />
           <div className="absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-black/20 to-transparent" />
         </div>
@@ -98,7 +98,7 @@ export default function App() {
           </div>
 
           <main className="flex w-full max-w-2xl flex-col items-center text-center animate-fade-up">
-            <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-[2rem] bg-accent text-white shadow-xl shadow-indigo-500/25">
+            <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-[2rem] bg-accent text-white shadow-xl shadow-black/20">
               <Sparkles className="h-10 w-10" />
             </div>
             
@@ -113,7 +113,7 @@ export default function App() {
             <div className="mt-10">
               <button
                 onClick={() => setAppStage('workspace')}
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-accent px-8 py-4 text-base font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all hover:-translate-y-1 hover:shadow-indigo-500/40"
+                className="btn-primary px-8 py-3 text-base font-semibold"
               >
                 Enter workspace
                 <ArrowRight className="h-5 w-5" />
@@ -127,11 +127,11 @@ export default function App() {
 
   return (
     <div className="app-shell flex min-h-screen overflow-hidden">
-      <aside className={cn('hidden md:flex md:w-80 md:flex-col md:gap-4 md:p-4', isSidebarOpen ? 'md:flex' : 'md:hidden')}>
+      <aside className={cn('hidden md:flex md:w-80 md:flex-col md:gap-4 md:p-4 md:sticky md:top-0 md:h-screen md:overflow-y-auto', isSidebarOpen ? 'md:flex' : 'md:hidden')}>
         <div className="surface-strong rounded-3xl p-4">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-accent text-white shadow-lg shadow-indigo-500/20">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-accent text-white shadow-lg shadow-black/20">
                 <Sparkles className="h-5 w-5" />
               </div>
               <div>
@@ -183,7 +183,7 @@ export default function App() {
           </div>
         </div>
 
-        <div className="surface-strong mt-auto rounded-3xl p-4">
+        <div className="surface-strong mt-auto rounded-3xl p-4 md:sticky md:bottom-4">
           <div className="flex w-full items-center justify-between rounded-2xl surface-soft px-4 py-3 text-left text-sm font-medium text-muted">
             <span>My-Notion v1.0</span>
           </div>
@@ -191,7 +191,7 @@ export default function App() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="surface-strong sticky top-0 z-20 m-4 mb-0 flex items-center justify-between rounded-3xl px-4 py-3 gap-4">
+        <header className="surface-strong sticky top-0 z-20 m-3 mb-0 flex items-center justify-between rounded-3xl px-4 py-2.5 gap-4">
           <div className="flex items-center gap-3 flex-1">
             <button
               onClick={() => setIsSidebarOpen((open) => !open)}
@@ -218,10 +218,10 @@ export default function App() {
           <div className="hidden sm:flex flex-1 justify-center max-w-md w-full">
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
-              <input 
-                type="text" 
-                placeholder="Search, ask, or jump..." 
-                className="w-full surface-soft border border-subtle rounded-full py-2 pl-10 pr-4 text-sm text-[color:var(--text)] placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
+              <input
+                type="text"
+                placeholder="Search, ask, or jump..."
+                className="w-full surface-soft border border-subtle rounded-full py-2 pl-10 pr-4 text-sm text-[color:var(--text)] placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)]/40"
               />
               <div className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full border border-subtle px-2 py-0.5 text-[10px] uppercase tracking-[0.2em] text-muted pointer-events-none">
                 ⌘K
@@ -246,37 +246,37 @@ export default function App() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          <div className="mx-auto max-w-6xl space-y-6">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-5 lg:p-6">
+          <div className="mx-auto max-w-6xl space-y-5">
             {activeTab === 'home' && (
               <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-                <div className="surface-strong hero-ring rounded-[2rem] p-6 sm:p-8 animate-fade-up">
+                <div className="surface-strong hero-ring rounded-[2rem] p-5 sm:p-6 animate-fade-up">
                   <div className="inline-flex items-center gap-2 rounded-full border border-subtle surface-soft px-3 py-1 text-xs uppercase tracking-[0.24em] text-muted">
                     <Sparkles className="h-3.5 w-3.5 text-accent" />
                     Today inside My-Notion
                   </div>
-                  <h1 className="mt-5 max-w-2xl text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl">
+                  <h1 className="mt-4 max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl lg:text-5xl">
                     Welcome to your personal workspace.
                   </h1>
-                  <p className="mt-5 max-w-2xl text-base leading-7 text-muted sm:text-lg">
+                  <p className="mt-4 max-w-2xl text-sm leading-6 text-muted sm:text-base">
                     Overview of your academics, personal tasks, and upcoming events. Keep everything organized and accessible in one place.
                   </p>
-                  <div className="mt-7 flex flex-wrap gap-3">
+                  <div className="mt-6 flex flex-wrap gap-3">
                     <button
                       onClick={() => navigateToTab('academic')}
-                      className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5"
+                      className="btn-primary px-5 py-2.5 text-sm font-semibold"
                     >
                       Open academics <ArrowRight className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => navigateToTab('personal')}
-                      className="inline-flex items-center gap-2 rounded-full border border-subtle surface-soft px-5 py-3 text-sm font-medium text-[color:var(--text)] transition hover:brightness-110"
+                      className="btn-secondary px-5 py-2.5 text-sm font-medium"
                     >
                       Open personal <ArrowRight className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => setIsAiPanelOpen(true)}
-                      className="inline-flex items-center gap-2 rounded-full border border-subtle surface-soft px-5 py-3 text-sm font-medium text-[color:var(--text)] transition hover:brightness-110"
+                      className="btn-secondary px-5 py-2.5 text-sm font-medium"
                     >
                       <Sparkles className="h-4 w-4" /> Ask AI
                     </button>
@@ -284,7 +284,7 @@ export default function App() {
                 </div>
 
                 <div className="grid gap-4">
-                  <div className="surface rounded-[2rem] p-5 animate-fade-up">
+                  <div className="surface rounded-[2rem] p-4 animate-fade-up">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-xs uppercase tracking-[0.24em] text-muted">Workspace summary</p>
@@ -310,7 +310,7 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="surface rounded-[2rem] p-5 animate-fade-up">
+                    <div className="surface rounded-[2rem] p-4 animate-fade-up">
                     <p className="text-xs uppercase tracking-[0.24em] text-muted">Entry points</p>
                     <div className="mt-4 space-y-3 text-sm">
                       <button onClick={() => navigateToTab('academic')} className="surface-soft flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left transition hover:text-[color:var(--text)]">
@@ -338,10 +338,13 @@ export default function App() {
                 <ModuleDetail
                   module={activeModule}
                   onBack={() => setActiveModuleId(null)}
-                  updateModule={(id: string, updates: Partial<typeof activeModule>) => updateState((prev) => ({
-                    ...prev,
-                    modules: prev.modules.map((module) => (module.id === id ? { ...module, ...updates } : module)),
-                  }))}
+                  updateModule={(id: string, updates: Partial<typeof activeModule>) => {
+                    updateState((prev) => ({
+                      ...prev,
+                      modules: prev.modules.map((module) => (module.id === id ? { ...module, ...updates } : module)),
+                    }));
+                    saveModule(id, updates);
+                  }}
                 />
               </div>
             )}
@@ -365,6 +368,7 @@ export default function App() {
           onClose={() => setIsAiPanelOpen(false)}
           state={state}
           updateState={updateState}
+          saveGlobalChat={saveGlobalChat}
         />
       )}
     </div>

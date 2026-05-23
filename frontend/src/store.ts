@@ -3,86 +3,167 @@ import { AppState, Module, Task, Event } from './types';
 import { v4 as uuidv4 } from 'uuid';
 
 const DEFAULT_STATE: AppState = {
-  modules: [
-    {
-      id: uuidv4(),
-      code: 'CS-201',
-      title: 'Software Engineering',
-      color: 'amber',
-      files: [],
-      chatHistory: []
-    },
-    {
-      id: uuidv4(),
-      code: 'CS-202',
-      title: 'Database Systems',
-      color: 'blue',
-      files: [],
-      chatHistory: []
-    },
-    {
-      id: uuidv4(),
-      code: 'CS-203',
-      title: 'Data Structures',
-      color: 'emerald',
-      files: [],
-      chatHistory: []
-    }
-  ],
-  tasks: [
-    { id: uuidv4(), title: 'Finish SE Assignment 2 draft', time: 'By 5 PM', done: false, priority: 'high' },
-    { id: uuidv4(), title: 'Email professor about extension', time: 'Anytime', done: true, priority: 'medium' },
-    { id: uuidv4(), title: 'Buy groceries', time: 'Evening', done: false, priority: 'low' },
-  ],
-  events: [
-    { id: uuidv4(), title: 'Database Lab', startTime: '10:00 AM', endTime: '12:00 PM', color: 'blue' },
-    { id: uuidv4(), title: 'Study Group', startTime: '2:00 PM', endTime: '4:00 PM', description: 'Library 3rd floor', color: 'amber' },
-  ],
+  modules: [],
+  tasks: [],
+  events: [],
   globalChatHistory: []
 };
 
-export function useAppStore() {
-  const [state, setState] = useState<AppState>(() => {
-    const saved = localStorage.getItem('studentos-state');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        return { ...DEFAULT_STATE, ...parsed };
-      } catch (e) {
-        console.error('Failed to parse state', e);
-      }
-    }
-    return DEFAULT_STATE;
-  });
+const API_BASE = 'http://localhost:3001/api';
 
+export function useAppStore() {
+  const [state, setState] = useState<AppState>(DEFAULT_STATE);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Load initial data from backend
   useEffect(() => {
-    localStorage.setItem('studentos-state', JSON.stringify(state));
-  }, [state]);
+    const loadInitialData = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+
+        const [modulesRes, tasksRes, eventsRes] = await Promise.all([
+          fetch(`${API_BASE}/modules`),
+          fetch(`${API_BASE}/tasks`),
+          fetch(`${API_BASE}/events`),
+        ]);
+
+        if (!modulesRes.ok || !tasksRes.ok || !eventsRes.ok) {
+          throw new Error('Failed to load data from server');
+        }
+
+        const modules = await modulesRes.json();
+        const tasks = await tasksRes.json();
+        const events = await eventsRes.json();
+
+        setState({
+          modules: modules || [],
+          tasks: tasks || [],
+          events: events || [],
+          globalChatHistory: state.globalChatHistory,
+        });
+      } catch (err: any) {
+        console.error('Failed to load initial data:', err);
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadInitialData();
+  }, []);
 
   const updateState = (updates: Partial<AppState> | ((prev: AppState) => AppState)) => {
     setState(prev => typeof updates === 'function' ? updates(prev) : { ...prev, ...updates });
   };
 
-  const addModule = (title: string, code: string, color: Module['color']) => {
-    updateState(prev => ({
-      ...prev,
-      modules: [...prev.modules, { id: uuidv4(), title, code, color, files: [], chatHistory: [] }]
-    }));
+  const addModule = async (title: string, code: string, color: Module['color']) => {
+    try {
+      const moduleId = uuidv4();
+      const response = await fetch(`${API_BASE}/modules`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: moduleId, title, code, color }),
+      });
+
+      if (!response.ok) throw new Error('Failed to create module');
+
+      const newModule = await response.json();
+      setState(prev => ({
+        ...prev,
+        modules: [...prev.modules, newModule],
+      }));
+    } catch (err: any) {
+      console.error('Error adding module:', err);
+      setError(err.message);
+    }
   };
 
-  const toggleTask = (taskId: string) => {
-    updateState(prev => ({
-      ...prev,
-      tasks: prev.tasks.map(t => t.id === taskId ? { ...t, done: !t.done } : t)
-    }));
+  const toggleTask = async (taskId: string) => {
+    try {
+      const task = state.tasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      const response = await fetch(`${API_BASE}/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ done: !task.done }),
+      });
+
+      if (!response.ok) throw new Error('Failed to update task');
+
+      const updatedTask = await response.json();
+      setState(prev => ({
+        ...prev,
+        tasks: prev.tasks.map(t => t.id === taskId ? updatedTask : t),
+      }));
+    } catch (err: any) {
+      console.error('Error toggling task:', err);
+      setError(err.message);
+    }
   };
 
-  const addTask = (title: string, priority: 'high' | 'medium' | 'low') => {
-    updateState(prev => ({
-      ...prev,
-      tasks: [...prev.tasks, { id: uuidv4(), title, priority, done: false, time: 'Anytime' }]
-    }));
+  const addTask = async (title: string, priority: 'high' | 'medium' | 'low') => {
+    try {
+      const taskId = uuidv4();
+      const response = await fetch(`${API_BASE}/tasks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: taskId, title, priority, done: false, time: 'Anytime' }),
+      });
+
+      if (!response.ok) throw new Error('Failed to create task');
+
+      const newTask = await response.json();
+      setState(prev => ({
+        ...prev,
+        tasks: [...prev.tasks, newTask],
+      }));
+    } catch (err: any) {
+      console.error('Error adding task:', err);
+      setError(err.message);
+    }
   };
 
-  return { state, updateState, addModule, toggleTask, addTask };
+  return {
+    state,
+    updateState,
+    addModule,
+    toggleTask,
+    addTask,
+    isLoading,
+    error,
+    saveModule: async (moduleId: string, updates: Partial<Module>) => {
+      try {
+        const response = await fetch(`${API_BASE}/modules/${moduleId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates),
+        });
+        if (!response.ok) throw new Error('Failed to save module');
+        const updated = await response.json();
+        setState(prev => ({
+          ...prev,
+          modules: prev.modules.map(m => m.id === moduleId ? updated : m),
+        }));
+      } catch (err: any) {
+        console.error('Error saving module:', err);
+        setError(err.message);
+      }
+    },
+    saveGlobalChat: async (message: any) => {
+      try {
+        const response = await fetch(`${API_BASE}/chat/global/save`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message }),
+        });
+        if (!response.ok) throw new Error('Failed to save chat');
+      } catch (err: any) {
+        console.error('Error saving global chat:', err);
+        setError(err.message);
+      }
+    },
+  };
 }

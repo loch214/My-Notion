@@ -1,40 +1,70 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap');
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
   --font-heading: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {
   color-scheme: dark;
-  --app-bg: #141417;
-  --app-bg-soft: #1a1a1f;
-  --surface: rgba(26, 26, 31, 0.86);
-  --surface-strong: rgba(33, 33, 38, 0.98);
-  --surface-soft: rgba(255, 255, 255, 0.06);
-  --border: rgba(255, 255, 255, 0.12);
-  --text: #f4f4f5;
-  --muted: #a1a1aa;
-  --accent: #8b5cf6;
-  --accent-2: #22d3ee;
-  --shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  --app-bg: #0f1115;
+  --app-bg-soft: #151a22;
+  --surface: rgba(21, 26, 34, 0.9);
+  --surface-strong: rgba(24, 30, 40, 0.98);
+  --surface-soft: rgba(255, 255, 255, 0.1);
+  --border: rgba(255, 255, 255, 0.18);
+  --text: #f8fafc;
+  --muted: #b6c0d0;
+  --accent: #3b82f6;
+  --accent-2: #22c1dc;
+  --shadow: 0 18px 50px rgba(3, 7, 18, 0.45);
+  --module-blue-bg: rgba(56, 189, 248, 0.18);
+  --module-blue-text: #7dd3fc;
+  --module-blue-border: rgba(56, 189, 248, 0.45);
+  --module-amber-bg: rgba(251, 191, 36, 0.18);
+  --module-amber-text: #fcd34d;
+  --module-amber-border: rgba(251, 191, 36, 0.4);
+  --module-emerald-bg: rgba(52, 211, 153, 0.18);
+  --module-emerald-text: #6ee7b7;
+  --module-emerald-border: rgba(52, 211, 153, 0.4);
+  --module-purple-bg: rgba(129, 140, 248, 0.2);
+  --module-purple-text: #c4b5fd;
+  --module-purple-border: rgba(129, 140, 248, 0.4);
+  --module-rose-bg: rgba(251, 113, 133, 0.2);
+  --module-rose-text: #fda4af;
+  --module-rose-border: rgba(251, 113, 133, 0.45);
 }
 
 html.light {
   color-scheme: light;
-  --app-bg: #e2e8f0;
-  --app-bg-soft: #f1f5f9;
-  --surface: rgba(248, 250, 252, 0.85);
-  --surface-strong: rgba(241, 245, 249, 0.98);
-  --surface-soft: rgba(15, 23, 42, 0.06);
-  --border: rgba(15, 23, 42, 0.12);
-  --text: #1e293b;
-  --muted: #475569;
-  --accent: #4f46e5;
-  --accent-2: #0ea5e9;
-  --shadow: 0 20px 60px rgba(15, 23, 42, 0.08);
+  --app-bg: #f5f7fb;
+  --app-bg-soft: #edf2f7;
+  --surface: rgba(255, 255, 255, 0.92);
+  --surface-strong: rgba(255, 255, 255, 0.98);
+  --surface-soft: rgba(15, 23, 42, 0.07);
+  --border: rgba(15, 23, 42, 0.14);
+  --text: #0f172a;
+  --muted: #4b5563;
+  --accent: #1d4ed8;
+  --accent-2: #0891b2;
+  --shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
+  --module-blue-bg: rgba(14, 116, 144, 0.12);
+  --module-blue-text: #0369a1;
+  --module-blue-border: rgba(14, 116, 144, 0.3);
+  --module-amber-bg: rgba(217, 119, 6, 0.14);
+  --module-amber-text: #b45309;
+  --module-amber-border: rgba(217, 119, 6, 0.3);
+  --module-emerald-bg: rgba(5, 150, 105, 0.14);
+  --module-emerald-text: #047857;
+  --module-emerald-border: rgba(5, 150, 105, 0.3);
+  --module-purple-bg: rgba(79, 70, 229, 0.12);
+  --module-purple-text: #4338ca;
+  --module-purple-border: rgba(79, 70, 229, 0.28);
+  --module-rose-bg: rgba(225, 29, 72, 0.12);
+  --module-rose-text: #be123c;
+  --module-rose-border: rgba(225, 29, 72, 0.3);
 }
 
 html, body, #root {
@@ -44,9 +74,13 @@ html, body, #root {
 body {
   margin: 0;
   font-family: var(--font-sans);
+  font-size: 15.5px;
+  line-height: 1.6;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
   background:
-    radial-gradient(circle at top left, rgba(99, 102, 241, 0.18), transparent 32%),
-    radial-gradient(circle at top right, rgba(34, 211, 238, 0.12), transparent 24%),
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.16), transparent 35%),
+    radial-gradient(circle at top right, rgba(34, 211, 238, 0.12), transparent 28%),
     linear-gradient(180deg, var(--app-bg) 0%, var(--app-bg-soft) 100%);
   color: var(--text);
 }
@@ -58,7 +92,7 @@ option {
 
 h1, h2, h3, h4 {
   font-family: var(--font-heading);
-  letter-spacing: -0.03em;
+  letter-spacing: -0.012em;
 }
 
 .app-shell {
@@ -99,6 +133,89 @@ h1, h2, h3, h4 {
 
 .bg-accent {
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.22);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.28);
+  filter: brightness(1.02);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  background: var(--surface-soft);
+  color: var(--text);
+  border: 1px solid var(--border);
+  transition: transform 0.2s ease, border-color 0.2s ease, filter 0.2s ease;
+}
+
+.btn-secondary:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.02);
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid transparent;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.btn-ghost:hover {
+  background: var(--surface-soft);
+  border-color: var(--border);
+}
+
+.module-badge-blue {
+  background: var(--module-blue-bg);
+  color: var(--module-blue-text);
+  border: 1px solid var(--module-blue-border);
+}
+
+.module-badge-amber {
+  background: var(--module-amber-bg);
+  color: var(--module-amber-text);
+  border: 1px solid var(--module-amber-border);
+}
+
+.module-badge-emerald {
+  background: var(--module-emerald-bg);
+  color: var(--module-emerald-text);
+  border: 1px solid var(--module-emerald-border);
+}
+
+.module-badge-purple {
+  background: var(--module-purple-bg);
+  color: var(--module-purple-text);
+  border: 1px solid var(--module-purple-border);
+}
+
+.module-badge-rose {
+  background: var(--module-rose-bg);
+  color: var(--module-rose-text);
+  border: 1px solid var(--module-rose-border);
 }
 
 .hero-ring {

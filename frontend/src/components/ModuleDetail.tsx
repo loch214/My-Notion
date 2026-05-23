@@ -138,7 +138,7 @@ export function ModuleDetail({ module, onBack, updateModule }: ModuleDetailProps
           <div className="relative">
             <button
               onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
-              className="surface-soft flex items-center gap-2 rounded-2xl px-4 py-2 text-sm outline-none transition focus:ring-2 focus:ring-indigo-500/40"
+              className="surface-soft flex items-center gap-2 rounded-2xl px-4 py-2 text-sm outline-none transition focus:ring-2 focus:ring-[color:var(--accent)]/40"
             >
               {AI_MODELS.find(m => m.id === chatModel)?.label}
               <ChevronDown className="h-4 w-4 text-muted" />
@@ -170,14 +170,14 @@ export function ModuleDetail({ module, onBack, updateModule }: ModuleDetailProps
         {activeTab === 'files' && (
           <div className="h-full overflow-y-auto pb-8 animate-fade-up">
             <div className="surface rounded-[2rem] p-6 text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-white shadow-lg shadow-indigo-500/20">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-white shadow-lg shadow-black/20">
                 {isUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
               </div>
               <h3 className="text-xl font-semibold">Upload lecture notes or reading materials</h3>
               <p className="mx-auto mt-2 max-w-lg text-sm text-muted">
                 Add PDFs, DOCX, or text files and use them as study context for your module AI.
               </p>
-              <label className="mt-5 inline-flex cursor-pointer items-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5">
+              <label className="btn-primary mt-5 cursor-pointer px-5 py-3 text-sm font-semibold">
                 Select files
                 <input type="file" className="hidden" onChange={handleFileUpload} accept=".pdf,.doc,.docx,.txt" disabled={isUploading} />
               </label>
@@ -188,7 +188,7 @@ export function ModuleDetail({ module, onBack, updateModule }: ModuleDetailProps
               <div className="relative">
                 <button
                   onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
-                  className="surface-soft flex items-center gap-2 rounded-2xl px-4 py-2 text-sm outline-none transition focus:ring-2 focus:ring-indigo-500/40"
+                  className="surface-soft flex items-center gap-2 rounded-2xl px-4 py-2 text-sm outline-none transition focus:ring-2 focus:ring-[color:var(--accent)]/40"
                 >
                   {fileSort === 'newest' ? 'Newest first' : fileSort === 'oldest' ? 'Oldest first' : 'Alphabetical'}
                   <ChevronDown className="h-4 w-4 text-muted" />
@@ -257,7 +257,7 @@ export function ModuleDetail({ module, onBack, updateModule }: ModuleDetailProps
             <div className="flex-1 space-y-5 overflow-y-auto p-4 md:p-6" ref={scrollRef}>
               {module.chatHistory.length === 0 && (
                 <div className="mx-auto flex h-full max-w-md flex-col items-center justify-center text-center text-muted">
-                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-white shadow-lg shadow-indigo-500/20">
+                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-white shadow-lg shadow-black/20">
                     <Sparkles className="h-6 w-6" />
                   </div>
                   <h3 className="text-xl font-semibold text-[color:var(--text)]">Module AI assistant</h3>
@@ -303,7 +303,7 @@ export function ModuleDetail({ module, onBack, updateModule }: ModuleDetailProps
                       handleSendMessage();
                     }
                   }}
-                  className="surface-soft min-h-[54px] flex-1 resize-none rounded-2xl px-4 py-3 text-sm outline-none transition focus:ring-2 focus:ring-indigo-500/40"
+                  className="surface-soft min-h-[54px] flex-1 resize-none rounded-2xl px-4 py-3 text-sm outline-none transition focus:ring-2 focus:ring-[color:var(--accent)]/40"
                   rows={2}
                   placeholder="Ask a question about the uploaded materials..."
                 />
