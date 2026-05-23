@@ -267,7 +267,7 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
                         setChatModel(option.id);
                         setIsModelDropdownOpen(false);
                       }}
-                      className={`w-full rounded-xl px-4 py-2.5 text-left text-sm transition ${chatModel === option.id ? 'bg-accent text-white font-medium' : 'text-[color:var(--text)] hover:surface-soft'}`}
+                      className={`w-full rounded-xl px-4 py-2.5 text-left text-sm transition ${chatModel === option.id ? 'bg-accent text-[color:var(--on-accent)] font-medium' : 'text-[color:var(--text)] hover:bg-[color:var(--surface-soft)]'}`}
                     >
                       {option.label}
                     </button>
@@ -283,7 +283,7 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
         {activeTab === 'files' && (
           <div className="pb-8 animate-fade-up">
             <div className="surface rounded-[2rem] p-6 text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-white shadow-lg shadow-black/20">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-[color:var(--on-accent)] shadow-lg shadow-black/20">
                 {isUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
               </div>
               <h3 className="text-xl font-semibold">Upload lecture notes or reading materials</h3>
@@ -321,7 +321,7 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
                             setFileSort(option.id as any);
                             setIsSortDropdownOpen(false);
                           }}
-                          className={`w-full rounded-xl px-4 py-2.5 text-left text-sm transition ${fileSort === option.id ? 'bg-accent text-white font-medium' : 'text-[color:var(--text)] hover:surface-soft'}`}
+                          className={`w-full rounded-xl px-4 py-2.5 text-left text-sm transition ${fileSort === option.id ? 'bg-accent text-[color:var(--on-accent)] font-medium' : 'text-[color:var(--text)] hover:bg-[color:var(--surface-soft)]'}`}
                         >
                           {option.label}
                         </button>
@@ -354,7 +354,7 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
                     </div>
                     <button
                       onClick={() => updateModule(module.id, { files: module.files.filter((currentFile) => currentFile.id !== file.id) })}
-                      className="absolute right-3 top-3 rounded-full p-2 text-muted opacity-70 transition hover:surface-soft hover:text-[color:var(--text)]"
+                      className="absolute right-3 top-3 rounded-full p-2 text-muted opacity-70 transition hover:bg-[color:var(--surface-soft)] hover:text-[color:var(--text)]"
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -376,7 +376,7 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
                 {!isSidebarCollapsed && (
                   <button 
                     onClick={handleNewChat}
-                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white transition hover:scale-[1.02] active:scale-[0.98] truncate"
+                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-[color:var(--on-accent)] transition hover:scale-[1.02] active:scale-[0.98] truncate"
                   >
                     <Plus className="h-4 w-4" /> New Chat
                   </button>
@@ -384,7 +384,7 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
                 <button 
                   onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
                   className={cn(
-                    "rounded-xl p-2 text-muted hover:surface-soft hover:text-[color:var(--text)] transition",
+                    "rounded-xl p-2 text-muted hover:bg-[color:var(--surface-soft)] hover:text-[color:var(--text)] transition",
                     isSidebarCollapsed && "w-full flex justify-center"
                   )}
                   title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
@@ -401,7 +401,7 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
                       "w-full rounded-xl px-4 py-3 text-left text-sm transition group relative",
                       activeSessionId === s.id 
                         ? "bg-accent/10 text-accent font-medium" 
-                        : "text-muted hover:surface-soft hover:text-[color:var(--text)]",
+                        : "text-muted hover:bg-[color:var(--surface-soft)] hover:text-[color:var(--text)]",
                       isSidebarCollapsed && "px-0 flex justify-center"
                     )}
                   >
@@ -453,7 +453,7 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
               <div className="flex-1 space-y-5 overflow-y-auto p-4 md:p-6 scroll-smooth" ref={scrollRef}>
                 {currentChatHistory.length === 0 && (
                   <div className="mx-auto flex h-full max-w-md flex-col items-center justify-center text-center text-muted">
-                    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-white shadow-lg shadow-black/20">
+                    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-[color:var(--on-accent)] shadow-lg shadow-black/20">
                       <Sparkles className="h-6 w-6" />
                     </div>
                     <h3 className="text-xl font-semibold text-[color:var(--text)]">Module AI assistant</h3>
@@ -465,7 +465,7 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
 
                 {currentChatHistory.map((message) => (
                   <div key={message.id} className={`flex gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''} animate-fade-in`}>
-                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full shadow-sm ${message.role === 'user' ? 'bg-accent text-white' : 'bg-surface-strong text-accent border border-subtle'}`}>
+                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full shadow-sm ${message.role === 'user' ? 'bg-accent text-[color:var(--on-accent)]' : 'surface-strong text-accent border border-subtle'}`}>
                       {message.role === 'user' ? <span className="text-xs font-bold">YOU</span> : <Sparkles className="h-4 w-4" />}
                     </div>
                     <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-sm ${
@@ -476,7 +476,7 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
                       {message.attachments && message.attachments.length > 0 && (
                         <div className="mb-2 flex flex-wrap gap-2">
                           {message.attachments.map((att, i) => (
-                            <div key={i} className="flex items-center gap-1.5 rounded-lg bg-black/10 px-2 py-1 text-[10px] font-medium backdrop-blur-sm">
+                            <div key={i} className="flex items-center gap-1.5 rounded-lg surface-soft px-2 py-1 text-[10px] font-medium backdrop-blur-sm">
                               {att.type.startsWith('image/') ? <ImageIcon className="h-3 w-3" /> : <Paperclip className="h-3 w-3" />}
                               <span className="max-w-[100px] truncate">{att.name}</span>
                             </div>
@@ -492,7 +492,7 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
 
                 {isChatLoading && (
                   <div className="flex gap-4">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-white">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-[color:var(--on-accent)]">
                       <Sparkles className="h-4 w-4" />
                     </div>
                     <div className="flex items-center rounded-3xl border border-subtle surface-soft px-4 py-3 text-sm text-muted">
@@ -511,7 +511,7 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
                         <span className="max-w-[120px] truncate font-medium">{att.name}</span>
                         <button 
                           onClick={() => setChatAttachments(prev => prev.filter((_, index) => index !== i))}
-                          className="ml-1 rounded-full p-0.5 hover:bg-black/10 text-muted hover:text-[color:var(--text)]"
+                          className="ml-1 rounded-full p-0.5 hover:bg-[color:var(--surface-soft)] text-muted hover:text-[color:var(--text)]"
                         >
                           <X className="h-3 w-3" />
                         </button>
@@ -545,7 +545,7 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
                   />
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-2xl surface-soft border border-subtle text-muted transition hover:surface-strong hover:text-[color:var(--text)]"
+                    className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-2xl surface-soft border border-subtle text-muted transition hover:bg-[color:var(--surface-strong)] hover:text-[color:var(--text)]"
                     title="Attach images or files"
                   >
                     <Plus className="h-5 w-5" />
@@ -566,7 +566,7 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
                   <button
                     onClick={handleSendMessage}
                     disabled={isChatLoading || (!chatInput.trim() && chatAttachments.length === 0)}
-                    className="flex h-[46px] shrink-0 items-center justify-center rounded-2xl bg-accent px-4 text-white transition hover:-translate-y-0.5 disabled:opacity-50"
+                    className="flex h-[46px] shrink-0 items-center justify-center rounded-2xl bg-accent px-4 text-[color:var(--on-accent)] transition hover:-translate-y-0.5 disabled:opacity-50"
                   >
                     <MessageSquare className="h-5 w-5" />
                   </button>

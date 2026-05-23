@@ -146,10 +146,10 @@ export function TaskList({ tasks, onToggleTask, onAddTask, onEditTask, onRemoveT
                   </>
                 ) : (
                   <>
-                    <button onClick={() => { setEditingId(task.id); setEditingTitle(task.title); setEditingDueDate(task.dueDate || ''); }} className="surface-soft rounded-full p-2 text-muted transition hover:surface-soft">
+                    <button onClick={() => { setEditingId(task.id); setEditingTitle(task.title); setEditingDueDate(task.dueDate || ''); }} className="surface-soft rounded-full p-2 text-muted transition hover:bg-[color:var(--surface-strong)]">
                       <Edit3 className="h-4 w-4" />
                     </button>
-                    <button onClick={() => onRemoveTask?.(task.id)} className="surface-soft rounded-full p-2 text-muted transition hover:surface-soft">
+                    <button onClick={() => onRemoveTask?.(task.id)} className="surface-soft rounded-full p-2 text-muted transition hover:bg-[color:var(--surface-strong)]">
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </>
@@ -251,7 +251,7 @@ export function TaskList({ tasks, onToggleTask, onAddTask, onEditTask, onRemoveT
                               className={cn(
                                 'flex h-8 items-center justify-center rounded-lg text-xs transition',
                                 isCurrentMonth ? 'text-[color:var(--text)]' : 'text-muted',
-                                isSelected ? 'bg-accent text-white font-medium' : 'hover:surface-soft',
+                                isSelected ? 'bg-accent text-[color:var(--on-accent)] font-medium' : 'hover:bg-[color:var(--surface-soft)]',
                                 isTodayDate && !isSelected ? 'ring-1 ring-[color:var(--accent)]/35' : ''
                               )}
                             >

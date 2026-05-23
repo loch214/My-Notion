@@ -97,7 +97,7 @@ export function AcademicOverview({ modules, tasks = [], onOpenModule, onAddModul
                         setSortOrder(option.id as any);
                         setIsSortDropdownOpen(false);
                       }}
-                      className={`w-full rounded-xl px-4 py-2.5 text-left text-sm transition ${sortOrder === option.id ? 'bg-accent text-white font-medium' : 'text-[color:var(--text)] hover:surface-soft'}`}
+                      className={`w-full rounded-xl px-4 py-2.5 text-left text-sm transition ${sortOrder === option.id ? 'bg-accent text-[color:var(--on-accent)] font-medium' : 'text-[color:var(--text)] hover:bg-[color:var(--surface-soft)]'}`}
                     >
                       {option.label}
                     </button>
@@ -198,7 +198,7 @@ export function AcademicOverview({ modules, tasks = [], onOpenModule, onAddModul
                 <p className="text-xs uppercase tracking-[0.24em] text-muted">Create module</p>
                 <h2 className="mt-1 text-2xl font-semibold">Add a new academic space</h2>
               </div>
-              <button onClick={() => setIsAdding(false)} className="rounded-full p-2 text-muted transition hover:surface-soft hover:text-[color:var(--text)]">
+              <button onClick={() => setIsAdding(false)} className="rounded-full p-2 text-muted transition hover:bg-[color:var(--surface-soft)] hover:text-[color:var(--text)]">
                 <X className="h-5 w-5" />
               </button>
             </div>

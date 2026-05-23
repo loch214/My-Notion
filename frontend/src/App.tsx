@@ -9,13 +9,11 @@ import {
   Home,
   Library,
   LayoutDashboard,
-  Moon,
   PanelLeftClose,
   PanelLeftOpen,
   Search,
   Settings,
   Sparkles,
-  Sun,
   WandSparkles,
 } from 'lucide-react';
 import { useAppStore } from './store';
@@ -58,6 +56,11 @@ export default function App() {
     return params.get('module');
   });
 
+  useEffect(() => {
+    document.documentElement.classList.add('dark');
+    document.documentElement.classList.remove('light');
+  }, []);
+
   // Sync state with URL for back button support
   useEffect(() => {
     const handlePopState = () => {
@@ -88,31 +91,6 @@ export default function App() {
   }, [appStage, activeTab, activeModuleId]);
   const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isNavbarVisible, setIsNavbarVisible] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
-  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    const savedTheme = localStorage.getItem('studentos-theme');
-    return savedTheme === 'light' ? 'light' : 'dark';
-  });
-
-  useEffect(() => {
-    document.documentElement.classList.remove('light', 'dark');
-    document.documentElement.classList.add(theme);
-    localStorage.setItem('studentos-theme', theme);
-  }, [theme]);
-
-  const handleScroll = (e: React.UIEvent<HTMLElement>) => {
-    const currentScrollY = e.currentTarget.scrollTop;
-    
-    if (currentScrollY <= 0) {
-      setIsNavbarVisible(true);
-    } else if (currentScrollY > lastScrollY && currentScrollY > 10) {
-      setIsNavbarVisible(false);
-    } else if (currentScrollY < lastScrollY) {
-      setIsNavbarVisible(true);
-    }
-    setLastScrollY(currentScrollY);
-  };
 
   const activeModule = useMemo(
     () => state.modules.find((module) => module.id === activeModuleId) ?? null,
@@ -128,31 +106,21 @@ export default function App() {
     'w-full flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition-all duration-200',
     isActive
       ? 'surface-soft text-[color:var(--text)] font-medium shadow-sm'
-      : 'text-muted hover:surface-soft hover:text-[color:var(--text)]'
+      : 'text-muted hover:bg-[color:var(--surface-soft)] hover:text-[color:var(--text)]'
   );
 
   if (appStage === 'landing') {
     return (
       <div className="app-shell relative overflow-hidden text-[color:var(--text)]">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute -left-24 top-16 h-80 w-80 rounded-full bg-sky-500/12 blur-3xl animate-drift" />
-          <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-cyan-400/10 blur-3xl animate-drift" />
+          <div className="absolute -left-24 top-16 h-80 w-80 rounded-full bg-[color:var(--accent)]/12 blur-3xl animate-drift" />
+          <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-[color:var(--accent-2)]/10 blur-3xl animate-drift" />
           <div className="hero-bottom-fade absolute inset-x-0 bottom-0 h-56" />
         </div>
 
         <div className="relative flex min-h-screen flex-col items-center justify-center px-4">
-          <div className="absolute right-6 top-6">
-            <button
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="surface-soft rounded-full p-3 text-muted transition hover:text-[color:var(--text)]"
-              aria-label="Toggle theme"
-            >
-              {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-            </button>
-          </div>
-
           <main className="flex w-full max-w-2xl flex-col items-center text-center animate-fade-up">
-            <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-[2rem] bg-accent text-white shadow-xl shadow-black/20">
+            <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-[2rem] bg-accent text-[color:var(--on-accent)] shadow-xl shadow-black/20">
               <Sparkles className="h-10 w-10" />
             </div>
             
@@ -181,11 +149,11 @@ export default function App() {
 
   return (
     <div className="app-shell flex min-h-screen overflow-hidden">
-      <aside className={cn('hidden md:flex md:w-80 md:flex-col md:gap-4 md:p-4 md:sticky md:top-0 md:h-screen md:overflow-y-auto', isSidebarOpen ? 'md:flex' : 'md:hidden')}>
+      <aside className={cn('fixed inset-y-0 left-0 z-30 hidden h-screen w-80 flex-col gap-4 overflow-y-auto p-4 transition-transform duration-300 md:flex', isSidebarOpen ? 'md:translate-x-0 md:opacity-100' : 'md:-translate-x-full md:opacity-0 md:pointer-events-none')}>
         <div className="surface-strong rounded-3xl p-4">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-accent text-white shadow-lg shadow-black/20">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-accent text-[color:var(--on-accent)] shadow-lg shadow-black/20">
                 <Sparkles className="h-5 w-5" />
               </div>
               <div>
@@ -195,7 +163,7 @@ export default function App() {
             </div>
             <button
               onClick={() => setIsSidebarOpen(false)}
-              className="rounded-full p-2 text-muted transition hover:surface-soft hover:text-[color:var(--text)]"
+              className="rounded-full p-2 text-muted transition hover:bg-[color:var(--surface-soft)] hover:text-[color:var(--text)]"
               aria-label="Collapse sidebar"
             >
               <PanelLeftClose className="h-4 w-4" />
@@ -218,27 +186,6 @@ export default function App() {
           </nav>
         </div>
 
-        {activeTab === 'academic' && (
-          <div className="surface-strong rounded-3xl p-3">
-            <div className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-muted">Modules</div>
-            <div className="space-y-1">
-              {state.modules.map((module) => (
-                <button
-                  key={module.id}
-                  onClick={() => {
-                    setActiveTab('academic');
-                    setActiveModuleId(module.id);
-                  }}
-                  className={navItemClass(activeModuleId === module.id)}
-                >
-                  <BookOpen className={cn('h-4 w-4', activeModuleId === module.id ? 'text-accent' : 'text-muted')} />
-                  <span className="truncate">{module.title}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
         <div className="surface-strong mt-auto rounded-3xl p-4 md:sticky md:bottom-4">
           <div className="flex w-full items-center justify-between rounded-2xl surface-soft px-4 py-3 text-left text-sm font-medium text-muted">
             <span>My-Notion v1.0</span>
@@ -246,15 +193,12 @@ export default function App() {
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className={cn(
-          "surface-strong sticky top-0 z-20 m-3 mb-0 flex items-center justify-between rounded-3xl px-4 py-2.5 gap-4 transition-all duration-300 ease-in-out",
-          isNavbarVisible ? "translate-y-0 opacity-100" : "-translate-y-24 opacity-0 pointer-events-none"
-        )}>
+      <div className={cn('flex min-w-0 flex-1 flex-col transition-[padding] duration-300', isSidebarOpen ? 'md:pl-80' : 'md:pl-0')}>
+        <header className="surface-strong sticky top-4 z-20 mx-4 mt-4 flex items-center justify-between gap-4 rounded-[1.75rem] px-4 py-3">
           <div className="flex items-center gap-3 flex-1">
             <button
               onClick={() => setIsSidebarOpen((open) => !open)}
-              className={cn("rounded-full p-2 text-muted transition hover:surface-soft hover:text-[color:var(--text)]", isSidebarOpen ? "md:hidden" : "")}
+              className={cn("rounded-full p-2 text-muted transition hover:bg-[color:var(--surface-soft)] hover:text-[color:var(--text)]", isSidebarOpen ? "md:hidden" : "")}
               aria-label="Toggle sidebar"
             >
               <PanelLeftOpen className="h-4 w-4" />
@@ -274,7 +218,7 @@ export default function App() {
             </div>
           </div>
 
-          <div className="hidden sm:flex flex-1 justify-center max-w-md w-full">
+          <div className="hidden sm:flex flex-1 justify-center max-w-xl w-full">
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
               <input
@@ -289,13 +233,6 @@ export default function App() {
           </div>
 
           <div className="flex items-center justify-end gap-2 flex-1">
-            <button
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="surface-soft rounded-full p-2.5 text-muted transition hover:text-[color:var(--text)]"
-              aria-label="Toggle theme"
-            >
-              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </button>
             <button className="surface-soft rounded-full p-2.5 text-muted transition hover:text-[color:var(--text)] hidden sm:block">
               <Bell className="h-4 w-4" />
             </button>
@@ -305,8 +242,8 @@ export default function App() {
           </div>
         </header>
 
-        <main onScroll={handleScroll} className="flex-1 overflow-y-auto p-4 sm:p-5 lg:p-6">
-          <div className="mx-auto max-w-6xl space-y-5">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-5 lg:p-6">
+          <div className="mx-auto max-w-[1440px] space-y-6">
             {activeTab === 'home' && (
               <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
                 <div className="surface-strong hero-ring rounded-[2rem] p-5 sm:p-6 animate-fade-up">

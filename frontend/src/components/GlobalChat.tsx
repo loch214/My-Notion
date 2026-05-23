@@ -86,7 +86,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage }: GlobalChat
     <div className="surface-strong fixed inset-y-0 right-0 z-50 flex w-full max-w-[430px] flex-col border-l border-subtle animate-fade-up md:w-[430px] text-[color:var(--text)]">
       <div className="flex items-center justify-between border-b border-subtle px-4 py-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-accent text-white shadow-lg shadow-black/20">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-accent text-[color:var(--on-accent)] shadow-lg shadow-black/20">
             <Sparkles className="h-4.5 w-4.5" />
           </div>
           <div>
@@ -94,7 +94,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage }: GlobalChat
             <h2 className="text-base font-semibold">AI anywhere in the workspace</h2>
           </div>
         </div>
-        <button onClick={onClose} className="rounded-full p-2 text-muted transition hover:surface-soft hover:text-[color:var(--text)]" aria-label="Close chat">
+        <button onClick={onClose} className="rounded-full p-2 text-muted transition hover:bg-[color:var(--surface-soft)] hover:text-[color:var(--text)]" aria-label="Close chat">
           <X className="h-5 w-5" />
         </button>
       </div>
@@ -119,9 +119,9 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage }: GlobalChat
                       setModel(option.id as AIModelId);
                       setIsModelDropdownOpen(false);
                     }}
-                    className={`w-full rounded-xl px-4 py-3 text-left text-sm transition ${model === option.id ? 'bg-accent text-white font-medium' : 'text-[color:var(--text)] hover:surface-soft'}`}
+                    className={`w-full rounded-xl px-4 py-3 text-left text-sm transition ${model === option.id ? 'bg-accent text-[color:var(--on-accent)] font-medium' : 'text-[color:var(--text)] hover:bg-[color:var(--surface-soft)]'}`}
                   >
-                    {option.label} · <span className={model === option.id ? 'text-indigo-100' : 'text-muted'}>{option.badge}</span>
+                    {option.label} · <span className={model === option.id ? 'text-[color:var(--on-accent)]' : 'text-muted'}>{option.badge}</span>
                   </button>
                 ))}
               </div>
@@ -143,7 +143,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage }: GlobalChat
 
         {state.globalChatHistory.map((message) => (
           <div key={message.id} className={`flex gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''} animate-fade-in`}>
-            <div className={`mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full shadow-sm ${message.role === 'user' ? 'bg-accent text-white' : 'bg-surface-strong text-accent border border-subtle'}`}>
+            <div className={`mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full shadow-sm ${message.role === 'user' ? 'bg-accent text-[color:var(--on-accent)]' : 'surface-strong text-accent border border-subtle'}`}>
               {message.role === 'user' ? <span className="text-[10px] font-bold">YOU</span> : <Sparkles className="h-3.5 w-3.5" />}
             </div>
             <div className={`max-w-[85%] rounded-2xl px-4 py-2 shadow-sm ${
@@ -154,7 +154,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage }: GlobalChat
               {message.attachments && message.attachments.length > 0 && (
                 <div className="mb-2 flex flex-wrap gap-2">
                   {message.attachments.map((att, i) => (
-                    <div key={i} className="flex items-center gap-1.5 rounded-lg bg-black/10 px-2 py-1 text-[10px] font-medium backdrop-blur-sm">
+                    <div key={i} className="flex items-center gap-1.5 rounded-lg surface-soft px-2 py-1 text-[10px] font-medium backdrop-blur-sm">
                       {att.type.startsWith('image/') ? <ImageIcon className="h-3 w-3" /> : <Paperclip className="h-3 w-3" />}
                       <span className="max-w-[100px] truncate">{att.name}</span>
                     </div>
@@ -170,7 +170,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage }: GlobalChat
 
         {isLoading && (
           <div className="flex gap-3">
-            <div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent text-white">
+            <div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent text-[color:var(--on-accent)]">
               <Sparkles className="h-3.5 w-3.5" />
             </div>
             <div className="flex items-center rounded-3xl border border-subtle surface-soft px-4 py-3 text-sm text-muted">
@@ -190,7 +190,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage }: GlobalChat
                 <span className="max-w-[120px] truncate font-medium">{att.name}</span>
                 <button 
                   onClick={() => setAttachments(prev => prev.filter((_, index) => index !== i))}
-                  className="ml-1 rounded-full p-0.5 hover:bg-black/10 text-muted hover:text-[color:var(--text)]"
+                  className="ml-1 rounded-full p-0.5 hover:bg-[color:var(--surface-soft)] text-muted hover:text-[color:var(--text)]"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -225,7 +225,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage }: GlobalChat
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl surface-soft border border-subtle text-muted transition hover:surface-strong hover:text-[color:var(--text)]"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl surface-soft border border-subtle text-muted transition hover:bg-[color:var(--surface-strong)] hover:text-[color:var(--text)]"
             title="Attach images or files"
           >
             <Plus className="h-4.5 w-4.5" />
@@ -240,7 +240,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage }: GlobalChat
             <button
               type="submit"
               disabled={isLoading || (!input.trim() && attachments.length === 0)}
-              className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center justify-center rounded-xl bg-accent px-3 py-2 text-white transition hover:scale-[1.02] disabled:opacity-50"
+              className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center justify-center rounded-xl bg-accent px-3 py-2 text-[color:var(--on-accent)] transition hover:scale-[1.02] disabled:opacity-50"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
