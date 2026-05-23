@@ -35,7 +35,8 @@ const taskSchema = new mongoose.Schema({
   title: { type: String, required: true },
   done: { type: Boolean, default: false },
   priority: { type: String, enum: ['high', 'medium', 'low'], default: 'medium' },
-  time: { type: String, default: '09:00 AM' },
+  dueDate: { type: String },
+  moduleId: { type: String },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });

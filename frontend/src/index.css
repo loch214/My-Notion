@@ -39,18 +39,18 @@
 
 html.light {
   color-scheme: light;
-  --app-bg: #f5f7fb;
-  --app-bg-soft: #edf2f7;
-  --surface: rgba(255, 255, 255, 0.92);
-  --surface-strong: rgba(255, 255, 255, 0.98);
-  --surface-soft: rgba(15, 23, 42, 0.07);
-  --border: rgba(15, 23, 42, 0.14);
-  --text: #0f172a;
-  --muted: #4b5563;
-  --accent: #1d4ed8;
-  --accent-2: #0891b2;
-  --shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
-  --module-blue-bg: rgba(14, 116, 144, 0.12);
+  --app-bg: #dfe5ec;
+  --app-bg-soft: #d3dae2;
+  --surface: rgba(235, 239, 244, 0.95);
+  --surface-strong: rgba(225, 231, 237, 0.98);
+  --surface-soft: rgba(15, 23, 42, 0.055);
+  --border: rgba(15, 23, 42, 0.1);
+  --text: #243241;
+  --muted: #6e7c8d;
+  --accent: #2958b7;
+  --accent-2: #0e8aa3;
+  --shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+  --module-blue-bg: rgba(14, 116, 144, 0.08);
   --module-blue-text: #0369a1;
   --module-blue-border: rgba(14, 116, 144, 0.3);
   --module-amber-bg: rgba(217, 119, 6, 0.14);
@@ -79,15 +79,62 @@ body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   background:
-    radial-gradient(circle at top left, rgba(59, 130, 246, 0.16), transparent 35%),
-    radial-gradient(circle at top right, rgba(34, 211, 238, 0.12), transparent 28%),
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.08), transparent 35%),
+    radial-gradient(circle at top right, rgba(34, 211, 238, 0.05), transparent 28%),
     linear-gradient(180deg, var(--app-bg) 0%, var(--app-bg-soft) 100%);
   color: var(--text);
 }
 
-option {
-  background-color: var(--app-bg);
+input,
+textarea,
+select {
+  background-color: var(--surface-soft);
   color: var(--text);
+  border-color: var(--border);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--muted);
+}
+
+option {
+  background-color: var(--surface-strong);
+  color: var(--text);
+}
+
+select {
+  appearance: none;
+  background-color: var(--surface-soft);
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+}
+
+html.dark select {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+}
+
+.prose {
+  --tw-prose-body: var(--muted);
+  --tw-prose-headings: var(--text);
+  --tw-prose-lead: var(--muted);
+  --tw-prose-links: var(--accent);
+  --tw-prose-bold: var(--text);
+  --tw-prose-counters: var(--muted);
+  --tw-prose-bullets: var(--muted);
+  --tw-prose-hr: var(--border);
+  --tw-prose-quotes: var(--text);
+  --tw-prose-quote-borders: var(--border);
+  --tw-prose-captions: var(--muted);
+  --tw-prose-kbd: var(--text);
+  --tw-prose-kbd-shadows: rgb(15 23 42 / 0.08);
+  --tw-prose-code: var(--text);
+  --tw-prose-pre-code: var(--text);
+  --tw-prose-pre-bg: var(--surface-soft);
+  --tw-prose-th-borders: var(--border);
+  --tw-prose-td-borders: var(--border);
 }
 
 h1, h2, h3, h4 {

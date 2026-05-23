@@ -129,7 +129,7 @@ export function AcademicOverview({ modules, onOpenModule, onAddModule }: Academi
           <button
             key={module.id}
             onClick={() => onOpenModule(module.id)}
-            className="surface-soft group rounded-3xl p-4 text-left transition hover:-translate-y-0.5 hover:brightness-110"
+            className="surface-soft group rounded-3xl p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md"
           >
             <div className="mb-5 flex items-start justify-between gap-4">
               <div className={cn('rounded-2xl p-3', getBadgeColors(module.color))}>

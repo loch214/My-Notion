@@ -1,18 +1,22 @@
 import React, { useState } from 'react';
-import { Module, UploadedFile, ChatMessage } from '../types';
-import { ChevronLeft, FileText, Upload, FileUp, Sparkles, MessageSquare, Loader2, X, ChevronDown } from 'lucide-react';
+import { Module, UploadedFile, ChatMessage, Task } from '../types';
+import { ChevronLeft, FileText, Upload, FileUp, Sparkles, MessageSquare, Loader2, X, ChevronDown, CheckSquare } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import Markdown from 'react-markdown';
 import { AI_MODELS, AIModelId, DEFAULT_AI_MODEL } from '../lib/models';
+import { TaskList } from './TaskList';
 
 interface ModuleDetailProps {
   module: Module;
+  tasks: Task[];
+  onToggleTask: (taskId: string) => void;
+  onAddTask: (title: string, priority: 'high' | 'medium' | 'low', dueDate?: string) => void;
   onBack: () => void;
   updateModule: (moduleId: string, updates: Partial<Module>) => void;
 }
 
-export function ModuleDetail({ module, onBack, updateModule }: ModuleDetailProps) {
-  const [activeTab, setActiveTab] = useState<'files' | 'chat'>('files');
+export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onBack, updateModule }: ModuleDetailProps) {
+  const [activeTab, setActiveTab] = useState<'files' | 'chat' | 'tasks'>('files');
   const [isUploading, setIsUploading] = useState(false);
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
@@ -131,6 +135,12 @@ export function ModuleDetail({ module, onBack, updateModule }: ModuleDetailProps
             className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm transition ${activeTab === 'chat' ? 'bg-[color:var(--text)] text-[color:var(--app-bg)]' : 'text-muted hover:text-[color:var(--text)]'}`}
           >
             <MessageSquare className="h-4 w-4" /> Study chat
+          </button>
+          <button
+            onClick={() => setActiveTab('tasks')}
+            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm transition ${activeTab === 'tasks' ? 'bg-[color:var(--text)] text-[color:var(--app-bg)]' : 'text-muted hover:text-[color:var(--text)]'}`}
+          >
+            <CheckSquare className="h-4 w-4" /> Tasks
           </button>
         </div>
 
@@ -319,6 +329,16 @@ export function ModuleDetail({ module, onBack, updateModule }: ModuleDetailProps
                 Responses are grounded in your module files
               </div>
             </div>
+          </div>
+        )}
+        {activeTab === 'tasks' && (
+          <div className="h-full overflow-y-auto pb-8 pt-2 animate-fade-up">
+            <TaskList 
+              tasks={tasks}
+              onToggleTask={onToggleTask}
+              onAddTask={onAddTask}
+              title={`${module.title} Tasks`}
+            />
           </div>
         )}
       </div>

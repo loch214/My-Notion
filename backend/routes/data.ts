@@ -106,7 +106,7 @@ router.get('/tasks', async (req, res) => {
 
 router.post('/tasks', async (req, res) => {
   try {
-    const { title, priority } = req.body;
+    const { title, priority, dueDate, moduleId } = req.body;
     const workspace = await getOrCreateWorkspace();
 
     const task = {
@@ -114,7 +114,8 @@ router.post('/tasks', async (req, res) => {
       title,
       done: false,
       priority: priority || 'medium',
-      time: '09:00 AM',
+      dueDate: dueDate || undefined,
+      moduleId: moduleId || undefined
     };
 
     workspace.tasks.push(task as any);

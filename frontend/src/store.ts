@@ -98,12 +98,12 @@ export function useAppStore() {
     }
   };
 
-  const addTask = async (title: string, priority: 'high' | 'medium' | 'low' = 'medium') => {
+  const addTask = async (title: string, priority: 'high' | 'medium' | 'low' = 'medium', dueDate?: string, moduleId?: string) => {
     try {
       const response = await fetch(`${API_BASE}/tasks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, priority })
+        body: JSON.stringify({ title, priority, dueDate, moduleId })
       });
       if (!response.ok) throw new Error('Failed to create task');
       const newTask = await response.json();

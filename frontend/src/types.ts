@@ -26,7 +26,8 @@ export interface ChatMessage {
 export interface Task {
   id: string;
   title: string;
-  time: string;
+  dueDate?: string;
+  moduleId?: string;
   done: boolean;
   priority: 'low' | 'medium' | 'high';
 }

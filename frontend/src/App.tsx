@@ -34,7 +34,7 @@ function StatCard({ label, value, hint, icon: Icon }: { label: string; value: st
           <h3 className="mt-2 text-2xl font-semibold">{value}</h3>
           <p className="mt-1 text-sm text-muted">{hint}</p>
         </div>
-        <div className="rounded-2xl bg-white/5 p-3 text-accent">
+        <div className="rounded-2xl surface-soft p-3 text-accent">
           <Icon className="h-5 w-5" />
         </div>
       </div>
@@ -290,7 +290,7 @@ export default function App() {
                         <p className="text-xs uppercase tracking-[0.24em] text-muted">Workspace summary</p>
                         <h2 className="mt-2 text-2xl font-semibold">Quick context</h2>
                       </div>
-                      <div className="rounded-2xl bg-white/5 p-3 text-accent">
+                      <div className="rounded-2xl surface-soft p-3 text-accent">
                         <Library className="h-5 w-5" />
                       </div>
                     </div>
@@ -337,6 +337,9 @@ export default function App() {
               <div className="surface-strong rounded-[2rem] p-4 sm:p-6 animate-fade-up">
                 <ModuleDetail
                   module={activeModule}
+                  tasks={state.tasks.filter(t => t.moduleId === activeModule.id)}
+                  onToggleTask={toggleTask}
+                  onAddTask={(title, priority, dueDate) => addTask(title, priority, dueDate, activeModule.id)}
                   onBack={() => setActiveModuleId(null)}
                   updateModule={(id: string, updates: Partial<typeof activeModule>) => updateState((prev) => ({
                     ...prev,
