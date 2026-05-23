@@ -1,6 +1,6 @@
 export type AIProvider = 'gemini' | 'claude';
 
-export type AIModelId = 'gemini-2.5-flash' | 'gemini-3.1-pro' | 'claude-sonnet-4' | 'claude-opus-4';
+export type AIModelId = 'gemini-2.5-flash' | 'gemini-3.1-pro' | 'claude-sonnet-4-6';
 
 export interface AIModelOption {
   id: AIModelId;
@@ -10,10 +10,9 @@ export interface AIModelOption {
 }
 
 export const AI_MODELS: AIModelOption[] = [
-  { id: 'gemini-2.5-flash', label: 'Gemini Flash', provider: 'gemini', badge: 'Fast' },
-  { id: 'gemini-3.1-pro', label: 'Gemini 3.1 Pro', provider: 'gemini', badge: 'Deep' },
-  { id: 'claude-sonnet-4', label: 'Claude Sonnet 4', provider: 'claude', badge: 'Balanced' },
-  { id: 'claude-opus-4', label: 'Claude Opus 4', provider: 'claude', badge: 'Premium' },
+  { id: 'gemini-2.5-flash', label: 'Gemini Flash', provider: 'gemini', badge: 'Fast · Free' },
+  { id: 'gemini-3.1-pro', label: 'Gemini Pro', provider: 'gemini', badge: 'Deep' },
+  { id: 'claude-sonnet-4-6', label: 'Claude Sonnet', provider: 'claude', badge: 'Balanced' },
 ];
 
 export const DEFAULT_AI_MODEL: AIModelId = 'gemini-2.5-flash';

@@ -31,8 +31,7 @@ const upload = multer({ dest: uploadDir });
 const MODEL_PROVIDERS = {
   'gemini-2.5-flash': 'gemini',
   'gemini-3.1-pro': 'gemini',
-  'claude-sonnet-4': 'claude',
-  'claude-opus-4': 'claude',
+  'claude-sonnet-4-6': 'claude',
 } as const;
 
 type SupportedModel = keyof typeof MODEL_PROVIDERS;
@@ -195,8 +194,10 @@ async function generateChatReply(params: {
   if (provider === 'gemini' && !process.env.GEMINI_API_KEY) {
     throw new Error('GEMINI_API_KEY is missing. Please add it to your environment variables.');
   }
+
+  // Claude model handling requires ANTHROPIC_API_KEY.
   if (provider === 'claude' && !process.env.ANTHROPIC_API_KEY) {
-    throw new Error('ANTHROPIC_API_KEY is missing. Please add it to your environment variables.');
+    throw new Error('Claude API key needed for Claude model handling.');
   }
 
   try {
@@ -204,6 +205,7 @@ async function generateChatReply(params: {
       const text = await runGemini(params.model, params.systemInstruction, params.history, params.message, params.attachments);
       if (text !== null) return text;
     } else {
+      // Claude model handling requires ANTHROPIC_API_KEY.
       const text = await runClaude(params.model, params.systemInstruction, params.history, params.message, params.attachments);
       if (text !== null) return text;
     }
