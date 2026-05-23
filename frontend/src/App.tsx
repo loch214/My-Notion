@@ -83,7 +83,7 @@ export default function App() {
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute -left-24 top-16 h-80 w-80 rounded-full bg-sky-500/12 blur-3xl animate-drift" />
           <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-cyan-400/10 blur-3xl animate-drift" />
-          <div className="absolute inset-x-0 bottom-0 h-56 bg-gradient-to-t from-black/20 to-transparent" />
+          <div className="hero-bottom-fade absolute inset-x-0 bottom-0 h-56" />
         </div>
 
         <div className="relative flex min-h-screen flex-col items-center justify-center px-4">
@@ -272,13 +272,13 @@ export default function App() {
                     </button>
                     <button
                       onClick={() => navigateToTab('personal')}
-                      className="btn-secondary px-5 py-2.5 text-sm font-medium"
+                      className="btn-primary px-5 py-2.5 text-sm font-semibold"
                     >
                       Open personal <ArrowRight className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => setIsAiPanelOpen(true)}
-                      className="btn-secondary px-5 py-2.5 text-sm font-medium"
+                      className="btn-primary px-5 py-2.5 text-sm font-semibold"
                     >
                       <Sparkles className="h-4 w-4" /> Ask AI
                     </button>

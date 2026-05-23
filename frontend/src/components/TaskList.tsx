@@ -250,7 +250,7 @@ export function TaskList({ tasks, onToggleTask, onAddTask, onEditTask, onRemoveT
                               }}
                               className={cn(
                                 'flex h-8 items-center justify-center rounded-lg text-xs transition',
-                                isCurrentMonth ? 'text-[color:var(--text)]' : 'text-muted/60',
+                                isCurrentMonth ? 'text-[color:var(--text)]' : 'text-muted',
                                 isSelected ? 'bg-accent text-white font-medium' : 'hover:surface-soft',
                                 isTodayDate && !isSelected ? 'ring-1 ring-[color:var(--accent)]/35' : ''
                               )}
