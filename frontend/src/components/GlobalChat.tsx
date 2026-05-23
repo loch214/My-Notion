@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronRight, Loader2, Sparkles, X, ChevronDown } from 'lucide-react';
+import { ChevronRight, Loader2, Sparkles, X, ChevronDown, Plus, Paperclip, Image as ImageIcon } from 'lucide-react';
 import { AppState, ChatMessage } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import Markdown from 'react-markdown';
@@ -16,6 +16,8 @@ export function GlobalChat({ onClose, state, updateState }: GlobalChatProps) {
   const [isLoading, setIsLoading] = React.useState(false);
   const [model, setModel] = React.useState(DEFAULT_AI_MODEL);
   const [isModelDropdownOpen, setIsModelDropdownOpen] = React.useState(false);
+  const [attachments, setAttachments] = React.useState<{ name: string; type: string; data: string }[]>([]);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
@@ -25,17 +27,21 @@ export function GlobalChat({ onClose, state, updateState }: GlobalChatProps) {
   }, [state.globalChatHistory]);
 
   const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+    if ((!input.trim() && attachments.length === 0) || isLoading) return;
 
     const userMessage: ChatMessage = {
       id: uuidv4(),
       role: 'user',
       text: input,
       timestamp: new Date().toISOString(),
+      attachments: attachments.length > 0 ? [...attachments] : undefined,
     };
 
     updateState((prev) => ({ ...prev, globalChatHistory: [...prev.globalChatHistory, userMessage] }));
+    const currentInput = input;
+    const currentAttachments = [...attachments];
     setInput('');
+    setAttachments([]);
     setIsLoading(true);
 
     try {
@@ -43,9 +49,10 @@ export function GlobalChat({ onClose, state, updateState }: GlobalChatProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: input,
+          message: currentInput,
           history: state.globalChatHistory,
           model,
+          attachments: currentAttachments,
           context: {
             tasks: state.tasks,
             events: state.events,
@@ -135,12 +142,26 @@ export function GlobalChat({ onClose, state, updateState }: GlobalChatProps) {
         )}
 
         {state.globalChatHistory.map((message) => (
-          <div key={message.id} className={`flex gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}>
-            <div className={`mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${message.role === 'user' ? 'bg-[color:var(--text)] text-[color:var(--app-bg)]' : 'bg-accent text-white'}`}>
-              {message.role === 'user' ? <span className="text-xs font-bold">L</span> : <Sparkles className="h-3.5 w-3.5" />}
+          <div key={message.id} className={`flex gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''} animate-fade-in`}>
+            <div className={`mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full shadow-sm ${message.role === 'user' ? 'bg-accent text-white' : 'bg-surface-strong text-accent border border-subtle'}`}>
+              {message.role === 'user' ? <span className="text-[10px] font-bold">YOU</span> : <Sparkles className="h-3.5 w-3.5" />}
             </div>
-            <div className={`max-w-[85%] rounded-3xl border px-4 py-3 shadow-sm ${message.role === 'user' ? 'border-transparent bg-[color:var(--text)] text-[color:var(--app-bg)]' : 'border-subtle surface-soft text-[color:var(--text)]'}`}>
-              <div className={`prose prose-sm max-w-none ${message.role === 'user' ? 'prose-slate' : 'prose-invert'}`}>
+            <div className={`max-w-[85%] rounded-2xl px-4 py-2 shadow-sm ${
+              message.role === 'user' 
+                ? 'surface-strong text-[color:var(--text)] border border-subtle' 
+                : 'surface-soft text-[color:var(--text)] border border-subtle'
+            }`}>
+              {message.attachments && message.attachments.length > 0 && (
+                <div className="mb-2 flex flex-wrap gap-2">
+                  {message.attachments.map((att, i) => (
+                    <div key={i} className="flex items-center gap-1.5 rounded-lg bg-black/10 px-2 py-1 text-[10px] font-medium backdrop-blur-sm">
+                      {att.type.startsWith('image/') ? <ImageIcon className="h-3 w-3" /> : <Paperclip className="h-3 w-3" />}
+                      <span className="max-w-[100px] truncate">{att.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className={`prose prose-sm max-w-none dark:prose-invert`}>
                 <Markdown>{message.text}</Markdown>
               </div>
             </div>
@@ -161,20 +182,69 @@ export function GlobalChat({ onClose, state, updateState }: GlobalChatProps) {
       </div>
 
       <div className="border-t border-subtle p-4">
-        <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="relative flex">
+        {attachments.length > 0 && (
+          <div className="mb-3 flex flex-wrap gap-2 px-2">
+            {attachments.map((att, i) => (
+              <div key={i} className="group relative flex items-center gap-2 rounded-xl border border-subtle surface-soft px-3 py-1.5 text-xs animate-fade-in">
+                {att.type.startsWith('image/') ? <ImageIcon className="h-3.5 w-3.5 text-accent" /> : <Paperclip className="h-3.5 w-3.5 text-accent" />}
+                <span className="max-w-[120px] truncate font-medium">{att.name}</span>
+                <button 
+                  onClick={() => setAttachments(prev => prev.filter((_, index) => index !== i))}
+                  className="ml-1 rounded-full p-0.5 hover:bg-black/10 text-muted hover:text-[color:var(--text)]"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="relative flex gap-2 items-center">
           <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            className="surface-soft w-full rounded-2xl px-4 py-3 pr-12 text-sm outline-none transition focus:ring-2 focus:ring-[color:var(--accent)]/40"
-            placeholder="Ask anything about your tasks, schedule, or files..."
+            type="file"
+            ref={fileInputRef}
+            onChange={(e) => {
+              const files = e.target.files;
+              if (!files) return;
+              Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (prev) => {
+                  const base64 = prev.target?.result as string;
+                  setAttachments(current => [...current, {
+                    name: file.name,
+                    type: file.type,
+                    data: base64
+                  }]);
+                };
+                reader.readAsDataURL(file);
+              });
+              if (fileInputRef.current) fileInputRef.current.value = '';
+            }}
+            className="hidden"
+            multiple
           />
           <button
-            type="submit"
-            disabled={isLoading || !input.trim()}
-            className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center justify-center rounded-xl bg-accent px-3 py-2 text-white transition hover:scale-[1.02] disabled:opacity-50"
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl surface-soft border border-subtle text-muted transition hover:surface-strong hover:text-[color:var(--text)]"
+            title="Attach images or files"
           >
-            <ChevronRight className="h-4 w-4" />
+            <Plus className="h-4.5 w-4.5" />
           </button>
+          <div className="relative flex-1">
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              className="surface-soft w-full rounded-2xl px-4 py-3 pr-12 text-sm outline-none transition focus:ring-2 focus:ring-[color:var(--accent)]/40"
+              placeholder="Ask anything about your tasks, schedule, or files..."
+            />
+            <button
+              type="submit"
+              disabled={isLoading || (!input.trim() && attachments.length === 0)}
+              className="absolute right-2 top-1/2 flex -translate-y-1/2 items-center justify-center rounded-xl bg-accent px-3 py-2 text-white transition hover:scale-[1.02] disabled:opacity-50"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
         </form>
         <div className="mt-2 text-center text-[10px] uppercase tracking-[0.24em] text-muted">
           Global memory · context aware · RAG-ready

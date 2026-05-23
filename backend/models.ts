@@ -14,7 +14,17 @@ const fileSchema = new mongoose.Schema({
   name: { type: String, required: true },
   size: { type: Number, required: true },
   geminiFileUri: { type: String },
+  extractedText: { type: String },
   uploadedAt: { type: Date, default: Date.now },
+});
+
+// Chat Session Schema
+const chatSessionSchema = new mongoose.Schema({
+  id: { type: String, required: true },
+  title: { type: String, required: true },
+  history: [chatMessageSchema],
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
 });
 
 // Module Schema
@@ -25,6 +35,7 @@ const moduleSchema = new mongoose.Schema({
   color: { type: String, enum: ['blue', 'amber', 'emerald', 'purple', 'rose'], default: 'blue' },
   files: [fileSchema],
   chatHistory: [chatMessageSchema],
+  chatSessions: [chatSessionSchema],
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });

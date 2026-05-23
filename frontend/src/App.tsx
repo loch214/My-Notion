@@ -43,12 +43,53 @@ function StatCard({ label, value, hint, icon: Icon }: { label: string; value: st
 }
 
 export default function App() {
-  const { state, updateState, toggleTask, addModule, addTask, removeTask, updateTask } = useAppStore();
-  const [appStage, setAppStage] = useState<'landing' | 'workspace'>('landing');
-  const [activeTab, setActiveTab] = useState<'home' | 'academic' | 'personal'>('home');
-  const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
+  const { state, updateState, toggleTask, addModule, addTask, removeTask, updateTask, updateModule } = useAppStore();
+  
+  const [appStage, setAppStage] = useState<'landing' | 'workspace'>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return (params.get('stage') as any) || 'landing';
+  });
+  const [activeTab, setActiveTab] = useState<'home' | 'academic' | 'personal'>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return (params.get('tab') as any) || 'home';
+  });
+  const [activeModuleId, setActiveModuleId] = useState<string | null>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('module');
+  });
+
+  // Sync state with URL for back button support
+  useEffect(() => {
+    const handlePopState = () => {
+      const p = new URLSearchParams(window.location.search);
+      setAppStage((p.get('stage') as any) || 'landing');
+      setActiveTab((p.get('tab') as any) || 'home');
+      setActiveModuleId(p.get('module') || null);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (appStage !== 'landing') params.set('stage', appStage);
+    if (activeTab !== 'home') params.set('tab', activeTab);
+    if (activeModuleId) params.set('module', activeModuleId);
+
+    const newRelativePathQuery = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+    if (window.location.search !== '?' + params.toString() && window.location.search !== '' || params.toString() !== '') {
+        // Only push if different to avoid infinite loops or redundant entries
+        const currentParams = new URLSearchParams(window.location.search).toString();
+        if (currentParams !== params.toString()) {
+            window.history.pushState(null, '', newRelativePathQuery);
+        }
+    }
+  }, [appStage, activeTab, activeModuleId]);
   const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isNavbarVisible, setIsNavbarVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     const savedTheme = localStorage.getItem('studentos-theme');
     return savedTheme === 'light' ? 'light' : 'dark';
@@ -59,6 +100,19 @@ export default function App() {
     document.documentElement.classList.add(theme);
     localStorage.setItem('studentos-theme', theme);
   }, [theme]);
+
+  const handleScroll = (e: React.UIEvent<HTMLElement>) => {
+    const currentScrollY = e.currentTarget.scrollTop;
+    
+    if (currentScrollY <= 0) {
+      setIsNavbarVisible(true);
+    } else if (currentScrollY > lastScrollY && currentScrollY > 10) {
+      setIsNavbarVisible(false);
+    } else if (currentScrollY < lastScrollY) {
+      setIsNavbarVisible(true);
+    }
+    setLastScrollY(currentScrollY);
+  };
 
   const activeModule = useMemo(
     () => state.modules.find((module) => module.id === activeModuleId) ?? null,
@@ -193,7 +247,10 @@ export default function App() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="surface-strong sticky top-0 z-20 m-3 mb-0 flex items-center justify-between rounded-3xl px-4 py-2.5 gap-4">
+        <header className={cn(
+          "surface-strong sticky top-0 z-20 m-3 mb-0 flex items-center justify-between rounded-3xl px-4 py-2.5 gap-4 transition-all duration-300 ease-in-out",
+          isNavbarVisible ? "translate-y-0 opacity-100" : "-translate-y-24 opacity-0 pointer-events-none"
+        )}>
           <div className="flex items-center gap-3 flex-1">
             <button
               onClick={() => setIsSidebarOpen((open) => !open)}
@@ -248,7 +305,7 @@ export default function App() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-5 lg:p-6">
+        <main onScroll={handleScroll} className="flex-1 overflow-y-auto p-4 sm:p-5 lg:p-6">
           <div className="mx-auto max-w-6xl space-y-5">
             {activeTab === 'home' && (
               <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
@@ -354,10 +411,7 @@ export default function App() {
                   onEditTask={(id, updates) => updateTask(id, updates)}
                   onRemoveTask={(id) => removeTask(id)}
                   onBack={() => setActiveModuleId(null)}
-                  updateModule={(id: string, updates: Partial<typeof activeModule>) => updateState((prev) => ({
-                    ...prev,
-                    modules: prev.modules.map((module) => (module.id === id ? { ...module, ...updates } : module)),
-                  }))}
+                  updateModule={updateModule}
                 />
               </div>
             )}

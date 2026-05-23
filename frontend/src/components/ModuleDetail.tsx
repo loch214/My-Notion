@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Module, UploadedFile, ChatMessage, Task } from '../types';
-import { ChevronLeft, FileText, Upload, FileUp, Sparkles, MessageSquare, Loader2, X, ChevronDown, CheckSquare } from 'lucide-react';
+import { ChevronLeft, FileText, Upload, FileUp, Sparkles, MessageSquare, Loader2, X, ChevronDown, CheckSquare, Plus, Paperclip, Image as ImageIcon, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import Markdown from 'react-markdown';
 import { AI_MODELS, AIModelId, DEFAULT_AI_MODEL } from '../lib/models';
 import { TaskList } from './TaskList';
+import { cn } from '../lib/utils';
 
 interface ModuleDetailProps {
   module: Module;
@@ -26,13 +27,61 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
   const [fileSort, setFileSort] = useState<'newest' | 'oldest' | 'alpha'>('newest');
   const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
+  const [chatAttachments, setChatAttachments] = useState<{ name: string; type: string; data: string }[]>([]);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const scrollRef = React.useRef<HTMLDivElement>(null);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  // Get sessions, or migrate from chatHistory if none exist
+  const sessions = module.chatSessions || [];
+
+  React.useEffect(() => {
+    if (!activeSessionId && sessions.length > 0) {
+      setActiveSessionId(sessions[0].id);
+    }
+  }, [sessions, activeSessionId]);
+
+  // Migration logic
+  React.useEffect(() => {
+    if (sessions.length === 0 && module.chatHistory && module.chatHistory.length > 0) {
+       const migratedSession = {
+         id: uuidv4(),
+         title: 'Previous Chat',
+         history: module.chatHistory,
+         createdAt: new Date().toISOString(),
+         updatedAt: new Date().toISOString()
+       };
+       updateModule(module.id, { 
+         chatSessions: [migratedSession],
+         chatHistory: [] 
+       });
+       setActiveSessionId(migratedSession.id);
+    }
+  }, [module.chatHistory, sessions.length]);
+
+  const activeSession = sessions.find(s => s.id === activeSessionId);
+  const currentChatHistory = activeSession ? activeSession.history : [];
 
   React.useEffect(() => {
     if (scrollRef.current && activeTab === 'chat') {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [module.chatHistory, activeTab]);
+  }, [currentChatHistory, activeTab]);
+
+  const handleNewChat = () => {
+    const newSession = {
+      id: uuidv4(),
+      title: 'New Chat',
+      history: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    updateModule(module.id, { 
+      chatSessions: [newSession, ...sessions] 
+    });
+    setActiveSessionId(newSession.id);
+  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -55,6 +104,7 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
           name: data.name,
           size: data.size,
           geminiFileUri: data.geminiFileUri,
+          extractedText: data.extractedText,
           uploadedAt: new Date().toISOString(),
         };
         updateModule(module.id, { files: [...module.files, newFile] });
@@ -67,18 +117,51 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
   };
 
   const handleSendMessage = async () => {
-    if (!chatInput.trim() || isChatLoading) return;
+    if ((!chatInput.trim() && chatAttachments.length === 0) || isChatLoading) return;
+
+    let currentSessionId = activeSessionId;
+    let currentSessions = [...sessions];
+    
+    // Create first session if none exists
+    if (!currentSessionId) {
+      currentSessionId = uuidv4();
+      const newSession = {
+        id: currentSessionId,
+        title: 'New Chat',
+        history: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      currentSessions = [newSession, ...currentSessions];
+      setActiveSessionId(currentSessionId);
+    }
 
     const userMessage: ChatMessage = {
       id: uuidv4(),
       role: 'user',
       text: chatInput,
       timestamp: new Date().toISOString(),
+      attachments: chatAttachments.length > 0 ? [...chatAttachments] : undefined,
     };
 
-    const newHistory = [...module.chatHistory, userMessage];
-    updateModule(module.id, { chatHistory: newHistory });
+    const sessionIndex = currentSessions.findIndex(s => s.id === currentSessionId);
+    if (sessionIndex === -1) return;
+
+    const updatedHistory = [...currentSessions[sessionIndex].history, userMessage];
+    const isFirstMessage = updatedHistory.length === 1;
+
+    // Optimistic update
+    currentSessions[sessionIndex] = {
+      ...currentSessions[sessionIndex],
+      history: updatedHistory,
+      updatedAt: new Date().toISOString()
+    };
+    updateModule(module.id, { chatSessions: currentSessions });
+
+    const currentInput = chatInput;
+    const currentAttachments = [...chatAttachments];
     setChatInput('');
+    setChatAttachments([]);
     setIsChatLoading(true);
 
     try {
@@ -86,11 +169,14 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: chatInput,
+          message: currentInput,
+          moduleId: module.id,
           moduleName: module.title,
-          history: module.chatHistory,
+          history: updatedHistory.slice(0, -1),
           files: module.files,
           model: chatModel,
+          attachments: currentAttachments,
+          generateTitle: isFirstMessage
         }),
       });
       const data = await res.json();
@@ -102,7 +188,17 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
         timestamp: new Date().toISOString(),
       };
 
-      updateModule(module.id, { chatHistory: [...newHistory, modelMessage] });
+      const finalSessions = [...currentSessions];
+      const finalSessionIndex = finalSessions.findIndex(s => s.id === currentSessionId);
+      if (finalSessionIndex !== -1) {
+        finalSessions[finalSessionIndex] = {
+          ...finalSessions[finalSessionIndex],
+          history: [...finalSessions[finalSessionIndex].history, modelMessage],
+          title: data.title || finalSessions[finalSessionIndex].title,
+          updatedAt: new Date().toISOString()
+        };
+        updateModule(module.id, { chatSessions: finalSessions });
+      }
     } catch (error) {
       console.error(error);
     } finally {
@@ -178,9 +274,9 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
         )}
       </div>
 
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1">
         {activeTab === 'files' && (
-          <div className="h-full overflow-y-auto pb-8 animate-fade-up">
+          <div className="pb-8 animate-fade-up">
             <div className="surface rounded-[2rem] p-6 text-center">
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-white shadow-lg shadow-black/20">
                 {isUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
@@ -265,76 +361,220 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
         )}
 
         {activeTab === 'chat' && (
-          <div className="flex h-full flex-col overflow-hidden rounded-[2rem] surface">
-            <div className="flex-1 space-y-5 overflow-y-auto p-4 md:p-6" ref={scrollRef}>
-              {module.chatHistory.length === 0 && (
-                <div className="mx-auto flex h-full max-w-md flex-col items-center justify-center text-center text-muted">
-                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-white shadow-lg shadow-black/20">
-                    <Sparkles className="h-6 w-6" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-[color:var(--text)]">Module AI assistant</h3>
-                  <p className="mt-2 text-sm leading-6">
-                    Ask for summaries, explanations, flashcards, or exam-style questions based on {module.code} materials.
-                  </p>
-                </div>
-              )}
-
-              {module.chatHistory.map((message) => (
-                <div key={message.id} className={`flex gap-4 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                  <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${message.role === 'user' ? 'bg-[color:var(--text)] text-[color:var(--app-bg)]' : 'bg-accent text-white'}`}>
-                    {message.role === 'user' ? <span className="text-sm font-bold">L</span> : <Sparkles className="h-4 w-4" />}
-                  </div>
-                  <div className={`max-w-[82%] rounded-3xl border px-4 py-3 text-sm leading-relaxed shadow-sm ${message.role === 'user' ? 'border-transparent bg-[color:var(--text)] text-[color:var(--app-bg)]' : 'border-subtle surface-soft text-[color:var(--text)]'}`}>
-                    <div className={`prose prose-sm max-w-none ${message.role === 'user' ? 'prose-slate' : 'prose-invert'}`}>
-                      <Markdown>{message.text}</Markdown>
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              {isChatLoading && (
-                <div className="flex gap-4">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-white">
-                    <Sparkles className="h-4 w-4" />
-                  </div>
-                  <div className="flex items-center rounded-3xl border border-subtle surface-soft px-4 py-3 text-sm text-muted">
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin text-accent" /> AI is synthesizing...
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="border-t border-subtle bg-transparent p-4">
-              <div className="mx-auto flex max-w-4xl gap-2 items-end">
-                <textarea
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSendMessage();
-                    }
-                  }}
-                  className="surface-soft min-h-[54px] flex-1 resize-none rounded-2xl px-4 py-3 text-sm outline-none transition focus:ring-2 focus:ring-[color:var(--accent)]/40"
-                  rows={2}
-                  placeholder="Ask a question about the uploaded materials..."
-                />
-                <button
-                  onClick={handleSendMessage}
-                  disabled={isChatLoading || !chatInput.trim()}
-                  className="flex h-[54px] shrink-0 items-center justify-center rounded-2xl bg-accent px-4 text-white transition hover:-translate-y-0.5 disabled:opacity-50"
+          <div className="flex h-[600px] gap-6 animate-fade-up">
+            {/* Sessions Sidebar */}
+            <div className={cn(
+              "hidden md:flex flex-col rounded-[2rem] surface border border-subtle overflow-hidden transition-all duration-300",
+              isSidebarCollapsed ? "w-20" : "w-64"
+            )}>
+              <div className="p-4 border-b border-subtle flex items-center justify-between gap-2">
+                {!isSidebarCollapsed && (
+                  <button 
+                    onClick={handleNewChat}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-white transition hover:scale-[1.02] active:scale-[0.98] truncate"
+                  >
+                    <Plus className="h-4 w-4" /> New Chat
+                  </button>
+                )}
+                <button 
+                  onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                  className={cn(
+                    "rounded-xl p-2 text-muted hover:surface-soft hover:text-[color:var(--text)] transition",
+                    isSidebarCollapsed && "w-full flex justify-center"
+                  )}
+                  title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
                 >
-                  <MessageSquare className="h-5 w-5" />
+                  {isSidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
                 </button>
               </div>
-              <div className="mt-3 text-center text-[10px] uppercase tracking-[0.24em] text-muted">
-                Responses are grounded in your module files
+              <div className="flex-1 overflow-y-auto p-2 space-y-1">
+                {sessions.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => setActiveSessionId(s.id)}
+                    className={cn(
+                      "w-full rounded-xl px-4 py-3 text-left text-sm transition group relative",
+                      activeSessionId === s.id 
+                        ? "bg-accent/10 text-accent font-medium" 
+                        : "text-muted hover:surface-soft hover:text-[color:var(--text)]",
+                      isSidebarCollapsed && "px-0 flex justify-center"
+                    )}
+                  >
+                    {isSidebarCollapsed ? (
+                      <MessageSquare className="h-5 w-5" />
+                    ) : (
+                      <>
+                        <div className="truncate pr-6">{s.title}</div>
+                        <div className="mt-1 text-[10px] opacity-50">
+                          {new Date(s.updatedAt).toLocaleDateString()}
+                        </div>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            updateModule(module.id, { chatSessions: sessions.filter(sess => sess.id !== s.id) });
+                            if (activeSessionId === s.id) setActiveSessionId(null);
+                          }}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1 hover:text-rose-500 transition"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </>
+                    )}
+                  </button>
+                ))}
+                {sessions.length === 0 && (
+                  <div className="px-4 py-8 text-center text-xs text-muted">
+                    {isSidebarCollapsed ? <Plus className="h-4 w-4 mx-auto" /> : "No past sessions"}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Chat Main Area */}
+            <div className="flex-1 flex flex-col overflow-hidden rounded-[2rem] surface border border-subtle shadow-inner">
+              {/* Mobile Sessions Header */}
+              <div className="flex items-center justify-between border-b border-subtle p-3 md:hidden">
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+                  {activeSession?.title || 'New Chat'}
+                </span>
+                <button 
+                  onClick={handleNewChat}
+                  className="rounded-lg p-1.5 text-accent hover:bg-accent/10 transition"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="flex-1 space-y-5 overflow-y-auto p-4 md:p-6 scroll-smooth" ref={scrollRef}>
+                {currentChatHistory.length === 0 && (
+                  <div className="mx-auto flex h-full max-w-md flex-col items-center justify-center text-center text-muted">
+                    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-white shadow-lg shadow-black/20">
+                      <Sparkles className="h-6 w-6" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-[color:var(--text)]">Module AI assistant</h3>
+                    <p className="mt-2 text-sm leading-6">
+                      Ask for summaries, explanations, flashcards, or exam-style questions based on {module.code} materials.
+                    </p>
+                  </div>
+                )}
+
+                {currentChatHistory.map((message) => (
+                  <div key={message.id} className={`flex gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''} animate-fade-in`}>
+                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full shadow-sm ${message.role === 'user' ? 'bg-accent text-white' : 'bg-surface-strong text-accent border border-subtle'}`}>
+                      {message.role === 'user' ? <span className="text-xs font-bold">YOU</span> : <Sparkles className="h-4 w-4" />}
+                    </div>
+                    <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-sm ${
+                      message.role === 'user' 
+                        ? 'surface-strong text-[color:var(--text)] border border-subtle' 
+                        : 'surface-soft text-[color:var(--text)] border border-subtle'
+                    }`}>
+                      {message.attachments && message.attachments.length > 0 && (
+                        <div className="mb-2 flex flex-wrap gap-2">
+                          {message.attachments.map((att, i) => (
+                            <div key={i} className="flex items-center gap-1.5 rounded-lg bg-black/10 px-2 py-1 text-[10px] font-medium backdrop-blur-sm">
+                              {att.type.startsWith('image/') ? <ImageIcon className="h-3 w-3" /> : <Paperclip className="h-3 w-3" />}
+                              <span className="max-w-[100px] truncate">{att.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div className={`prose prose-sm max-w-none dark:prose-invert`}>
+                        <Markdown>{message.text}</Markdown>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {isChatLoading && (
+                  <div className="flex gap-4">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-white">
+                      <Sparkles className="h-4 w-4" />
+                    </div>
+                    <div className="flex items-center rounded-3xl border border-subtle surface-soft px-4 py-3 text-sm text-muted">
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin text-accent" /> AI is synthesizing...
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t border-subtle bg-transparent p-4">
+                {chatAttachments.length > 0 && (
+                  <div className="mb-3 flex flex-wrap gap-2 px-2">
+                    {chatAttachments.map((att, i) => (
+                      <div key={i} className="group relative flex items-center gap-2 rounded-xl border border-subtle surface-soft px-3 py-1.5 text-xs animate-fade-in">
+                        {att.type.startsWith('image/') ? <ImageIcon className="h-3.5 w-3.5 text-accent" /> : <Paperclip className="h-3.5 w-3.5 text-accent" />}
+                        <span className="max-w-[120px] truncate font-medium">{att.name}</span>
+                        <button 
+                          onClick={() => setChatAttachments(prev => prev.filter((_, index) => index !== i))}
+                          className="ml-1 rounded-full p-0.5 hover:bg-black/10 text-muted hover:text-[color:var(--text)]"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="mx-auto flex max-w-4xl gap-2 items-end">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={(e) => {
+                      const files = e.target.files;
+                      if (!files) return;
+                      Array.from(files).forEach(file => {
+                        const reader = new FileReader();
+                        reader.onload = (prev) => {
+                          const base64 = prev.target?.result as string;
+                          setChatAttachments(current => [...current, {
+                            name: file.name,
+                            type: file.type,
+                            data: base64
+                          }]);
+                        };
+                        reader.readAsDataURL(file);
+                      });
+                      if (fileInputRef.current) fileInputRef.current.value = '';
+                    }}
+                    className="hidden"
+                    multiple
+                  />
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-2xl surface-soft border border-subtle text-muted transition hover:surface-strong hover:text-[color:var(--text)]"
+                    title="Attach images or files"
+                  >
+                    <Plus className="h-5 w-5" />
+                  </button>
+                  <textarea
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendMessage();
+                      }
+                    }}
+                    className="surface-soft min-h-[46px] flex-1 resize-none rounded-2xl px-4 py-3 text-sm outline-none transition focus:ring-2 focus:ring-[color:var(--accent)]/40"
+                    rows={1}
+                    placeholder="Ask a question about the uploaded materials..."
+                  />
+                  <button
+                    onClick={handleSendMessage}
+                    disabled={isChatLoading || (!chatInput.trim() && chatAttachments.length === 0)}
+                    className="flex h-[46px] shrink-0 items-center justify-center rounded-2xl bg-accent px-4 text-white transition hover:-translate-y-0.5 disabled:opacity-50"
+                  >
+                    <MessageSquare className="h-5 w-5" />
+                  </button>
+                </div>
+                <div className="mt-3 text-center text-[10px] uppercase tracking-[0.24em] text-muted">
+                  Responses are grounded in your module files
+                </div>
               </div>
             </div>
           </div>
         )}
         {activeTab === 'tasks' && (
-          <div className="h-full overflow-y-auto pb-8 pt-2 animate-fade-up">
+          <div className="pb-8 pt-2 animate-fade-up">
             <TaskList 
               tasks={tasks}
               onToggleTask={onToggleTask}

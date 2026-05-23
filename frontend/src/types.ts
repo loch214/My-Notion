@@ -1,3 +1,11 @@
+export interface ChatSession {
+  id: string;
+  title: string;
+  history: ChatMessage[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Module {
   id: string;
   code: string;
@@ -5,6 +13,7 @@ export interface Module {
   color: 'amber' | 'blue' | 'emerald' | 'purple' | 'rose';
   files: UploadedFile[];
   chatHistory: ChatMessage[];
+  chatSessions?: ChatSession[];
 }
 
 export interface UploadedFile {
@@ -14,6 +23,13 @@ export interface UploadedFile {
   uploadedAt: string;
   url?: string;
   geminiFileUri?: string;
+  extractedText?: string;
+}
+
+export interface ChatAttachment {
+  name: string;
+  type: string;
+  data: string; // Base64 or URL
 }
 
 export interface ChatMessage {
@@ -21,6 +37,7 @@ export interface ChatMessage {
   role: 'user' | 'model';
   text: string;
   timestamp: string;
+  attachments?: ChatAttachment[];
 }
 
 export interface Task {
