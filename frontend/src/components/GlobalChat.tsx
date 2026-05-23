@@ -9,10 +9,9 @@ interface GlobalChatProps {
   onClose: () => void;
   state: AppState;
   updateState: (updates: (prev: AppState) => AppState) => void;
-  saveGlobalChat?: (message: ChatMessage) => Promise<void>;
 }
 
-export function GlobalChat({ onClose, state, updateState, saveGlobalChat }: GlobalChatProps) {
+export function GlobalChat({ onClose, state, updateState }: GlobalChatProps) {
   const [input, setInput] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
   const [model, setModel] = React.useState(DEFAULT_AI_MODEL);
@@ -36,7 +35,6 @@ export function GlobalChat({ onClose, state, updateState, saveGlobalChat }: Glob
     };
 
     updateState((prev) => ({ ...prev, globalChatHistory: [...prev.globalChatHistory, userMessage] }));
-    if (saveGlobalChat) await saveGlobalChat(userMessage);
     setInput('');
     setIsLoading(true);
 
@@ -70,7 +68,6 @@ export function GlobalChat({ onClose, state, updateState, saveGlobalChat }: Glob
       };
 
       updateState((prev) => ({ ...prev, globalChatHistory: [...prev.globalChatHistory, modelMessage] }));
-      if (saveGlobalChat) await saveGlobalChat(modelMessage);
     } catch (error) {
       console.error(error);
     } finally {

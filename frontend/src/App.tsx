@@ -43,7 +43,7 @@ function StatCard({ label, value, hint, icon: Icon }: { label: string; value: st
 }
 
 export default function App() {
-  const { state, updateState, toggleTask, addModule, addTask, saveModule, saveGlobalChat } = useAppStore();
+  const { state, updateState, toggleTask, addModule, addTask } = useAppStore();
   const [appStage, setAppStage] = useState<'landing' | 'workspace'>('landing');
   const [activeTab, setActiveTab] = useState<'home' | 'academic' | 'personal'>('home');
   const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
@@ -338,13 +338,10 @@ export default function App() {
                 <ModuleDetail
                   module={activeModule}
                   onBack={() => setActiveModuleId(null)}
-                  updateModule={(id: string, updates: Partial<typeof activeModule>) => {
-                    updateState((prev) => ({
-                      ...prev,
-                      modules: prev.modules.map((module) => (module.id === id ? { ...module, ...updates } : module)),
-                    }));
-                    saveModule(id, updates);
-                  }}
+                  updateModule={(id: string, updates: Partial<typeof activeModule>) => updateState((prev) => ({
+                    ...prev,
+                    modules: prev.modules.map((module) => (module.id === id ? { ...module, ...updates } : module)),
+                  }))}
                 />
               </div>
             )}
@@ -368,7 +365,6 @@ export default function App() {
           onClose={() => setIsAiPanelOpen(false)}
           state={state}
           updateState={updateState}
-          saveGlobalChat={saveGlobalChat}
         />
       )}
     </div>

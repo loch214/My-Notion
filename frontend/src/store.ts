@@ -9,49 +9,35 @@ const DEFAULT_STATE: AppState = {
   globalChatHistory: []
 };
 
-const API_BASE = 'http://localhost:3001/api';
+const API_BASE = 'http://localhost:3001/api/data';
 
 export function useAppStore() {
   const [state, setState] = useState<AppState>(DEFAULT_STATE);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Load initial data from backend
+  // Load initial state from backend
   useEffect(() => {
-    const loadInitialData = async () => {
+    const loadWorkspace = async () => {
       try {
-        setIsLoading(true);
-        setError(null);
-
-        const [modulesRes, tasksRes, eventsRes] = await Promise.all([
-          fetch(`${API_BASE}/modules`),
-          fetch(`${API_BASE}/tasks`),
-          fetch(`${API_BASE}/events`),
-        ]);
-
-        if (!modulesRes.ok || !tasksRes.ok || !eventsRes.ok) {
-          throw new Error('Failed to load data from server');
-        }
-
-        const modules = await modulesRes.json();
-        const tasks = await tasksRes.json();
-        const events = await eventsRes.json();
-
+        const response = await fetch(`${API_BASE}/workspace`);
+        if (!response.ok) throw new Error('Failed to load workspace');
+        const data = await response.json();
         setState({
-          modules: modules || [],
-          tasks: tasks || [],
-          events: events || [],
-          globalChatHistory: state.globalChatHistory,
+          modules: data.modules || [],
+          tasks: data.tasks || [],
+          events: data.events || [],
+          globalChatHistory: data.globalChatHistory || []
         });
-      } catch (err: any) {
-        console.error('Failed to load initial data:', err);
-        setError(err.message);
+      } catch (err) {
+        console.error('Error loading workspace:', err);
+        setError(err instanceof Error ? err.message : 'Unknown error');
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadInitialData();
+    loadWorkspace();
   }, []);
 
   const updateState = (updates: Partial<AppState> | ((prev: AppState) => AppState)) => {
@@ -60,110 +46,184 @@ export function useAppStore() {
 
   const addModule = async (title: string, code: string, color: Module['color']) => {
     try {
-      const moduleId = uuidv4();
       const response = await fetch(`${API_BASE}/modules`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: moduleId, title, code, color }),
+        body: JSON.stringify({ title, code, color })
       });
-
       if (!response.ok) throw new Error('Failed to create module');
-
       const newModule = await response.json();
-      setState(prev => ({
+      updateState(prev => ({
         ...prev,
-        modules: [...prev.modules, newModule],
+        modules: [...prev.modules, newModule]
       }));
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error adding module:', err);
-      setError(err.message);
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    }
+  };
+
+  const removeModule = async (moduleId: string) => {
+    try {
+      const response = await fetch(`${API_BASE}/modules/${moduleId}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) throw new Error('Failed to delete module');
+      updateState(prev => ({
+        ...prev,
+        modules: prev.modules.filter(m => m.id !== moduleId)
+      }));
+    } catch (err) {
+      console.error('Error removing module:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    }
+  };
+
+  const updateModule = async (moduleId: string, updates: Partial<Module>) => {
+    try {
+      const response = await fetch(`${API_BASE}/modules/${moduleId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      });
+      if (!response.ok) throw new Error('Failed to update module');
+      const updated = await response.json();
+      updateState(prev => ({
+        ...prev,
+        modules: prev.modules.map(m => m.id === moduleId ? updated : m)
+      }));
+    } catch (err) {
+      console.error('Error updating module:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    }
+  };
+
+  const addTask = async (title: string, priority: 'high' | 'medium' | 'low' = 'medium') => {
+    try {
+      const response = await fetch(`${API_BASE}/tasks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, priority })
+      });
+      if (!response.ok) throw new Error('Failed to create task');
+      const newTask = await response.json();
+      updateState(prev => ({
+        ...prev,
+        tasks: [...prev.tasks, newTask]
+      }));
+    } catch (err) {
+      console.error('Error adding task:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error');
     }
   };
 
   const toggleTask = async (taskId: string) => {
+    const task = state.tasks.find(t => t.id === taskId);
+    if (!task) return;
     try {
-      const task = state.tasks.find(t => t.id === taskId);
-      if (!task) return;
-
       const response = await fetch(`${API_BASE}/tasks/${taskId}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ done: !task.done }),
+        body: JSON.stringify({ done: !task.done })
       });
-
       if (!response.ok) throw new Error('Failed to update task');
-
-      const updatedTask = await response.json();
-      setState(prev => ({
+      updateState(prev => ({
         ...prev,
-        tasks: prev.tasks.map(t => t.id === taskId ? updatedTask : t),
+        tasks: prev.tasks.map(t => t.id === taskId ? { ...t, done: !t.done } : t)
       }));
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error toggling task:', err);
-      setError(err.message);
+      setError(err instanceof Error ? err.message : 'Unknown error');
     }
   };
 
-  const addTask = async (title: string, priority: 'high' | 'medium' | 'low') => {
+  const removeTask = async (taskId: string) => {
     try {
-      const taskId = uuidv4();
-      const response = await fetch(`${API_BASE}/tasks`, {
+      const response = await fetch(`${API_BASE}/tasks/${taskId}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) throw new Error('Failed to delete task');
+      updateState(prev => ({
+        ...prev,
+        tasks: prev.tasks.filter(t => t.id !== taskId)
+      }));
+    } catch (err) {
+      console.error('Error removing task:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    }
+  };
+
+  const addEvent = async (title: string, startTime: string, endTime: string, color: Event['color'] = 'blue', description?: string) => {
+    try {
+      const response = await fetch(`${API_BASE}/events`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: taskId, title, priority, done: false, time: 'Anytime' }),
+        body: JSON.stringify({ title, startTime, endTime, color, description })
       });
-
-      if (!response.ok) throw new Error('Failed to create task');
-
-      const newTask = await response.json();
-      setState(prev => ({
+      if (!response.ok) throw new Error('Failed to create event');
+      const newEvent = await response.json();
+      updateState(prev => ({
         ...prev,
-        tasks: [...prev.tasks, newTask],
+        events: [...prev.events, newEvent]
       }));
-    } catch (err: any) {
-      console.error('Error adding task:', err);
-      setError(err.message);
+    } catch (err) {
+      console.error('Error adding event:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error');
     }
   };
 
-  return {
-    state,
-    updateState,
-    addModule,
-    toggleTask,
-    addTask,
-    isLoading,
+  const saveGlobalChatMessage = async (role: 'user' | 'model', text: string) => {
+    try {
+      const timestamp = new Date().toISOString();
+      await fetch(`${API_BASE}/chat/global/message`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: uuidv4(), role, text, timestamp })
+      });
+      updateState(prev => ({
+        ...prev,
+        globalChatHistory: [...prev.globalChatHistory, { id: uuidv4(), role, text, timestamp }]
+      }));
+    } catch (err) {
+      console.error('Error saving global chat message:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    }
+  };
+
+  const saveModuleChatMessage = async (moduleId: string, role: 'user' | 'model', text: string) => {
+    try {
+      const timestamp = new Date().toISOString();
+      await fetch(`${API_BASE}/chat/module/${moduleId}/message`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: uuidv4(), role, text, timestamp })
+      });
+      updateState(prev => ({
+        ...prev,
+        modules: prev.modules.map(m => m.id === moduleId 
+          ? { ...m, chatHistory: [...m.chatHistory, { id: uuidv4(), role, text, timestamp }] }
+          : m
+        )
+      }));
+    } catch (err) {
+      console.error('Error saving module chat message:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    }
+  };
+
+  return { 
+    state, 
+    isLoading, 
     error,
-    saveModule: async (moduleId: string, updates: Partial<Module>) => {
-      try {
-        const response = await fetch(`${API_BASE}/modules/${moduleId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updates),
-        });
-        if (!response.ok) throw new Error('Failed to save module');
-        const updated = await response.json();
-        setState(prev => ({
-          ...prev,
-          modules: prev.modules.map(m => m.id === moduleId ? updated : m),
-        }));
-      } catch (err: any) {
-        console.error('Error saving module:', err);
-        setError(err.message);
-      }
-    },
-    saveGlobalChat: async (message: any) => {
-      try {
-        const response = await fetch(`${API_BASE}/chat/global/save`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message }),
-        });
-        if (!response.ok) throw new Error('Failed to save chat');
-      } catch (err: any) {
-        console.error('Error saving global chat:', err);
-        setError(err.message);
-      }
-    },
+    updateState, 
+    addModule, 
+    removeModule,
+    updateModule,
+    addTask, 
+    toggleTask, 
+    removeTask,
+    addEvent,
+    saveGlobalChatMessage,
+    saveModuleChatMessage
   };
 }

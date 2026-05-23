@@ -1,53 +1,79 @@
 import mongoose from 'mongoose';
 
-const ChatMessageSchema = new mongoose.Schema({
+// Chat Message Schema (used in both global and module chats)
+const chatMessageSchema = new mongoose.Schema({
   id: { type: String, required: true },
   role: { type: String, enum: ['user', 'model'], required: true },
   text: { type: String, required: true },
-  timestamp: { type: String, required: true },
+  timestamp: { type: Date, default: Date.now },
 });
 
-const UploadedFileSchema = new mongoose.Schema({
+// File Schema (for uploaded files)
+const fileSchema = new mongoose.Schema({
   id: { type: String, required: true },
   name: { type: String, required: true },
   size: { type: Number, required: true },
-  uploadedAt: { type: String, required: true },
-  url: { type: String },
   geminiFileUri: { type: String },
+  uploadedAt: { type: Date, default: Date.now },
 });
 
-const ModuleSchema = new mongoose.Schema({
+// Module Schema
+const moduleSchema = new mongoose.Schema({
   id: { type: String, required: true, unique: true },
+  title: { type: String, required: true },
   code: { type: String, required: true },
-  title: { type: String, required: true },
-  color: { type: String, enum: ['amber', 'blue', 'emerald', 'purple', 'rose'], required: true },
-  files: [UploadedFileSchema],
-  chatHistory: [ChatMessageSchema],
+  color: { type: String, enum: ['blue', 'amber', 'emerald', 'purple', 'rose'], default: 'blue' },
+  files: [fileSchema],
+  chatHistory: [chatMessageSchema],
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });
 
-const TaskSchema = new mongoose.Schema({
+// Task Schema
+const taskSchema = new mongoose.Schema({
   id: { type: String, required: true, unique: true },
   title: { type: String, required: true },
-  time: { type: String, default: 'Anytime' },
   done: { type: Boolean, default: false },
-  priority: { type: String, enum: ['low', 'medium', 'high'], default: 'medium' },
+  priority: { type: String, enum: ['high', 'medium', 'low'], default: 'medium' },
+  time: { type: String, default: '09:00 AM' },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });
 
-const EventSchema = new mongoose.Schema({
+// Event Schema
+const eventSchema = new mongoose.Schema({
   id: { type: String, required: true, unique: true },
   title: { type: String, required: true },
   startTime: { type: String, required: true },
   endTime: { type: String, required: true },
-  description: { type: String },
   color: { type: String, enum: ['blue', 'amber', 'purple'], default: 'blue' },
+  description: { type: String },
+  createdAt: { type: Date, default: Date.now },
+});
+
+// Global Chat History Schema
+const globalChatSchema = new mongoose.Schema({
+  id: { type: String, required: true, unique: true },
+  messages: [chatMessageSchema],
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });
 
-export const Module = mongoose.model('Module', ModuleSchema);
-export const Task = mongoose.model('Task', TaskSchema);
-export const Event = mongoose.model('Event', EventSchema);
+// User/Workspace Schema (aggregates all user data)
+const workspaceSchema = new mongoose.Schema({
+  id: { type: String, required: true, unique: true },
+  name: { type: String, default: 'My Workspace' },
+  modules: [moduleSchema],
+  tasks: [taskSchema],
+  events: [eventSchema],
+  globalChat: globalChatSchema,
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+});
+
+// Export models
+export const Module = mongoose.model('Module', moduleSchema);
+export const Task = mongoose.model('Task', taskSchema);
+export const Event = mongoose.model('Event', eventSchema);
+export const ChatMessage = mongoose.model('ChatMessage', chatMessageSchema);
+export const Workspace = mongoose.model('Workspace', workspaceSchema);
