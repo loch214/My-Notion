@@ -210,14 +210,14 @@ router.get('/chat/global', async (req, res) => {
 
 router.post('/chat/global/message', async (req, res) => {
   try {
-    const { id, role, text, timestamp } = req.body;
+    const message = req.body;
     const workspace = await getOrCreateWorkspace();
 
     if (!workspace.globalChat) {
       (workspace.globalChat as any) = { id: uuidv4(), messages: [] };
     }
 
-    (workspace.globalChat?.messages as any).push({ id, role, text, timestamp });
+    (workspace.globalChat?.messages as any).push(message);
     await workspace.save();
     res.json({ success: true });
   } catch (error) {

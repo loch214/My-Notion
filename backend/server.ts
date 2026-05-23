@@ -8,8 +8,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { createRequire } from 'module';
 import { v4 as uuidv4 } from 'uuid';
 const require = createRequire(import.meta.url);
-const pdfParse = require('pdf-parse');
-const pdf = typeof pdfParse === 'function' ? pdfParse : pdfParse.default;
+const { PdfReader } = require('pdfreader');
 import mammoth from 'mammoth';
 import 'dotenv/config';
 import connectDB from './db.js';
@@ -19,7 +18,8 @@ import { Workspace } from './models.js';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cors());
 
 const uploadDir = path.join(process.cwd(), 'uploads');
@@ -221,11 +221,23 @@ async function extractTextFromBase64(dataBase64: string, originalName: string): 
   
   try {
     if (extension === '.pdf') {
-      const data = await pdf(buffer);
-      console.log(`[Extraction-Base64] PDF text length: ${data.text?.length || 0}`);
-      return data.text;
+      return new Promise((resolve, reject) => {
+        let text = '';
+        new PdfReader().parseBuffer(buffer, (err: any, item: any) => {
+          if (err) {
+            console.error(`[Extraction-Base64] PDF Error:`, err);
+            reject(err);
+          }
+          else if (!item) {
+            console.log(`[Extraction-Base64] PDF extracted: ${text.length} chars`);
+            resolve(text.trim());
+          }
+          else if (item.text) text += item.text + ' ';
+        });
+      });
     } else if (extension === '.docx') {
       const result = await mammoth.extractRawText({ buffer: buffer });
+      console.log(`[Extraction-Base64] DOCX extracted: ${result.value?.length || 0} chars`);
       return result.value;
     }
   } catch (error) {
@@ -386,6 +398,7 @@ app.post('/api/chat/module', async (req, res) => {
 
     const response: any = { role: 'model', text };
     if (title) response.title = title;
+    if (newFilesSaved > 0) response.files = dbModule.files;
 
     res.json(response);
   } catch (error: any) {
@@ -400,9 +413,17 @@ async function extractTextFromFile(filePath: string, originalName: string): Prom
   try {
     if (extension === '.pdf') {
       const dataBuffer = fs.readFileSync(filePath);
-      const data = await pdf(dataBuffer);
-      console.log(`[Extraction] PDF text length: ${data.text?.length || 0}`);
-      return data.text;
+      return new Promise((resolve, reject) => {
+        let text = '';
+        new PdfReader().parseBuffer(dataBuffer, (err: any, item: any) => {
+          if (err) reject(err);
+          else if (!item) {
+            console.log(`[Extraction] PDF text length: ${text.length}`);
+            resolve(text.trim());
+          }
+          else if (item.text) text += item.text + ' ';
+        });
+      });
     } else if (extension === '.docx') {
       const result = await mammoth.extractRawText({ path: filePath });
       console.log(`[Extraction] DOCX text length: ${result.value?.length || 0}`);

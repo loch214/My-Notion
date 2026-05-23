@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { AppState, Module, Task, Event } from './types';
+import { AppState, Module, Task, Event, ChatMessage } from './types';
 import { v4 as uuidv4 } from 'uuid';
 
 const DEFAULT_STATE: AppState = {
@@ -191,17 +191,16 @@ export function useAppStore() {
     }
   };
 
-  const saveGlobalChatMessage = async (role: 'user' | 'model', text: string) => {
+  const saveGlobalChatMessage = async (message: ChatMessage) => {
     try {
-      const timestamp = new Date().toISOString();
       await fetch(`${API_BASE}/chat/global/message`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: uuidv4(), role, text, timestamp })
+        body: JSON.stringify(message)
       });
       updateState(prev => ({
         ...prev,
-        globalChatHistory: [...prev.globalChatHistory, { id: uuidv4(), role, text, timestamp }]
+        globalChatHistory: [...prev.globalChatHistory, message]
       }));
     } catch (err) {
       console.error('Error saving global chat message:', err);

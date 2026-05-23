@@ -8,10 +8,10 @@ import { AI_MODELS, AIModelId, DEFAULT_AI_MODEL } from '../lib/models';
 interface GlobalChatProps {
   onClose: () => void;
   state: AppState;
-  updateState: (updates: (prev: AppState) => AppState) => void;
+  saveGlobalChatMessage: (message: ChatMessage) => Promise<void>;
 }
 
-export function GlobalChat({ onClose, state, updateState }: GlobalChatProps) {
+export function GlobalChat({ onClose, state, saveGlobalChatMessage }: GlobalChatProps) {
   const [input, setInput] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
   const [model, setModel] = React.useState(DEFAULT_AI_MODEL);
@@ -37,7 +37,7 @@ export function GlobalChat({ onClose, state, updateState }: GlobalChatProps) {
       attachments: attachments.length > 0 ? [...attachments] : undefined,
     };
 
-    updateState((prev) => ({ ...prev, globalChatHistory: [...prev.globalChatHistory, userMessage] }));
+    saveGlobalChatMessage(userMessage);
     const currentInput = input;
     const currentAttachments = [...attachments];
     setInput('');
@@ -74,7 +74,7 @@ export function GlobalChat({ onClose, state, updateState }: GlobalChatProps) {
         timestamp: new Date().toISOString(),
       };
 
-      updateState((prev) => ({ ...prev, globalChatHistory: [...prev.globalChatHistory, modelMessage] }));
+      saveGlobalChatMessage(modelMessage);
     } catch (error) {
       console.error(error);
     } finally {

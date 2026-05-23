@@ -43,7 +43,7 @@ function StatCard({ label, value, hint, icon: Icon }: { label: string; value: st
 }
 
 export default function App() {
-  const { state, updateState, toggleTask, addModule, addTask, removeTask, updateTask, updateModule } = useAppStore();
+  const { state, updateState, toggleTask, addModule, addTask, removeTask, updateTask, updateModule, saveGlobalChatMessage } = useAppStore();
   
   const [appStage, setAppStage] = useState<'landing' | 'workspace'>(() => {
     const params = new URLSearchParams(window.location.search);
@@ -436,7 +436,7 @@ export default function App() {
         <GlobalChat
           onClose={() => setIsAiPanelOpen(false)}
           state={state}
-          updateState={updateState}
+          saveGlobalChatMessage={saveGlobalChatMessage}
         />
       )}
     </div>

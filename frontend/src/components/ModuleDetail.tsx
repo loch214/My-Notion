@@ -197,7 +197,12 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
           title: data.title || finalSessions[finalSessionIndex].title,
           updatedAt: new Date().toISOString()
         };
-        updateModule(module.id, { chatSessions: finalSessions });
+        
+        const updates: Partial<Module> = { chatSessions: finalSessions };
+        if (data.files) {
+          updates.files = data.files;
+        }
+        updateModule(module.id, updates);
       }
     } catch (error) {
       console.error(error);

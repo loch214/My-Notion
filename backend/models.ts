@@ -6,6 +6,11 @@ const chatMessageSchema = new mongoose.Schema({
   role: { type: String, enum: ['user', 'model'], required: true },
   text: { type: String, required: true },
   timestamp: { type: Date, default: Date.now },
+  attachments: [{
+    name: { type: String },
+    type: { type: String },
+    data: { type: String }
+  }]
 });
 
 // File Schema (for uploaded files)
