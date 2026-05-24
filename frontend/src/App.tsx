@@ -21,6 +21,7 @@ import { GlobalChat } from './components/GlobalChat.tsx';
 import { AcademicOverview } from './components/AcademicOverview.tsx';
 import { ModuleDetail } from './components/ModuleDetail.tsx';
 import { PersonalDashboard } from './components/PersonalDashboard.tsx';
+import CalendarView from './components/CalendarView';
 import { cn } from './lib/utils';
 
 function StatCard({ label, value, hint, icon: Icon }: { label: string; value: string; hint: string; icon: any }) {
@@ -41,13 +42,13 @@ function StatCard({ label, value, hint, icon: Icon }: { label: string; value: st
 }
 
 export default function App() {
-  const { state, updateState, toggleTask, addModule, addTask, removeTask, updateTask, updateModule, saveGlobalChatMessage } = useAppStore();
+  const { state, updateState, toggleTask, addModule, addTask, removeTask, updateTask, updateModule, saveGlobalChatMessage, addEvent, removeEvent } = useAppStore();
   
   const [appStage, setAppStage] = useState<'landing' | 'workspace'>(() => {
     const params = new URLSearchParams(window.location.search);
     return (params.get('stage') as any) || 'landing';
   });
-  const [activeTab, setActiveTab] = useState<'home' | 'academic' | 'personal'>(() => {
+  const [activeTab, setActiveTab] = useState<'home' | 'academic' | 'personal' | 'calendar'>(() => {
     const params = new URLSearchParams(window.location.search);
     return (params.get('tab') as any) || 'home';
   });
@@ -97,7 +98,7 @@ export default function App() {
     [state.modules, activeModuleId]
   );
 
-  const navigateToTab = (tab: 'home' | 'academic' | 'personal') => {
+  const navigateToTab = (tab: 'home' | 'academic' | 'personal' | 'calendar') => {
     setActiveTab(tab);
     setActiveModuleId(null);
   };
@@ -182,6 +183,9 @@ export default function App() {
             </button>
             <button onClick={() => navigateToTab('personal')} className={navItemClass(activeTab === 'personal')}>
               <LayoutDashboard className="h-4 w-4" /> Personal
+            </button>
+            <button onClick={() => navigateToTab('calendar')} className={navItemClass(activeTab === 'calendar')}>
+              <Calendar className="h-4 w-4" /> Calendar
             </button>
           </nav>
         </div>
@@ -363,6 +367,11 @@ export default function App() {
                   onEditTask={updateTask}
                   onRemoveTask={removeTask}
                 />
+              </div>
+            )}
+            {activeTab === 'calendar' && (
+              <div className="surface-strong rounded-[2rem] p-5 sm:p-6 animate-fade-up">
+                <CalendarView events={state.events} onAddEvent={addEvent} onRemoveEvent={removeEvent} />
               </div>
             )}
           </div>

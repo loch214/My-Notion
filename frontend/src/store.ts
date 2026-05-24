@@ -191,6 +191,22 @@ export function useAppStore() {
     }
   };
 
+  const removeEvent = async (eventId: string) => {
+    try {
+      const response = await fetch(`${API_BASE}/events/${eventId}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) throw new Error('Failed to delete event');
+      updateState(prev => ({
+        ...prev,
+        events: prev.events.filter(e => e.id !== eventId)
+      }));
+    } catch (err) {
+      console.error('Error deleting event:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    }
+  };
+
   const saveGlobalChatMessage = async (message: ChatMessage) => {
     try {
       await fetch(`${API_BASE}/chat/global/message`, {
@@ -244,5 +260,7 @@ export function useAppStore() {
     addEvent,
     saveGlobalChatMessage,
     saveModuleChatMessage
+    ,
+    removeEvent
   };
 }
