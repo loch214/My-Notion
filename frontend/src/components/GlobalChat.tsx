@@ -83,10 +83,10 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage }: GlobalChat
   };
 
   return (
-    <div className="surface-strong fixed inset-y-0 right-0 z-50 flex w-full max-w-[430px] flex-col border-l border-subtle animate-fade-up md:w-[430px] text-[color:var(--text)]">
+    <div className="surface-strong fixed inset-0 z-50 flex h-[100dvh] w-full flex-col border-subtle text-[color:var(--text)] md:inset-y-0 md:left-auto md:right-0 md:w-[430px] md:border-l">
       <div className="flex items-center justify-between border-b border-subtle px-4 py-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-accent text-[color:var(--on-accent)] shadow-lg shadow-black/20">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-accent text-[color:var(--on-accent)]">
             <Sparkles className="h-4.5 w-4.5" />
           </div>
           <div>
@@ -111,7 +111,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage }: GlobalChat
           {isModelDropdownOpen && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setIsModelDropdownOpen(false)} />
-              <div className="absolute left-0 right-0 top-full z-20 mt-2 overflow-hidden rounded-2xl surface border border-subtle shadow-xl p-1.5">
+              <div className="absolute left-0 right-0 top-full z-20 mt-2 overflow-hidden rounded-2xl surface border border-subtle shadow-lg p-1.5">
                 {AI_MODELS.map((option) => (
                   <button
                     key={option.id}
@@ -132,7 +132,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage }: GlobalChat
 
       <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 text-sm" ref={scrollRef}>
         {state.globalChatHistory.length === 0 && (
-          <div className="surface rounded-3xl p-4 text-sm text-muted">
+          <div className="surface rounded-2xl p-4 text-sm text-muted">
             <p className="text-base text-[color:var(--text)]">Start with a question about tasks, schedule, or modules.</p>
             <div className="mt-3 flex flex-wrap gap-2">
               <button onClick={() => setInput('What do I need to finish this week?')} className="surface-soft rounded-full px-3 py-1.5 text-xs transition hover:text-[color:var(--text)]">Due this week</button>
@@ -154,7 +154,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage }: GlobalChat
               {message.attachments && message.attachments.length > 0 && (
                 <div className="mb-2 flex flex-wrap gap-2">
                   {message.attachments.map((att, i) => (
-                    <div key={i} className="flex items-center gap-1.5 rounded-lg surface-soft px-2 py-1 text-[10px] font-medium backdrop-blur-sm">
+                    <div key={i} className="flex items-center gap-1.5 rounded-lg surface-soft px-2 py-1 text-[10px] font-medium">
                       {att.type.startsWith('image/') ? <ImageIcon className="h-3 w-3" /> : <Paperclip className="h-3 w-3" />}
                       <span className="max-w-[100px] truncate">{att.name}</span>
                     </div>
@@ -173,7 +173,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage }: GlobalChat
             <div className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent text-[color:var(--on-accent)]">
               <Sparkles className="h-3.5 w-3.5" />
             </div>
-            <div className="flex items-center rounded-3xl border border-subtle surface-soft px-4 py-3 text-sm text-muted">
+            <div className="flex items-center rounded-2xl border border-subtle surface-soft px-4 py-3 text-sm text-muted">
               <Loader2 className="mr-2 h-4 w-4 animate-spin text-accent" />
               AI is thinking...
             </div>
@@ -181,7 +181,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage }: GlobalChat
         )}
       </div>
 
-      <div className="border-t border-subtle p-4">
+      <div className="border-t border-subtle p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
         {attachments.length > 0 && (
           <div className="mb-3 flex flex-wrap gap-2 px-2">
             {attachments.map((att, i) => (

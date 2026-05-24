@@ -32,6 +32,7 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileSessionsOpen, setIsMobileSessionsOpen] = useState(false);
 
   // Get sessions, or migrate from chatHistory if none exist
   const sessions = module.chatSessions || [];
@@ -68,6 +69,12 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [currentChatHistory, activeTab]);
+
+  React.useEffect(() => {
+    if (activeTab !== 'chat') {
+      setIsMobileSessionsOpen(false);
+    }
+  }, [activeTab]);
 
   const handleNewChat = () => {
     const newSession = {
@@ -212,8 +219,8 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-190px)] flex-col text-[color:var(--text)]">
-      <header className="mb-6 flex shrink-0 items-start justify-between gap-4">
+    <div className="flex min-h-0 flex-col text-[color:var(--text)]">
+      <header className="mb-5 flex shrink-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <button onClick={onBack} className="mb-3 inline-flex items-center gap-2 text-sm text-muted transition hover:text-[color:var(--text)]">
             <ChevronLeft className="h-4 w-4" /> Back to overview
@@ -225,56 +232,66 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
         </div>
       </header>
 
-      <div className="mb-6 flex items-end justify-between gap-4 border-b border-subtle pb-2">
-        <div className="flex gap-3">
+      <div className="mb-4 flex flex-col gap-3 border-b border-subtle pb-3 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex min-w-0 gap-2 overflow-x-auto pb-1">
           <button
             onClick={() => setActiveTab('files')}
-            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm transition ${activeTab === 'files' ? 'bg-[color:var(--text)] text-[color:var(--app-bg)]' : 'text-muted hover:text-[color:var(--text)]'}`}
+            className={`inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm transition ${activeTab === 'files' ? 'bg-[color:var(--text)] text-[color:var(--app-bg)]' : 'text-muted hover:text-[color:var(--text)]'}`}
           >
             <FileText className="h-4 w-4" /> Files
           </button>
           <button
             onClick={() => setActiveTab('chat')}
-            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm transition ${activeTab === 'chat' ? 'bg-[color:var(--text)] text-[color:var(--app-bg)]' : 'text-muted hover:text-[color:var(--text)]'}`}
+            className={`inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm transition ${activeTab === 'chat' ? 'bg-[color:var(--text)] text-[color:var(--app-bg)]' : 'text-muted hover:text-[color:var(--text)]'}`}
           >
             <MessageSquare className="h-4 w-4" /> Study chat
           </button>
           <button
             onClick={() => setActiveTab('tasks')}
-            className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm transition ${activeTab === 'tasks' ? 'bg-[color:var(--text)] text-[color:var(--app-bg)]' : 'text-muted hover:text-[color:var(--text)]'}`}
+            className={`inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm transition ${activeTab === 'tasks' ? 'bg-[color:var(--text)] text-[color:var(--app-bg)]' : 'text-muted hover:text-[color:var(--text)]'}`}
           >
             <CheckSquare className="h-4 w-4" /> Tasks
           </button>
         </div>
 
         {activeTab === 'chat' && (
-          <div className="relative">
+          <div className="flex items-center gap-2 self-start lg:self-auto">
             <button
-              onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
-              className="surface-soft flex items-center gap-2 rounded-2xl px-4 py-2 text-sm outline-none transition focus:ring-2 focus:ring-[color:var(--accent)]/40"
+              onClick={() => setIsMobileSessionsOpen(true)}
+              className="btn-secondary px-3 py-2 text-sm font-medium lg:hidden"
             >
-              {AI_MODELS.find(m => m.id === chatModel)?.label}
-              <ChevronDown className="h-4 w-4 text-muted" />
+              Sessions
             </button>
-            {isModelDropdownOpen && (
-              <>
-                <div className="fixed inset-0 z-10" onClick={() => setIsModelDropdownOpen(false)} />
-                <div className="absolute right-0 top-full z-20 mt-2 min-w-[180px] overflow-hidden rounded-2xl surface border border-subtle shadow-xl p-1.5">
-                  {AI_MODELS.map((option) => (
-                    <button
-                      key={option.id}
-                      onClick={() => {
-                        setChatModel(option.id);
-                        setIsModelDropdownOpen(false);
-                      }}
-                      className={`w-full rounded-xl px-4 py-2.5 text-left text-sm transition ${chatModel === option.id ? 'bg-accent text-[color:var(--on-accent)] font-medium' : 'text-[color:var(--text)] hover:bg-[color:var(--surface-soft)]'}`}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
+
+            <div className="relative">
+              <button
+                onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
+                className="surface-soft flex items-center gap-2 rounded-2xl px-4 py-2 text-sm outline-none transition focus:ring-2 focus:ring-[color:var(--accent)]/40"
+              >
+                {AI_MODELS.find((m) => m.id === chatModel)?.label}
+                <ChevronDown className="h-4 w-4 text-muted" />
+              </button>
+
+              {isModelDropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setIsModelDropdownOpen(false)} />
+                  <div className="absolute right-0 top-full z-20 mt-2 min-w-[180px] overflow-hidden rounded-2xl surface border border-subtle shadow-lg p-1.5">
+                    {AI_MODELS.map((option) => (
+                      <button
+                        key={option.id}
+                        onClick={() => {
+                          setChatModel(option.id);
+                          setIsModelDropdownOpen(false);
+                        }}
+                        className={`w-full rounded-xl px-4 py-2.5 text-left text-sm transition ${chatModel === option.id ? 'bg-accent text-[color:var(--on-accent)] font-medium' : 'text-[color:var(--text)] hover:bg-[color:var(--surface-soft)]'}`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -283,7 +300,7 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
         {activeTab === 'files' && (
           <div className="pb-8 animate-fade-up">
             <div className="surface rounded-[2rem] p-6 text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-[color:var(--on-accent)] shadow-lg shadow-black/20">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-[color:var(--on-accent)]">
                 {isUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
               </div>
               <h3 className="text-xl font-semibold">Upload lecture notes or reading materials</h3>
@@ -309,7 +326,7 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
                 {isSortDropdownOpen && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setIsSortDropdownOpen(false)} />
-                    <div className="absolute right-0 top-full z-20 mt-2 min-w-[160px] overflow-hidden rounded-2xl surface border border-subtle shadow-xl p-1.5">
+                    <div className="absolute right-0 top-full z-20 mt-2 min-w-[160px] overflow-hidden rounded-2xl surface border border-subtle shadow-lg p-1.5">
                       {[
                         { id: 'newest', label: 'Newest first' },
                         { id: 'oldest', label: 'Oldest first' },
@@ -366,13 +383,13 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
         )}
 
         {activeTab === 'chat' && (
-          <div className="flex h-[600px] gap-6 animate-fade-up">
+          <div className="flex min-h-[min(72vh,760px)] flex-col gap-4 lg:flex-row animate-fade-up">
             {/* Sessions Sidebar */}
             <div className={cn(
-              "hidden md:flex flex-col rounded-[2rem] surface border border-subtle overflow-hidden transition-all duration-300",
+              "hidden lg:flex flex-col rounded-2xl surface border border-subtle overflow-hidden transition-all duration-300",
               isSidebarCollapsed ? "w-20" : "w-64"
             )}>
-              <div className="p-4 border-b border-subtle flex items-center justify-between gap-2">
+              <div className="p-3 border-b border-subtle flex items-center justify-between gap-2">
                 {!isSidebarCollapsed && (
                   <button 
                     onClick={handleNewChat}
@@ -436,9 +453,9 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
             </div>
 
             {/* Chat Main Area */}
-            <div className="flex-1 flex flex-col overflow-hidden rounded-[2rem] surface border border-subtle shadow-inner">
+            <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl surface border border-subtle">
               {/* Mobile Sessions Header */}
-              <div className="flex items-center justify-between border-b border-subtle p-3 md:hidden">
+              <div className="flex items-center justify-between border-b border-subtle p-3 lg:hidden">
                 <span className="text-xs font-semibold uppercase tracking-wider text-muted">
                   {activeSession?.title || 'New Chat'}
                 </span>
@@ -450,10 +467,10 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
                 </button>
               </div>
 
-              <div className="flex-1 space-y-5 overflow-y-auto p-4 md:p-6 scroll-smooth" ref={scrollRef}>
+              <div className="flex-1 space-y-5 overflow-y-auto p-4 sm:p-5 lg:p-6 scroll-smooth" ref={scrollRef}>
                 {currentChatHistory.length === 0 && (
                   <div className="mx-auto flex h-full max-w-md flex-col items-center justify-center text-center text-muted">
-                    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-[color:var(--on-accent)] shadow-lg shadow-black/20">
+                    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-[color:var(--on-accent)]">
                       <Sparkles className="h-6 w-6" />
                     </div>
                     <h3 className="text-xl font-semibold text-[color:var(--text)]">Module AI assistant</h3>
@@ -476,7 +493,7 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
                       {message.attachments && message.attachments.length > 0 && (
                         <div className="mb-2 flex flex-wrap gap-2">
                           {message.attachments.map((att, i) => (
-                            <div key={i} className="flex items-center gap-1.5 rounded-lg surface-soft px-2 py-1 text-[10px] font-medium backdrop-blur-sm">
+                            <div key={i} className="flex items-center gap-1.5 rounded-lg surface-soft px-2 py-1 text-[10px] font-medium">
                               {att.type.startsWith('image/') ? <ImageIcon className="h-3 w-3" /> : <Paperclip className="h-3 w-3" />}
                               <span className="max-w-[100px] truncate">{att.name}</span>
                             </div>
@@ -519,7 +536,7 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
                     ))}
                   </div>
                 )}
-                <div className="mx-auto flex max-w-4xl gap-2 items-end">
+                <div className="mx-auto flex max-w-4xl items-end gap-2">
                   <input
                     type="file"
                     ref={fileInputRef}
@@ -591,6 +608,46 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
           </div>
         )}
       </div>
+
+      {isMobileSessionsOpen && activeTab === 'chat' && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-3 lg:hidden">
+          <button aria-label="Close sessions" className="absolute inset-0 bg-black/40" onClick={() => setIsMobileSessionsOpen(false)} />
+          <div className="surface relative z-10 w-full max-w-md rounded-[1.75rem] border border-subtle p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-[0.24em] text-muted">Chat sessions</p>
+                <h3 className="mt-1 text-lg font-semibold">{module.title}</h3>
+              </div>
+              <button onClick={() => setIsMobileSessionsOpen(false)} className="btn-ghost rounded-full px-3 py-2 text-sm">
+                Close
+              </button>
+            </div>
+            <div className="mt-4 max-h-[60vh] overflow-y-auto space-y-2">
+              <button onClick={handleNewChat} className="btn-primary w-full px-4 py-2.5 text-sm font-semibold">
+                <Plus className="h-4 w-4" /> New Chat
+              </button>
+              {sessions.map((session) => (
+                <button
+                  key={session.id}
+                  onClick={() => {
+                    setActiveSessionId(session.id);
+                    setIsMobileSessionsOpen(false);
+                  }}
+                  className={cn(
+                    'surface-soft flex w-full items-start justify-between gap-3 rounded-2xl px-4 py-3 text-left',
+                    activeSessionId === session.id ? 'border border-[color:var(--accent)]/35' : ''
+                  )}
+                >
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-medium">{session.title}</div>
+                    <div className="mt-1 text-xs text-muted">{new Date(session.updatedAt).toLocaleDateString()}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

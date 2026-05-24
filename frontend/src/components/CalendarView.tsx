@@ -220,7 +220,7 @@ export default function CalendarView({
       {modal.type === 'day' && modalDate && (
         <div className="fixed inset-0 z-50 flex items-end justify-center p-3 sm:items-center sm:p-4">
           <button aria-label="Close day modal" className="absolute inset-0 bg-black/40" onClick={closeModal} />
-          <div className="surface relative z-10 w-full max-w-lg overflow-hidden rounded-[1.75rem] border border-subtle p-4 shadow-2xl sm:p-6">
+          <div className="surface relative z-10 w-full max-w-lg overflow-hidden rounded-[1.75rem] border border-subtle p-4 shadow-lg sm:p-6">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-lg font-semibold sm:text-xl">Events — {format(modalDate, 'MMM d, yyyy')}</h3>
@@ -272,7 +272,7 @@ export default function CalendarView({
       {modal.type === 'details' && modalEvent && (
         <div className="fixed inset-0 z-50 flex items-end justify-center p-3 sm:items-center sm:p-4">
           <button aria-label="Close event details" className="absolute inset-0 bg-black/40" onClick={closeModal} />
-          <div className="surface relative z-10 w-full max-w-lg overflow-hidden rounded-[1.75rem] border border-subtle p-4 shadow-2xl sm:p-6">
+          <div className="surface relative z-10 w-full max-w-lg overflow-hidden rounded-[1.75rem] border border-subtle p-4 shadow-lg sm:p-6">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
                 <h3 className="truncate text-lg font-semibold sm:text-xl">{modalEvent.title}</h3>
@@ -310,7 +310,7 @@ export default function CalendarView({
       {modal.type === 'form' && modalDate && (
         <div className="fixed inset-0 z-50 flex items-end justify-center p-3 sm:items-center sm:p-4">
           <button aria-label="Close event form" className="absolute inset-0 bg-black/40" onClick={closeModal} />
-          <div className="surface relative z-10 w-full max-w-md overflow-hidden rounded-[1.75rem] border border-subtle p-4 shadow-2xl sm:p-6">
+          <div className="surface relative z-10 w-full max-w-md overflow-hidden rounded-[1.75rem] border border-subtle p-4 shadow-lg sm:p-6">
             <h3 className="text-lg font-semibold sm:text-xl">{modal.event ? 'Edit event' : `Add event — ${format(modalDate, 'MMM d, yyyy')}`}</h3>
             <EventForm
               date={modalDate}

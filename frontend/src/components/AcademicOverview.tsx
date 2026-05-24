@@ -86,7 +86,7 @@ export function AcademicOverview({ modules, tasks = [], onOpenModule, onAddModul
             {isSortDropdownOpen && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setIsSortDropdownOpen(false)} />
-                <div className="absolute right-0 top-full z-20 mt-2 min-w-[180px] overflow-hidden rounded-2xl surface border border-subtle shadow-xl p-1.5">
+                <div className="absolute right-0 top-full z-20 mt-2 min-w-[180px] overflow-hidden rounded-2xl surface border border-subtle shadow-lg p-1.5">
                   {[
                     { id: 'newest', label: 'Recently added' },
                     { id: 'alpha', label: 'Alphabetical' }
@@ -109,13 +109,13 @@ export function AcademicOverview({ modules, tasks = [], onOpenModule, onAddModul
         </div>
       </header>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {[
           { label: 'Total modules', value: modules.length, icon: BookOpen },
           { label: 'Uploaded files', value: totalFiles, icon: FileText },
           { label: 'Study chats', value: totalChats, icon: MessageSquare },
         ].map((stat) => (
-          <div key={stat.label} className="surface-soft rounded-3xl p-3">
+          <div key={stat.label} className="surface-soft rounded-2xl p-4">
             <div className="flex items-center justify-between">
               <p className="text-xs uppercase tracking-[0.2em] text-muted">{stat.label}</p>
               <stat.icon className="h-4 w-4 text-accent" />
@@ -132,14 +132,14 @@ export function AcademicOverview({ modules, tasks = [], onOpenModule, onAddModul
         </div>
       </div>
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[1.35fr_1fr]">
-        <div>
-          <div className="grid gap-4 md:grid-cols-2">
+      <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.95fr)]">
+        <div className="min-w-0">
+          <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
             {sortedModules.map((module) => (
               <button
                 key={module.id}
                 onClick={() => onOpenModule(module.id)}
-                className="surface-soft group rounded-3xl p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md"
+                className="surface-soft group rounded-2xl p-4 text-left transition hover:-translate-y-0.5"
               >
                 <div className="mb-5 flex items-start justify-between gap-4">
                   <div className={cn('rounded-2xl p-3', getBadgeColors(module.color))}>
@@ -156,7 +156,7 @@ export function AcademicOverview({ modules, tasks = [], onOpenModule, onAddModul
             ))}
           </div>
 
-          <div className="mt-6 surface-strong rounded-[2rem] p-4">
+          <div className="mt-6 surface-strong rounded-2xl p-4">
             <TaskList
               tasks={academicTasks}
               onToggleTask={onToggleTask}
@@ -170,12 +170,12 @@ export function AcademicOverview({ modules, tasks = [], onOpenModule, onAddModul
           </div>
         </div>
 
-        <div>
+        <div className="min-w-0">
           <div className="mb-4 flex items-center gap-2 text-lg font-semibold">
             <Calendar className="h-5 w-5 text-accent" /> Academic tasks
           </div>
 
-          <div className="surface-strong rounded-[2rem] overflow-visible p-4">
+          <div className="surface-strong rounded-2xl overflow-visible p-4">
             <TaskList
               tasks={academicTasks}
               onToggleTask={onToggleTask}
@@ -191,7 +191,7 @@ export function AcademicOverview({ modules, tasks = [], onOpenModule, onAddModul
       </div>
 
       {isAdding && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 animate-fade-in">
           <div className="surface-strong w-full max-w-lg rounded-[2rem] p-6 text-[color:var(--text)]">
             <div className="mb-6 flex items-center justify-between gap-4">
               <div>

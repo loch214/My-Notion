@@ -208,7 +208,7 @@ export function TaskList({ tasks, onToggleTask, onAddTask, onEditTask, onRemoveT
                     <ChevronDown className="h-4 w-4 text-muted" />
                   </button>
                   {isDateOpen && (
-                    <div className="absolute bottom-full left-0 z-30 mb-2 w-64 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl surface border border-subtle p-2.5 shadow-xl">
+                    <div className="absolute bottom-full left-0 z-30 mb-2 w-64 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl surface border border-subtle p-2.5 shadow-lg">
                       <div className="mb-2.5 flex items-center justify-between gap-2">
                         <button
                           type="button"
