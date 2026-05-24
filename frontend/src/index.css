@@ -192,6 +192,56 @@ h1, h2, h3, h4, h5, h6 {
   border: 1px solid var(--module-rose-border);
 }
 
+/* Sidebar sits below floating navbar — rounded panel + top highlight */
+.workspace-sidebar-panel {
+  position: relative;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: var(--surface-low);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 8px 24px rgba(0, 0, 0, 0.22);
+}
+
+.workspace-sidebar-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0.75rem;
+  right: 0.75rem;
+  height: 1px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    90deg,
+    rgba(99, 102, 241, 0.35),
+    rgba(255, 255, 255, 0.12) 40%,
+    transparent 85%
+  );
+  pointer-events: none;
+}
+
+/* Concave fillet above sidebar top-left (fills the “cut off” corner) */
+.workspace-sidebar-fillet {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 100% 100%,
+    transparent 15px,
+    var(--app-bg) 15.5px
+  );
+}
+
+.workspace-main-panel {
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: color-mix(in srgb, var(--app-bg) 40%, var(--surface-low) 60%);
+}
+
 /* Animations */
 .animate-fade-up {
   animation: fadeUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;

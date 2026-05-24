@@ -6,6 +6,8 @@ export interface SectionHeaderProps extends React.HTMLAttributes<HTMLDivElement>
   subtitle?: string;
   category?: string;
   actions?: React.ReactNode;
+  /** Larger typography for home and similar overview pages */
+  size?: 'default' | 'comfortable';
 }
 
 export function SectionHeader({
@@ -14,8 +16,11 @@ export function SectionHeader({
   subtitle,
   category,
   actions,
+  size = 'default',
   ...props
 }: SectionHeaderProps) {
+  const comfortable = size === 'comfortable';
+
   return (
     <div
       className={cn(
@@ -24,17 +29,32 @@ export function SectionHeader({
       )}
       {...props}
     >
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         {category && (
-          <p className="text-[10px] uppercase tracking-[0.24em] text-[color:var(--muted)] font-medium">
+          <p
+            className={cn(
+              'uppercase tracking-[0.24em] text-[color:var(--muted)] font-medium',
+              comfortable ? 'text-xs' : 'text-[10px]'
+            )}
+          >
             {category}
           </p>
         )}
-        <h1 className="text-3xl font-semibold tracking-tight text-[color:var(--text)]">
+        <h1
+          className={cn(
+            'font-semibold tracking-tight text-[color:var(--text)]',
+            comfortable ? 'text-4xl sm:text-[2.75rem]' : 'text-3xl'
+          )}
+        >
           {title}
         </h1>
         {subtitle && (
-          <p className="max-w-2xl text-sm text-[color:var(--muted)] leading-relaxed">
+          <p
+            className={cn(
+              'max-w-2xl text-[color:var(--muted)] leading-relaxed',
+              comfortable ? 'text-base sm:text-lg' : 'text-sm'
+            )}
+          >
             {subtitle}
           </p>
         )}

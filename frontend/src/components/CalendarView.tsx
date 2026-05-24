@@ -459,7 +459,7 @@ function EventForm({
 
       <div>
         <label className="block text-xs font-semibold text-[color:var(--muted)] uppercase tracking-wider mb-1.5">Color Tag</label>
-        <div className="flex gap-2.5 p-1 overflow-visible">
+        <div className="flex flex-wrap gap-3 px-1 py-2">
           {(['blue', 'amber', 'purple', 'emerald', 'rose'] as const).map((item) => (
             <button
               key={item}
@@ -472,7 +472,9 @@ function EventForm({
                 item === 'purple' ? 'bg-purple-500 hover:bg-purple-600' : 
                 item === 'emerald' ? 'bg-emerald-500 hover:bg-emerald-600' : 
                 'bg-rose-500 hover:bg-rose-600',
-                color === item ? 'ring-2 ring-offset-2 ring-offset-[color:var(--app-bg)] ring-[color:var(--accent)] scale-105 shadow-sm' : 'hover:scale-102 opacity-80'
+                color === item
+                  ? 'scale-105 opacity-100 shadow-[0_0_0_2px_var(--surface-med),0_0_0_4px_var(--accent)]'
+                  : 'opacity-80 hover:scale-105 hover:opacity-100'
               )}
               aria-label={`Set tag color ${item}`}
             />

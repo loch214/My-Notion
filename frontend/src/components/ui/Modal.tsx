@@ -84,7 +84,7 @@ export function Modal({
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto pr-1 -mr-1">
+          <div className="flex-1 overflow-y-auto overflow-x-visible pr-1 -mr-1">
             {children}
           </div>
         </motion.div>
