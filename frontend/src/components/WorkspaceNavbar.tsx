@@ -54,7 +54,7 @@ export function WorkspaceNavbar({
   return (
     <div
       className={cn(
-        'shrink-0 overflow-hidden transition-[max-height,opacity] duration-300 ease-out',
+        'relative z-[80] shrink-0 overflow-visible transition-[max-height,opacity] duration-300 ease-out',
         isVisible ? 'max-h-[5.5rem] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'
       )}
     >
@@ -137,7 +137,7 @@ export function WorkspaceNavbar({
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.98, y: 8 }}
                   transition={{ duration: 0.18 }}
-                  className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-[60] overflow-hidden rounded-2xl border border-white/10 bg-[color:var(--surface-high)]/95 shadow-2xl backdrop-blur-xl"
+                  className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-[80] overflow-hidden rounded-2xl border border-white/10 bg-[color:var(--surface-high)]/95 shadow-2xl backdrop-blur-xl"
                 >
                   <div className="border-b border-[color:var(--border)] px-4 py-2.5">
                     <p className="text-[10px] uppercase tracking-[0.24em] text-[color:var(--muted)]">
@@ -194,7 +194,7 @@ export function WorkspaceNavbar({
                     initial={{ opacity: 0, scale: 0.98, y: 8 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.98, y: 8 }}
-                    className="absolute right-0 top-[calc(100%+0.5rem)] z-[60] w-[20rem] overflow-hidden rounded-2xl border border-white/10 bg-[color:var(--surface-high)]/95 shadow-2xl backdrop-blur-xl"
+                    className="absolute right-0 top-[calc(100%+0.5rem)] z-[80] w-[20rem] overflow-hidden rounded-2xl border border-white/10 bg-[color:var(--surface-high)]/95 shadow-2xl backdrop-blur-xl"
                   >
                     <div className="border-b border-[color:var(--border)] px-4 py-2.5">
                       <p className="text-[10px] uppercase tracking-[0.24em] text-[color:var(--muted)]">Notifications</p>
