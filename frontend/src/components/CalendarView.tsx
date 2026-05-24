@@ -35,6 +35,8 @@ const colorClasses: Record<Event['color'], string> = {
   blue: 'bg-indigo-500 border-indigo-400',
   amber: 'bg-amber-500 border-amber-400',
   purple: 'bg-purple-500 border-purple-400',
+  emerald: 'bg-emerald-500 border-emerald-400',
+  rose: 'bg-rose-500 border-rose-400',
 };
 
 function toInputTime(value?: string) {
@@ -457,16 +459,20 @@ function EventForm({
 
       <div>
         <label className="block text-xs font-semibold text-[color:var(--muted)] uppercase tracking-wider mb-1.5">Color Tag</label>
-        <div className="flex gap-2.5">
-          {(['blue', 'amber', 'purple'] as const).map((item) => (
+        <div className="flex gap-2.5 p-1 overflow-visible">
+          {(['blue', 'amber', 'purple', 'emerald', 'rose'] as const).map((item) => (
             <button
               key={item}
               type="button"
               onClick={() => setColor(item)}
               className={cn(
-                'h-9 w-9 rounded-full border border-white/10 transition-all ring-offset-2 ring-offset-[color:var(--app-bg)]',
-                item === 'blue' ? 'bg-indigo-500' : item === 'amber' ? 'bg-amber-500' : 'bg-purple-500',
-                color === item ? 'ring-2 ring-[color:var(--accent)] scale-105' : 'hover:scale-102 opacity-80'
+                'h-9 w-9 rounded-full border border-white/10 transition-all focus:outline-none shrink-0',
+                item === 'blue' ? 'bg-indigo-500 hover:bg-indigo-600' : 
+                item === 'amber' ? 'bg-amber-500 hover:bg-amber-600' : 
+                item === 'purple' ? 'bg-purple-500 hover:bg-purple-600' : 
+                item === 'emerald' ? 'bg-emerald-500 hover:bg-emerald-600' : 
+                'bg-rose-500 hover:bg-rose-600',
+                color === item ? 'ring-2 ring-offset-2 ring-offset-[color:var(--app-bg)] ring-[color:var(--accent)] scale-105 shadow-sm' : 'hover:scale-102 opacity-80'
               )}
               aria-label={`Set tag color ${item}`}
             />

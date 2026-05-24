@@ -70,12 +70,12 @@ export function PersonalDashboard({
           { label: 'Completed tasks', value: completedCount, icon: CheckSquare },
           { label: 'Upcoming events', value: events.length, icon: Calendar },
         ].map((stat, index) => (
-          <Card key={`${stat.label}-${index}`} spotlight={true} className="p-4 bg-[color:var(--surface-low)]">
+          <Card key={`${stat.label}-${index}`} spotlight={true} className="p-5 bg-[color:var(--surface-low)]">
             <div className="flex items-center justify-between">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--muted)] font-semibold">{stat.label}</p>
-              <stat.icon className="h-4 w-4 text-[color:var(--accent)]" />
+              <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--muted)] font-semibold">{stat.label}</p>
+              <stat.icon className="h-4.5 w-4.5 text-[color:var(--accent)]" />
             </div>
-            <p className="mt-3 text-2xl font-bold font-heading text-[color:var(--text)]">{stat.value}</p>
+            <p className="mt-3 text-3xl font-bold font-heading text-[color:var(--text)]">{stat.value}</p>
           </Card>
         ))}
       </div>
@@ -114,10 +114,10 @@ export function PersonalDashboard({
                     )}
                   >
                     <div className="min-w-0 flex-1">
-                      <p className={cn('truncate text-xs font-semibold', task.done ? 'text-[color:var(--muted)] line-through' : 'text-[color:var(--text)]')}>
+                      <p className={cn('truncate text-sm font-semibold', task.done ? 'text-[color:var(--muted)] line-through' : 'text-[color:var(--text)]')}>
                         {task.title}
                       </p>
-                      <p className="mt-0.5 text-[10px] text-[color:var(--muted)] font-mono">
+                      <p className="mt-0.5 text-xs text-[color:var(--muted)] font-mono">
                         Due {format(parseISO(task.dueDate as string), 'MMM d, yyyy')}
                       </p>
                     </div>
@@ -126,7 +126,7 @@ export function PersonalDashboard({
                 ))}
               </div>
             ) : (
-              <div className="py-8 text-center text-xs text-[color:var(--muted)]">
+              <div className="py-8 text-center text-sm text-[color:var(--muted)]">
                 No upcoming focus tasks due this week.
               </div>
             )}

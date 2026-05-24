@@ -37,6 +37,231 @@ import { SectionHeader } from './components/ui/SectionHeader';
 type WorkspaceTab = 'home' | 'academic' | 'personal' | 'calendar';
 type SearchResultKind = 'tab' | 'module' | 'task' | 'event';
 
+interface Particle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  size: number;
+  opacity: number;
+}
+
+interface TextNode {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  text: string;
+  width: number;
+  height: number;
+  color: string;
+  bgColor: string;
+  borderColor: string;
+}
+
+function AntigravityCanvas() {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const mouseRef = useRef({ x: -1000, y: -1000 });
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let animationFrameId: number;
+
+    const resizeCanvas = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    const handleMouseMove = (e: MouseEvent) => {
+      mouseRef.current = { x: e.clientX, y: e.clientY };
+    };
+    const handleMouseLeave = () => {
+      mouseRef.current = { x: -1000, y: -1000 };
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseleave', handleMouseLeave);
+
+    // Particles (~80 background stars)
+    const particles: Particle[] = [];
+    for (let i = 0; i < 80; i++) {
+      particles.push({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.3,
+        size: Math.random() * 2 + 1,
+        opacity: Math.random() * 0.4 + 0.15,
+      });
+    }
+
+    // Interactive text capsule nodes representing CS terms
+    const tagTexts = [
+      'CS-301', 'Gemini 1.5', 'RAG Context', 'Exam Prep', 'Lectures',
+      'Study Room', 'My-Notion', 'Tasks', 'Schedule', 'Notebook'
+    ];
+    const textNodes: TextNode[] = tagTexts.map((text, i) => {
+      const paddingX = 18;
+      const paddingY = 8;
+      const textWidth = text.length * 7;
+      const w = textWidth + paddingX * 2;
+      const h = 13 + paddingY * 2;
+
+      const colors = [
+        { text: '#38bdf8', bg: 'rgba(56, 189, 248, 0.08)', border: 'rgba(56, 189, 248, 0.25)' },
+        { text: '#fbbf24', bg: 'rgba(251, 191, 36, 0.07)', border: 'rgba(251, 191, 36, 0.22)' },
+        { text: '#34d399', bg: 'rgba(52, 211, 153, 0.08)', border: 'rgba(52, 211, 153, 0.22)' },
+        { text: '#a78bfa', bg: 'rgba(139, 92, 246, 0.08)', border: 'rgba(139, 92, 246, 0.22)' },
+        { text: '#fb7185', bg: 'rgba(251, 113, 133, 0.08)', border: 'rgba(251, 113, 133, 0.25)' },
+      ];
+      const colorScheme = colors[i % colors.length];
+
+      return {
+        x: Math.random() * (window.innerWidth - w) + w / 2,
+        y: Math.random() * (window.innerHeight - h) + h / 2,
+        vx: (Math.random() - 0.5) * 0.5,
+        vy: (Math.random() - 0.5) * 0.5,
+        text,
+        width: w,
+        height: h,
+        color: colorScheme.text,
+        bgColor: colorScheme.bg,
+        borderColor: colorScheme.border,
+      };
+    });
+
+    const updatePhysics = () => {
+      const mouse = mouseRef.current;
+      const repulsionRadius = 180;
+      const pushStrength = 0.3;
+      const friction = 0.97;
+
+      for (const p of particles) {
+        p.x += p.vx;
+        p.y += p.vy;
+
+        if (p.x < 0) p.x = window.innerWidth;
+        if (p.x > window.innerWidth) p.x = 0;
+        if (p.y < 0) p.y = window.innerHeight;
+        if (p.y > window.innerHeight) p.y = 0;
+
+        const dx = p.x - mouse.x;
+        const dy = p.y - mouse.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < repulsionRadius) {
+          const force = (repulsionRadius - dist) / repulsionRadius;
+          p.x += (dx / (dist || 1)) * force * 2;
+          p.y += (dy / (dist || 1)) * force * 2;
+        }
+      }
+
+      for (const node of textNodes) {
+        node.vx *= friction;
+        node.vy *= friction;
+
+        node.vx += (Math.random() - 0.5) * 0.015;
+        node.vy += (Math.random() - 0.5) * 0.015;
+
+        node.x += node.vx;
+        node.y += node.vy;
+
+        const dx = node.x - mouse.x;
+        const dy = node.y - mouse.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < repulsionRadius) {
+          const force = (repulsionRadius - dist) / repulsionRadius;
+          node.vx += (dx / (dist || 1)) * force * pushStrength;
+          node.vy += (dy / (dist || 1)) * force * pushStrength;
+        }
+
+        const halfW = node.width / 2;
+        const halfH = node.height / 2;
+
+        if (node.x - halfW < 0) {
+          node.x = halfW;
+          node.vx = Math.abs(node.vx) * 0.5;
+        } else if (node.x + halfW > window.innerWidth) {
+          node.x = window.innerWidth - halfW;
+          node.vx = -Math.abs(node.vx) * 0.5;
+        }
+
+        if (node.y - halfH < 0) {
+          node.y = halfH;
+          node.vy = Math.abs(node.vy) * 0.5;
+        } else if (node.y + halfH > window.innerHeight) {
+          node.y = window.innerHeight - halfH;
+          node.vy = -Math.abs(node.vy) * 0.5;
+        }
+      }
+    };
+
+    const draw = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (const p of particles) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(165, 180, 252, ${p.opacity})`;
+        ctx.fill();
+      }
+
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = '500 12px "Manrope", sans-serif';
+
+      for (const node of textNodes) {
+        const halfW = node.width / 2;
+        const halfH = node.height / 2;
+        const x = node.x - halfW;
+        const y = node.y - halfH;
+        const radius = 16;
+
+        ctx.fillStyle = node.bgColor;
+        ctx.beginPath();
+        ctx.roundRect(x, y, node.width, node.height, radius);
+        ctx.fill();
+
+        ctx.strokeStyle = node.borderColor;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(x, y, node.width, node.height, radius);
+        ctx.stroke();
+
+        ctx.fillStyle = node.color;
+        ctx.fillText(node.text, node.x, node.y);
+      }
+    };
+
+    const loop = () => {
+      updatePhysics();
+      draw();
+      animationFrameId = requestAnimationFrame(loop);
+    };
+
+    loop();
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      window.removeEventListener('resize', resizeCanvas);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseleave', handleMouseLeave);
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="fixed inset-0 w-full h-full -z-10 pointer-events-none"
+      style={{ background: 'transparent' }}
+    />
+  );
+}
+
 interface SearchResult {
   id: string;
   kind: SearchResultKind;
@@ -95,6 +320,9 @@ export default function App() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
+  const [isNavbarVisible, setIsNavbarVisible] = useState(true);
+  const lastScrollYRef = useRef(0);
+  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const searchRef = useRef<HTMLDivElement | null>(null);
   const notificationsRef = useRef<HTMLDivElement | null>(null);
@@ -136,6 +364,62 @@ export default function App() {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
+
+  useEffect(() => {
+    if (appStage !== 'workspace') return;
+
+    const handleScroll = (e: Event) => {
+      const target = e.target as HTMLElement;
+      if (!target || !target.classList) return;
+      
+      const scrollTop = target.scrollTop || 0;
+      const lastScrollY = lastScrollYRef.current;
+      const scrollDiff = scrollTop - lastScrollY;
+
+      if (scrollTop < 40) {
+        setIsNavbarVisible(true);
+        if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+        lastScrollYRef.current = scrollTop;
+        return;
+      }
+
+      if (scrollDiff > 10) {
+        setIsNavbarVisible(false);
+        if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+      } else if (scrollDiff < -10) {
+        setIsNavbarVisible(true);
+        resetHideTimer();
+      }
+
+      lastScrollYRef.current = scrollTop;
+    };
+
+    const resetHideTimer = () => {
+      if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+      hideTimeoutRef.current = setTimeout(() => {
+        const isNearTop = lastScrollYRef.current < 40;
+        if (!isNearTop) {
+          setIsNavbarVisible(false);
+        }
+      }, 2500);
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (e.clientY < 60) {
+        setIsNavbarVisible(true);
+        if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { capture: true, passive: true });
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll, { capture: true });
+      window.removeEventListener('mousemove', handleMouseMove);
+      if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
+    };
+  }, [appStage]);
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -346,6 +630,8 @@ export default function App() {
   if (appStage === 'landing') {
     return (
       <div className="relative min-h-screen bg-[color:var(--app-bg)] flex flex-col justify-between overflow-x-hidden pt-12 pb-8 px-4 sm:px-6">
+        <AntigravityCanvas />
+
         {/* Futuristic isolated cinematic overlay background grid */}
         <div className="absolute inset-0 pointer-events-none opacity-45 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.06),transparent_60%)]" />
         <div className="absolute inset-0 pointer-events-none opacity-30" style={{
@@ -361,127 +647,40 @@ export default function App() {
             </span>
             <span className="font-heading tracking-tight font-bold">My-Notion</span>
           </div>
-          <Button 
-            variant="secondary" 
-            size="sm" 
-            onClick={() => setAppStage('workspace')}
-            rightIcon={<ChevronRight className="h-3.5 w-3.5" />}
-          >
-            Launch app
-          </Button>
         </header>
 
         {/* Hero details container */}
         <main className="relative max-w-5xl w-full mx-auto flex flex-col items-center flex-1 justify-center py-6 text-center z-10">
-          <motion.div 
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border)] bg-[color:var(--surface-low)] px-3.5 py-1.5 text-xs text-[color:var(--muted)] font-medium mb-6"
-          >
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Designed exclusively for university students
-          </motion.div>
-
           <motion.h1 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-4xl font-extrabold tracking-tight sm:text-6xl lg:text-7xl font-heading text-gradient max-w-3xl leading-[1.1]"
+            className="text-6xl font-extrabold tracking-tight sm:text-8xl lg:text-9xl font-heading text-gradient max-w-3xl leading-[1.1] select-none filter drop-shadow-[0_0_30px_rgba(99,102,241,0.25)]"
           >
-            The premium student study workspace.
+            My-Notion
           </motion.h1>
-
-          <motion.p 
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="mt-6 text-base text-[color:var(--muted)] sm:text-lg max-w-xl leading-relaxed"
-          >
-            Keep your class notes, lectures, task lists, calendar agendas, and RAG-powered AI study rooms perfectly sync'd under one clean, human-designed interface.
-          </motion.p>
 
           <motion.div 
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-            className="mt-8 flex flex-col sm:flex-row items-center gap-3 shrink-0"
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="mt-12 flex flex-col sm:flex-row items-center gap-3 shrink-0"
           >
             <Button 
               variant="primary" 
               size="lg" 
               onClick={() => setAppStage('workspace')}
               rightIcon={<ArrowRight className="h-4 w-4" />}
+              className="px-8 py-4 text-base font-semibold rounded-2xl hover:scale-[1.03] transition-all duration-300 shadow-[0_8px_30px_rgba(99,102,241,0.4)]"
             >
-              Enter workspace
+              Enter Workspace
             </Button>
-            <a 
-              href="https://github.com" 
-              target="_blank" 
-              rel="noreferrer"
-              className="text-xs text-[color:var(--muted)] hover:text-[color:var(--text)] transition-colors underline underline-offset-4 px-2 py-1.5"
-            >
-              Learn how it works
-            </a>
-          </motion.div>
-
-          {/* Cinematic Interactive Dashboard Layout Preview */}
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.98, y: 30 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ type: 'spring', stiffness: 100, damping: 22, delay: 0.4 }}
-            className="relative mt-16 w-full max-w-4xl rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-low)] p-2 shadow-2xl shadow-black/50 overflow-hidden"
-          >
-            <div className="absolute inset-0 bg-gradient-to-t from-[color:var(--app-bg)] via-transparent to-transparent z-10 pointer-events-none" />
-            <div className="relative rounded-xl bg-[color:var(--surface-med)] border border-[color:var(--border)] overflow-hidden aspect-[16/9] text-left p-4 sm:p-6 flex flex-col justify-between">
-              {/* Miniature Layout Navbar mock */}
-              <div className="flex items-center justify-between border-b border-[color:var(--border)] pb-3 mb-4">
-                <div className="flex items-center gap-2">
-                  <div className="h-3 w-3 rounded-full bg-rose-500/80" />
-                  <div className="h-3 w-3 rounded-full bg-amber-500/80" />
-                  <div className="h-3 w-3 rounded-full bg-emerald-500/80" />
-                  <span className="text-[10px] text-[color:var(--muted)] ml-2 font-mono">my-notion.workspace / home</span>
-                </div>
-                <div className="h-5 w-40 rounded-lg bg-[color:var(--surface-low)] border border-[color:var(--border)]" />
-              </div>
-              
-              {/* Main dashboard mock panels */}
-              <div className="grid grid-cols-3 gap-3 flex-1">
-                <div className="col-span-2 border border-[color:var(--border)] rounded-xl bg-[color:var(--surface-low)] p-3 flex flex-col justify-between">
-                  <div className="space-y-1">
-                    <div className="h-3 w-24 bg-[color:var(--surface-high)] rounded" />
-                    <div className="h-2.5 w-44 bg-[color:var(--muted)]/20 rounded mt-1" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 mt-4">
-                    <div className="h-12 border border-[color:var(--border)] rounded-lg p-2 flex flex-col justify-between">
-                      <div className="h-2 w-10 bg-[color:var(--muted)]/30 rounded" />
-                      <div className="h-3.5 w-6 bg-[color:var(--accent)] rounded" />
-                    </div>
-                    <div className="h-12 border border-[color:var(--border)] rounded-lg p-2 flex flex-col justify-between">
-                      <div className="h-2 w-12 bg-[color:var(--muted)]/30 rounded" />
-                      <div className="h-3.5 w-6 bg-[color:var(--accent-2)] rounded" />
-                    </div>
-                  </div>
-                </div>
-                <div className="border border-[color:var(--border)] rounded-xl bg-[color:var(--surface-low)] p-3 flex flex-col gap-2">
-                  <div className="h-3 w-16 bg-[color:var(--surface-high)] rounded" />
-                  <div className="h-8 border border-[color:var(--border)] rounded-lg flex items-center justify-between px-2">
-                    <div className="h-2 w-16 bg-[color:var(--muted)]/30 rounded" />
-                    <span className="h-2 w-2 rounded-full bg-[color:var(--accent)]" />
-                  </div>
-                  <div className="h-8 border border-[color:var(--border)] rounded-lg flex items-center justify-between px-2">
-                    <div className="h-2 w-20 bg-[color:var(--muted)]/30 rounded" />
-                    <span className="h-2 w-2 rounded-full bg-[color:var(--accent-2)]" />
-                  </div>
-                </div>
-              </div>
-            </div>
           </motion.div>
         </main>
 
         {/* Landing footer */}
         <footer className="relative max-w-5xl w-full mx-auto flex flex-col sm:flex-row items-center justify-between shrink-0 mt-12 pt-6 border-t border-[color:var(--border)] text-xs text-[color:var(--muted)] z-10 gap-3">
-          <p>© 2026 My-Notion. Built for productivity and focus.</p>
+          <p>© 2026 My-Notion. Zero-Gravity Interactive Edition.</p>
           <div className="flex items-center gap-4">
             <span className="hover:text-[color:var(--text)] transition-colors cursor-pointer">Security</span>
             <span className="hover:text-[color:var(--text)] transition-colors cursor-pointer">Terms</span>
@@ -496,7 +695,10 @@ export default function App() {
     <div className="app-shell relative min-h-screen bg-[color:var(--app-bg)] text-[color:var(--text)] flex flex-col select-none">
       
       {/* 1. Raycast Style Navbar */}
-      <div className="fixed inset-x-0 top-0 z-40 px-4 pt-3 shrink-0">
+      <div className={cn(
+        "fixed inset-x-0 top-0 z-40 px-4 pt-3 shrink-0 transition-transform duration-300 ease-in-out",
+        isNavbarVisible ? "translate-y-0" : "-translate-y-[120%]"
+      )}>
         <header className="mx-auto flex h-14 w-full max-w-[1400px] items-center justify-between gap-4 rounded-full border border-white/10 bg-[color:var(--surface-low)]/85 px-4 shadow-[0_16px_50px_rgba(0,0,0,0.3)] backdrop-blur-md">
           {/* Left: Logo & Breadcrumbs */}
           <div className="flex items-center gap-2">
@@ -518,10 +720,10 @@ export default function App() {
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-[color:var(--accent)] to-[color:var(--accent-2)] text-[color:var(--on-accent)] shadow-sm">
                 <Sparkles className="h-3.5 w-3.5" />
               </span>
-              <span className="hidden sm:inline-flex items-center gap-2 text-xs font-semibold text-[color:var(--text)]">
+              <span className="hidden sm:inline-flex items-center gap-2 text-sm font-semibold text-[color:var(--text)]">
                 <span className="font-heading">My-Notion</span>
                 <span className="text-[color:var(--border)]">/</span>
-                <span className="text-[color:var(--muted)] font-normal text-[11px] font-sans truncate max-w-[120px]">
+                <span className="text-[color:var(--muted)] font-normal text-xs font-sans truncate max-w-[120px]">
                   {activeBreadcrumb}
                 </span>
               </span>
@@ -544,7 +746,7 @@ export default function App() {
                   }
                 }}
                 placeholder="Search anything..."
-                className="h-full w-full border-0 bg-transparent p-0 text-xs text-[color:var(--text)] outline-none placeholder:text-[color:var(--muted)]"
+                className="h-full w-full border-0 bg-transparent p-0 text-sm text-[color:var(--text)] outline-none placeholder:text-[color:var(--muted)]"
               />
               <button
                 type="button"
@@ -683,14 +885,6 @@ export default function App() {
               Say Hello
             </Button>
 
-            {/* Profile trigger placeholder */}
-            <button
-              type="button"
-              className="flex h-8.5 w-8.5 items-center justify-center rounded-full border border-white/5 bg-[color:var(--surface-med)]/40 text-[color:var(--muted)] hover:text-[color:var(--text)] transition-colors"
-              aria-label="Settings panel placeholder"
-            >
-              <Settings2 className="h-4 w-4" />
-            </button>
           </div>
         </header>
       </div>
@@ -748,7 +942,7 @@ export default function App() {
                             setIsMobileSidebarOpen(false);
                           }}
                           className={cn(
-                            'flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-medium transition-colors text-left w-full',
+                            'flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors text-left w-full',
                             isActive
                               ? 'bg-[color:var(--accent)] text-[color:var(--on-accent)] font-semibold shadow-sm'
                               : 'text-[color:var(--muted)] hover:bg-[color:var(--surface-med)] hover:text-[color:var(--text)]'
@@ -810,15 +1004,15 @@ export default function App() {
                       key={tab.id}
                       onClick={() => navigateToTab(tab.id as any)}
                       className={cn(
-                        'flex items-center gap-3 rounded-xl py-2.5 transition-colors text-left w-full relative',
-                        isSidebarOpen ? 'px-3 text-xs font-medium' : 'justify-center px-0 text-sm',
+                        'flex items-center gap-3 rounded-xl transition-colors text-left w-full relative',
+                        isSidebarOpen ? 'px-4 py-3 text-sm font-medium' : 'justify-center px-0 py-3 text-base',
                         isActive
                           ? 'bg-[color:var(--accent)] text-[color:var(--on-accent)] font-semibold shadow-sm'
                           : 'text-[color:var(--muted)] hover:bg-[color:var(--surface-med)] hover:text-[color:var(--text)]'
                       )}
                       title={!isSidebarOpen ? tab.label : undefined}
                     >
-                      <Icon className="h-4.5 w-4.5 shrink-0" />
+                      <Icon className="h-5 w-5 shrink-0" />
                       {isSidebarOpen && <span>{tab.label}</span>}
                     </button>
                   );
@@ -850,14 +1044,14 @@ export default function App() {
                   {/* Left Welcome block */}
                   <Card spotlight={true} className="lg:col-span-2 p-6 flex flex-col justify-between min-h-[220px]">
                     <div className="space-y-2">
-                      <div className="inline-flex items-center gap-1.5 text-xs text-[color:var(--accent)] font-semibold">
+                      <div className="inline-flex items-center gap-1.5 text-sm text-[color:var(--accent)] font-semibold">
                         <Sparkles className="h-4 w-4" />
                         Interactive Context Aware Engine
                       </div>
-                      <h2 className="text-xl font-bold font-heading text-[color:var(--text)]">
+                      <h2 className="text-2xl font-bold font-heading text-[color:var(--text)]">
                         Manage your classes and notes effortlessly
                       </h2>
-                      <p className="text-xs text-[color:var(--muted)] max-w-xl leading-relaxed">
+                      <p className="text-sm text-[color:var(--muted)] max-w-xl leading-relaxed">
                         Create standard academic spaces, upload files/slides, and use standard Gemini LLM configurations to run notes highlights, summaries, exam quizzes, or calendar scheduling prompts.
                       </p>
                     </div>
@@ -875,34 +1069,30 @@ export default function App() {
                     </div>
                   </Card>
 
-                  {/* Right Context summary */}
-                  <div className="flex flex-col gap-4">
-                    <Card spotlight={true} className="p-4 flex-1 flex flex-col justify-between">
-                      <div>
-                        <p className="text-[10px] uppercase tracking-[0.24em] text-[color:var(--muted)] mb-3">Workspace status</p>
-                        <div className="space-y-2 text-xs">
-                          <div className="flex items-center justify-between rounded-xl bg-[color:var(--surface-low)] px-3 py-2 border border-[color:var(--border)]">
-                            <span className="text-[color:var(--muted)]">Academic modules</span>
-                            <span className="font-bold text-[color:var(--text)]">{state.modules.length}</span>
-                          </div>
-                          <div className="flex items-center justify-between rounded-xl bg-[color:var(--surface-low)] px-3 py-2 border border-[color:var(--border)]">
-                            <span className="text-[color:var(--muted)]">Open tasks</span>
-                            <span className="font-bold text-[color:var(--text)]">{state.tasks.filter(t => !t.done).length}</span>
-                          </div>
+                  {/* Right Context summary merged card to resolve clippings */}
+                  <Card spotlight={true} className="p-6 bg-[color:var(--surface-low)] flex flex-col justify-between h-full min-h-[220px]">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.24em] text-[color:var(--muted)] mb-4 font-semibold font-heading">Workspace Status</p>
+                      <div className="space-y-3 text-sm">
+                        <div className="flex items-center justify-between rounded-xl bg-[color:var(--surface-med)]/40 px-4 py-3 border border-[color:var(--border)]">
+                          <span className="text-[color:var(--muted)]">Academic modules</span>
+                          <span className="font-bold text-[color:var(--text)]">{state.modules.length}</span>
+                        </div>
+                        <div className="flex items-center justify-between rounded-xl bg-[color:var(--surface-med)]/40 px-4 py-3 border border-[color:var(--border)]">
+                          <span className="text-[color:var(--muted)]">Open tasks</span>
+                          <span className="font-bold text-[color:var(--text)]">{state.tasks.filter(t => !t.done).length}</span>
                         </div>
                       </div>
-                    </Card>
+                    </div>
 
-                    <Card spotlight={true} className="p-4 flex-1 flex flex-col justify-center">
-                      <div className="space-y-1">
-                        <p className="text-[10px] uppercase tracking-[0.24em] text-[color:var(--muted)]">System status</p>
-                        <h3 className="text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
-                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                          Gemini 1.5 RAG Ready
-                        </h3>
-                      </div>
-                    </Card>
-                  </div>
+                    <div className="mt-6 pt-4 border-t border-[color:var(--border)] space-y-1 shrink-0">
+                      <p className="text-[10px] uppercase tracking-[0.24em] text-[color:var(--muted)] font-semibold font-heading">System Status</p>
+                      <h3 className="text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        Gemini 1.5 RAG Ready
+                      </h3>
+                    </div>
+                  </Card>
 
                 </div>
               </div>
