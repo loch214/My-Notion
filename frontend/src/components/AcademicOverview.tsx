@@ -1,28 +1,44 @@
 import React, { useState } from 'react';
-import { Module } from '../types';
-import { BookOpen, FileText, MessageSquare, Plus, X, ChevronDown, Calendar } from 'lucide-react';
+import { Module, Task } from '../types';
+import { BookOpen, FileText, MessageSquare, Plus, ChevronDown, Calendar } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { TaskList } from './TaskList';
 
+// Import UI primitives
+import { Card } from './ui/Card';
+import { Button } from './ui/Button';
+import { Input } from './ui/Input';
+import { Dropdown } from './ui/Dropdown';
+import { Modal } from './ui/Modal';
+import { SectionHeader } from './ui/SectionHeader';
+
 interface AcademicOverviewProps {
   modules: Module[];
-  tasks: import('../types').Task[];
+  tasks: Task[];
   onOpenModule: (moduleId: string) => void;
   onAddModule: (title: string, code: string, color: Module['color']) => void;
   onToggleTask: (taskId: string) => void;
   onAddTask: (title: string, dueDate?: string, moduleId?: string) => void;
-  onEditTask?: (taskId: string, updates: Partial<import('../types').Task>) => void;
+  onEditTask?: (taskId: string, updates: Partial<Task>) => void;
   onRemoveTask?: (taskId: string) => void;
 }
 
-export function AcademicOverview({ modules, tasks = [], onOpenModule, onAddModule, onToggleTask, onAddTask, onEditTask, onRemoveTask }: AcademicOverviewProps) {
+export function AcademicOverview({
+  modules,
+  tasks = [],
+  onOpenModule,
+  onAddModule,
+  onToggleTask,
+  onAddTask,
+  onEditTask,
+  onRemoveTask,
+}: AcademicOverviewProps) {
   const ACADEMIC_GENERAL_ID = '__academic__';
   const [isAdding, setIsAdding] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newCode, setNewCode] = useState('');
   const [newColor, setNewColor] = useState<Module['color']>('blue');
   const [sortOrder, setSortOrder] = useState<'alpha' | 'newest'>('newest');
-  const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
 
   const getBadgeColors = (color: Module['color']) => {
     switch (color) {
@@ -31,7 +47,7 @@ export function AcademicOverview({ modules, tasks = [], onOpenModule, onAddModul
       case 'emerald': return 'module-badge-emerald';
       case 'purple': return 'module-badge-purple';
       case 'rose': return 'module-badge-rose';
-      default: return 'surface-soft text-[color:var(--text)]';
+      default: return 'bg-[color:var(--surface-low)] text-[color:var(--text)]';
     }
   };
 
@@ -57,106 +73,106 @@ export function AcademicOverview({ modules, tasks = [], onOpenModule, onAddModul
   }
 
   const totalFiles = modules.reduce((sum, module) => sum + module.files.length, 0);
-  const totalChats = modules.reduce((sum, module) => sum + Math.floor(module.chatHistory.length / 2), 0);
+  const totalChats = modules.reduce((sum, module) => sum + Math.floor((module.chatHistory || []).length / 2), 0);
   const academicTasks = tasks.filter((task) => task.moduleId === ACADEMIC_GENERAL_ID);
+
+  const sortOptions = [
+    { id: 'newest', label: 'Recently added' },
+    { id: 'alpha', label: 'Alphabetical' }
+  ];
 
   return (
     <div className="animate-fade-up text-[color:var(--text)]">
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.24em] text-muted">Academic space</p>
-          <h1 className="mt-2 text-3xl font-semibold">Modules, files, and AI study rooms</h1>
-          <p className="mt-2 max-w-2xl text-sm text-muted">Create a module, then attach lecture files and study with a model of your choice.</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => setIsAdding(true)}
-            className="btn-primary px-4 py-2 text-sm font-semibold"
-          >
-            <Plus className="h-4 w-4" /> New module
-          </button>
-          <div className="relative">
-            <button
-              onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
-              className="surface-soft flex items-center gap-2 rounded-2xl px-4 py-2 text-sm outline-none transition focus:ring-2 focus:ring-[color:var(--accent)]/40"
+      
+      {/* 1. Header controls */}
+      <SectionHeader
+        title="Modules, files, and AI study rooms"
+        subtitle="Create an academic module, then attach lecture slides or notes and study with your choose of grounded AI models."
+        category="Academic Space"
+        actions={
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setIsAdding(true)}
+              leftIcon={<Plus className="h-4 w-4" />}
             >
-              Sort: {sortOrder === 'newest' ? 'Recently added' : 'Alphabetical'}
-              <ChevronDown className="h-4 w-4 text-muted" />
-            </button>
-            {isSortDropdownOpen && (
-              <>
-                <div className="fixed inset-0 z-10" onClick={() => setIsSortDropdownOpen(false)} />
-                <div className="absolute right-0 top-full z-20 mt-2 min-w-[180px] overflow-hidden rounded-2xl surface border border-subtle shadow-lg p-1.5">
-                  {[
-                    { id: 'newest', label: 'Recently added' },
-                    { id: 'alpha', label: 'Alphabetical' }
-                  ].map((option) => (
-                    <button
-                      key={option.id}
-                      onClick={() => {
-                        setSortOrder(option.id as any);
-                        setIsSortDropdownOpen(false);
-                      }}
-                      className={`w-full rounded-xl px-4 py-2.5 text-left text-sm transition ${sortOrder === option.id ? 'bg-accent text-[color:var(--on-accent)] font-medium' : 'text-[color:var(--text)] hover:bg-[color:var(--surface-soft)]'}`}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
+              New module
+            </Button>
+            <div className="w-[160px]">
+              <Dropdown
+                options={sortOptions}
+                selectedId={sortOrder}
+                onSelect={(id) => setSortOrder(id as any)}
+                placeholder="Sort modules"
+              />
+            </div>
           </div>
-        </div>
-      </header>
+        }
+      />
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      {/* 2. Top Stats Section */}
+      <div className="grid gap-4 sm:grid-cols-3 mb-8">
         {[
           { label: 'Total modules', value: modules.length, icon: BookOpen },
           { label: 'Uploaded files', value: totalFiles, icon: FileText },
           { label: 'Study chats', value: totalChats, icon: MessageSquare },
         ].map((stat) => (
-          <div key={stat.label} className="surface-soft rounded-2xl p-4">
+          <Card key={stat.label} spotlight={true} className="p-4 bg-[color:var(--surface-low)] border border-[color:var(--border)]">
             <div className="flex items-center justify-between">
-              <p className="text-xs uppercase tracking-[0.2em] text-muted">{stat.label}</p>
-              <stat.icon className="h-4 w-4 text-accent" />
+              <p className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--muted)] font-semibold">{stat.label}</p>
+              <stat.icon className="h-4 w-4 text-[color:var(--accent)]" />
             </div>
-            <p className="mt-3 text-2xl font-semibold text-[color:var(--text)]">{stat.value}</p>
-          </div>
+            <p className="mt-3 text-2xl font-bold font-heading text-[color:var(--text)]">{stat.value}</p>
+          </Card>
         ))}
       </div>
 
-      <div className="mt-8 flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold">Modules</h2>
-          <p className="text-sm text-muted">Jump back into your latest study spaces.</p>
-        </div>
+      <div className="mt-8 mb-4">
+        <h2 className="text-lg font-bold font-heading text-[color:var(--text)]">Your Modules</h2>
+        <p className="text-xs text-[color:var(--muted)] mt-0.5">Jump back into your interactive lecture spaces.</p>
       </div>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.95fr)]">
-        <div className="min-w-0">
-          <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
+      {/* 3. Grid Columns with flexible stacks for medium screen */}
+      <div className="grid gap-6 lg:grid-cols-[1.3fr_0.9fr] items-start">
+        
+        {/* Left Column: Modules Grid & Add Task */}
+        <div className="space-y-6 min-w-0">
+          <div className="grid gap-4 sm:grid-cols-2">
             {sortedModules.map((module) => (
-              <button
+              <Card
                 key={module.id}
+                spotlight={true}
+                interactive={true}
                 onClick={() => onOpenModule(module.id)}
-                className="surface-soft group rounded-2xl p-4 text-left transition hover:-translate-y-0.5"
+                className="p-5 text-left bg-[color:var(--surface-low)]"
               >
-                <div className="mb-5 flex items-start justify-between gap-4">
-                  <div className={cn('rounded-2xl p-3', getBadgeColors(module.color))}>
+                <div className="mb-4 flex items-start justify-between gap-4">
+                  <div className={cn('rounded-xl p-2.5', getBadgeColors(module.color))}>
                     <BookOpen className="h-5 w-5" />
                   </div>
-                  <span className="rounded-full border border-subtle px-3 py-1 text-xs uppercase tracking-[0.2em] text-muted">{module.code}</span>
+                  <span className="rounded-full border border-[color:var(--border)] bg-[color:var(--surface-med)] px-2.5 py-0.5 text-[10px] uppercase tracking-[0.15em] text-[color:var(--muted)] font-mono">
+                    {module.code}
+                  </span>
                 </div>
-                <h3 className="text-xl font-semibold group-hover:text-accent transition-colors">{module.title}</h3>
-                <div className="mt-4 flex items-center justify-between text-xs text-muted">
+                <h3 className="text-base font-bold font-heading text-[color:var(--text)] line-clamp-1 group-hover:text-[color:var(--accent)] transition-colors">
+                  {module.title}
+                </h3>
+                <div className="mt-4 pt-3 border-t border-[color:var(--border)] flex items-center justify-between text-[11px] text-[color:var(--muted)]">
                   <span className="inline-flex items-center gap-1.5"><FileText className="h-3.5 w-3.5" /> {module.files.length} files</span>
-                  <span className="inline-flex items-center gap-1.5"><MessageSquare className="h-3.5 w-3.5" /> {Math.floor(module.chatHistory.length / 2)} chats</span>
+                  <span className="inline-flex items-center gap-1.5"><MessageSquare className="h-3.5 w-3.5" /> {Math.floor((module.chatHistory || []).length / 2)} chats</span>
                 </div>
-              </button>
+              </Card>
             ))}
+            {sortedModules.length === 0 && (
+              <div className="col-span-full py-12 text-center text-xs text-[color:var(--muted)] rounded-2xl border border-dashed border-[color:var(--border)]">
+                No active modules. Create your first module above.
+              </div>
+            )}
           </div>
 
-          <div className="mt-6 surface-strong rounded-2xl p-4">
+          {/* Quick Task Creation primitive container */}
+          <Card spotlight={false} className="p-5 bg-[color:var(--surface-low)]">
             <TaskList
               tasks={academicTasks}
               onToggleTask={onToggleTask}
@@ -165,17 +181,18 @@ export function AcademicOverview({ modules, tasks = [], onOpenModule, onAddModul
               onRemoveTask={onRemoveTask}
               showAddControls={true}
               showTaskGroups={false}
-              title="Create academic task"
+              title="Quick Add Academic Task"
             />
-          </div>
+          </Card>
         </div>
 
-        <div className="min-w-0">
-          <div className="mb-4 flex items-center gap-2 text-lg font-semibold">
-            <Calendar className="h-5 w-5 text-accent" /> Academic tasks
+        {/* Right Column: Academic Agenda */}
+        <div className="space-y-4 min-w-0">
+          <div className="flex items-center gap-2 text-base font-bold font-heading text-[color:var(--text)] pl-1">
+            <Calendar className="h-4.5 w-4.5 text-[color:var(--accent)]" /> 
+            Academic Agenda
           </div>
-
-          <div className="surface-strong rounded-2xl overflow-visible p-4">
+          <Card spotlight={false} className="p-5 bg-[color:var(--surface-low)]">
             <TaskList
               tasks={academicTasks}
               onToggleTask={onToggleTask}
@@ -184,80 +201,73 @@ export function AcademicOverview({ modules, tasks = [], onOpenModule, onAddModul
               onRemoveTask={onRemoveTask}
               showAddControls={false}
               showTaskGroups={true}
-              title="Academic Tasks"
+              title="Academic Todo"
             />
-          </div>
+          </Card>
         </div>
+
       </div>
 
-      {isAdding && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 animate-fade-in">
-          <div className="surface-strong w-full max-w-lg rounded-[2rem] p-6 text-[color:var(--text)]">
-            <div className="mb-6 flex items-center justify-between gap-4">
-              <div>
-                <p className="text-xs uppercase tracking-[0.24em] text-muted">Create module</p>
-                <h2 className="mt-1 text-2xl font-semibold">Add a new academic space</h2>
-              </div>
-              <button onClick={() => setIsAdding(false)} className="rounded-full p-2 text-muted transition hover:bg-[color:var(--surface-soft)] hover:text-[color:var(--text)]">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleAddSubmit} className="space-y-4">
-              <div>
-                <label className="mb-2 block text-sm text-muted">Module title</label>
-                <input
-                  required
-                  autoFocus
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  type="text"
-                  placeholder="Artificial Intelligence"
-                  className="surface-soft w-full rounded-2xl px-4 py-3 text-sm outline-none transition focus:ring-2 focus:ring-[color:var(--accent)]/40"
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm text-muted">Module code</label>
-                <input
-                  required
-                  value={newCode}
-                  onChange={(e) => setNewCode(e.target.value)}
-                  type="text"
-                  placeholder="CS-301"
-                  className="surface-soft w-full rounded-2xl px-4 py-3 text-sm outline-none transition focus:ring-2 focus:ring-[color:var(--accent)]/40"
-                />
-              </div>
-              <div>
-                <label className="mb-3 block text-sm text-muted">Accent color</label>
-                <div className="flex flex-wrap gap-3">
-                  {(['blue', 'amber', 'emerald', 'purple', 'rose'] as Module['color'][]).map((color) => (
-                    <button
-                      key={color}
-                      type="button"
-                      onClick={() => setNewColor(color)}
-                      className={cn(
-                        'h-10 rounded-full px-4 text-sm font-medium transition',
-                        newColor === color ? 'bg-[color:var(--text)] text-[color:var(--app-bg)]' : 'surface-soft text-muted'
-                      )}
-                    >
-                      {color}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setIsAdding(false)} className="btn-secondary flex-1 px-4 py-3 text-sm font-medium">
-                  Cancel
-                </button>
-                <button type="submit" className="btn-primary flex-1 px-4 py-3 text-sm font-semibold">
-                  Create module
-                </button>
-              </div>
-            </form>
+      {/* 4. Add module Modal primitive */}
+      <Modal
+        isOpen={isAdding}
+        onClose={() => setIsAdding(false)}
+        title="Add academic space"
+        subtitle="Create module"
+        maxWidthClassName="max-w-md"
+      >
+        <form onSubmit={handleAddSubmit} className="space-y-4">
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-[color:var(--muted)] uppercase tracking-wider">Module Title</label>
+            <Input
+              required
+              autoFocus
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              placeholder="Artificial Intelligence"
+            />
           </div>
-        </div>
-      )}
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-[color:var(--muted)] uppercase tracking-wider">Module Code</label>
+            <Input
+              required
+              value={newCode}
+              onChange={(e) => setNewCode(e.target.value)}
+              placeholder="CS-301"
+            />
+          </div>
+          <div>
+            <label className="mb-2 block text-xs font-semibold text-[color:var(--muted)] uppercase tracking-wider">Theme Color</label>
+            <div className="flex flex-wrap gap-2">
+              {(['blue', 'amber', 'emerald', 'purple', 'rose'] as Module['color'][]).map((color) => (
+                <button
+                  key={color}
+                  type="button"
+                  onClick={() => setNewColor(color)}
+                  className={cn(
+                    'h-9 rounded-full px-4 text-xs font-semibold transition-all border',
+                    newColor === color
+                      ? 'bg-[color:var(--accent)] border-[color:var(--accent)] text-[color:var(--on-accent)] shadow-sm'
+                      : 'bg-[color:var(--surface-low)] border-[color:var(--border)] text-[color:var(--muted)] hover:text-[color:var(--text)]'
+                  )}
+                >
+                  {color.charAt(0).toUpperCase() + color.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex gap-2 pt-4">
+            <Button type="button" variant="secondary" onClick={() => setIsAdding(false)} className="flex-1">
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" className="flex-1">
+              Create Space
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
     </div>
   );
 }

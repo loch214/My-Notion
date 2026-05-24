@@ -1,11 +1,19 @@
 import React, { useState } from 'react';
-import { Module, UploadedFile, ChatMessage, Task } from '../types';
-import { ChevronLeft, FileText, Upload, FileUp, Sparkles, MessageSquare, Loader2, X, ChevronDown, CheckSquare, Plus, Paperclip, Image as ImageIcon, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Module, UploadedFile, ChatMessage, Task, ChatSession } from '../types';
+import { ChevronLeft, FileText, Upload, FileUp, Sparkles, MessageSquare, Loader2, X, ChevronDown, CheckSquare, Plus, Paperclip, Image as ImageIcon, PanelLeftClose, PanelLeftOpen, ArrowRight } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import Markdown from 'react-markdown';
 import { AI_MODELS, AIModelId, DEFAULT_AI_MODEL } from '../lib/models';
 import { TaskList } from './TaskList';
 import { cn } from '../lib/utils';
+
+// Import UI primitives
+import { Card } from './ui/Card';
+import { Button } from './ui/Button';
+import { Input, Textarea } from './ui/Input';
+import { Dropdown } from './ui/Dropdown';
+import { Tabs } from './ui/Tabs';
+import { Modal } from './ui/Modal';
 
 interface ModuleDetailProps {
   module: Module;
@@ -18,16 +26,24 @@ interface ModuleDetailProps {
   updateModule: (moduleId: string, updates: Partial<Module>) => void;
 }
 
-export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTask, onRemoveTask, onBack, updateModule }: ModuleDetailProps) {
+export function ModuleDetail({
+  module,
+  tasks,
+  onToggleTask,
+  onAddTask,
+  onEditTask,
+  onRemoveTask,
+  onBack,
+  updateModule
+}: ModuleDetailProps) {
   const [activeTab, setActiveTab] = useState<'files' | 'chat' | 'tasks'>('files');
   const [isUploading, setIsUploading] = useState(false);
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
-  const [chatModel, setChatModel] = useState(DEFAULT_AI_MODEL);
+  const [chatModel, setChatModel] = useState<AIModelId>(DEFAULT_AI_MODEL);
   const [fileSort, setFileSort] = useState<'newest' | 'oldest' | 'alpha'>('newest');
-  const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
-  const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
   const [chatAttachments, setChatAttachments] = useState<{ name: string; type: string; data: string }[]>([]);
+  
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
@@ -35,7 +51,7 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
   const [isMobileSessionsOpen, setIsMobileSessionsOpen] = useState(false);
 
   // Get sessions, or migrate from chatHistory if none exist
-  const sessions = module.chatSessions || [];
+  const sessions: ChatSession[] = module.chatSessions || [];
 
   React.useEffect(() => {
     if (!activeSessionId && sessions.length > 0) {
@@ -218,138 +234,111 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
     }
   };
 
+  const modelOptions = AI_MODELS.map(model => ({
+    id: model.id,
+    label: model.label,
+    badge: model.badge
+  }));
+
+  const fileSortOptions = [
+    { id: 'newest', label: 'Newest first' },
+    { id: 'oldest', label: 'Oldest first' },
+    { id: 'alpha', label: 'Alphabetical' }
+  ];
+
+  const detailTabs = [
+    { id: 'files', label: 'Files', icon: <FileText className="h-4 w-4" /> },
+    { id: 'chat', label: 'Study chat', icon: <MessageSquare className="h-4 w-4" /> },
+    { id: 'tasks', label: 'Tasks', icon: <CheckSquare className="h-4 w-4" /> }
+  ];
+
   return (
     <div className="flex min-h-0 flex-col text-[color:var(--text)]">
-      <header className="mb-5 flex shrink-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      
+      {/* 1. Module Header */}
+      <header className="mb-5 flex shrink-0 flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <button onClick={onBack} className="mb-3 inline-flex items-center gap-2 text-sm text-muted transition hover:text-[color:var(--text)]">
-            <ChevronLeft className="h-4 w-4" /> Back to overview
+          <button 
+            onClick={onBack} 
+            className="mb-2 inline-flex items-center gap-1.5 text-xs text-[color:var(--muted)] transition-colors hover:text-[color:var(--text)]"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" /> Back to overview
           </button>
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-semibold tracking-tight">{module.title}</h1>
-            <span className="rounded-full border border-subtle surface-soft px-3 py-1 text-xs font-mono text-muted">{module.code}</span>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl font-bold font-heading tracking-tight">{module.title}</h1>
+            <span className="rounded-full border border-[color:var(--border)] bg-[color:var(--surface-low)] px-3 py-0.5 text-xs font-mono text-[color:var(--muted)]">
+              {module.code}
+            </span>
           </div>
         </div>
       </header>
 
-      <div className="mb-4 flex flex-col gap-3 border-b border-subtle pb-3 lg:flex-row lg:items-end lg:justify-between">
-        <div className="flex min-w-0 gap-2 overflow-x-auto pb-1">
-          <button
-            onClick={() => setActiveTab('files')}
-            className={`inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm transition ${activeTab === 'files' ? 'bg-[color:var(--text)] text-[color:var(--app-bg)]' : 'text-muted hover:text-[color:var(--text)]'}`}
-          >
-            <FileText className="h-4 w-4" /> Files
-          </button>
-          <button
-            onClick={() => setActiveTab('chat')}
-            className={`inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm transition ${activeTab === 'chat' ? 'bg-[color:var(--text)] text-[color:var(--app-bg)]' : 'text-muted hover:text-[color:var(--text)]'}`}
-          >
-            <MessageSquare className="h-4 w-4" /> Study chat
-          </button>
-          <button
-            onClick={() => setActiveTab('tasks')}
-            className={`inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-sm transition ${activeTab === 'tasks' ? 'bg-[color:var(--text)] text-[color:var(--app-bg)]' : 'text-muted hover:text-[color:var(--text)]'}`}
-          >
-            <CheckSquare className="h-4 w-4" /> Tasks
-          </button>
+      {/* 2. Responsive Tabs and Model selects */}
+      <div className="mb-5 flex flex-col gap-3 border-b border-[color:var(--border)] pb-3 lg:flex-row lg:items-end lg:justify-between shrink-0">
+        <div className="flex-1 min-w-0 pr-4">
+          <Tabs
+            tabs={detailTabs}
+            activeId={activeTab}
+            onChange={(id) => setActiveTab(id as any)}
+          />
         </div>
 
         {activeTab === 'chat' && (
-          <div className="flex items-center gap-2 self-start lg:self-auto">
-            <button
+          <div className="flex items-center gap-2 self-start shrink-0 lg:self-auto">
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => setIsMobileSessionsOpen(true)}
-              className="btn-secondary px-3 py-2 text-sm font-medium lg:hidden"
+              className="lg:hidden h-9 text-xs"
             >
               Sessions
-            </button>
-
-            <div className="relative">
-              <button
-                onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
-                className="surface-soft flex items-center gap-2 rounded-2xl px-4 py-2 text-sm outline-none transition focus:ring-2 focus:ring-[color:var(--accent)]/40"
-              >
-                {AI_MODELS.find((m) => m.id === chatModel)?.label}
-                <ChevronDown className="h-4 w-4 text-muted" />
-              </button>
-
-              {isModelDropdownOpen && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setIsModelDropdownOpen(false)} />
-                  <div className="absolute right-0 top-full z-20 mt-2 min-w-[180px] overflow-hidden rounded-2xl surface border border-subtle shadow-lg p-1.5">
-                    {AI_MODELS.map((option) => (
-                      <button
-                        key={option.id}
-                        onClick={() => {
-                          setChatModel(option.id);
-                          setIsModelDropdownOpen(false);
-                        }}
-                        className={`w-full rounded-xl px-4 py-2.5 text-left text-sm transition ${chatModel === option.id ? 'bg-accent text-[color:var(--on-accent)] font-medium' : 'text-[color:var(--text)] hover:bg-[color:var(--surface-soft)]'}`}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
+            </Button>
+            <div className="w-[160px]">
+              <Dropdown
+                options={modelOptions}
+                selectedId={chatModel}
+                onSelect={(id) => setChatModel(id as AIModelId)}
+                placeholder="Choose model"
+              />
             </div>
           </div>
         )}
       </div>
 
-      <div className="flex-1">
+      {/* 3. Render Tabs details */}
+      <div className="flex-1 min-h-0">
         {activeTab === 'files' && (
-          <div className="pb-8 animate-fade-up">
-            <div className="surface rounded-[2rem] p-6 text-center">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-[color:var(--on-accent)]">
+          <div className="pb-8 animate-fade-up space-y-6">
+            
+            {/* Upload Area inside Card */}
+            <Card spotlight={true} className="p-6 text-center bg-[color:var(--surface-low)]">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-r from-[color:var(--accent)] to-[color:var(--accent-2)] text-[color:var(--on-accent)]">
                 {isUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
               </div>
-              <h3 className="text-xl font-semibold">Upload lecture notes or reading materials</h3>
-              <p className="mx-auto mt-2 max-w-lg text-sm text-muted">
-                Add PDFs, DOCX, or text files and use them as study context for your module AI.
+              <h3 className="text-base font-bold font-heading text-[color:var(--text)]">Upload lecture slides or research files</h3>
+              <p className="mx-auto mt-1.5 max-w-md text-xs text-[color:var(--muted)] leading-relaxed">
+                Add standard lecture PDFs, DOCX slides, or syllabus text files. These files are used as context for the Study Assistant.
               </p>
-              <label className="btn-primary mt-5 cursor-pointer px-5 py-3 text-sm font-semibold">
+              <label className="btn-primary mt-5 cursor-pointer px-5 py-2.5 text-xs font-semibold inline-flex items-center gap-2">
                 Select files
                 <input type="file" className="hidden" onChange={handleFileUpload} accept=".pdf,.doc,.docx,.txt" disabled={isUploading} />
               </label>
-            </div>
+            </Card>
 
-            <div className="mt-6 flex items-center justify-between gap-4">
-              <h3 className="text-lg font-semibold">Uploaded files ({module.files.length})</h3>
-              <div className="relative">
-                <button
-                  onClick={() => setIsSortDropdownOpen(!isSortDropdownOpen)}
-                  className="surface-soft flex items-center gap-2 rounded-2xl px-4 py-2 text-sm outline-none transition focus:ring-2 focus:ring-[color:var(--accent)]/40"
-                >
-                  {fileSort === 'newest' ? 'Newest first' : fileSort === 'oldest' ? 'Oldest first' : 'Alphabetical'}
-                  <ChevronDown className="h-4 w-4 text-muted" />
-                </button>
-                {isSortDropdownOpen && (
-                  <>
-                    <div className="fixed inset-0 z-10" onClick={() => setIsSortDropdownOpen(false)} />
-                    <div className="absolute right-0 top-full z-20 mt-2 min-w-[160px] overflow-hidden rounded-2xl surface border border-subtle shadow-lg p-1.5">
-                      {[
-                        { id: 'newest', label: 'Newest first' },
-                        { id: 'oldest', label: 'Oldest first' },
-                        { id: 'alpha', label: 'Alphabetical' },
-                      ].map((option) => (
-                        <button
-                          key={option.id}
-                          onClick={() => {
-                            setFileSort(option.id as any);
-                            setIsSortDropdownOpen(false);
-                          }}
-                          className={`w-full rounded-xl px-4 py-2.5 text-left text-sm transition ${fileSort === option.id ? 'bg-accent text-[color:var(--on-accent)] font-medium' : 'text-[color:var(--text)] hover:bg-[color:var(--surface-soft)]'}`}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
-                    </div>
-                  </>
-                )}
+            <div className="flex items-center justify-between gap-4">
+              <h3 className="text-sm font-semibold text-[color:var(--text)]">Uploaded Files ({module.files.length})</h3>
+              <div className="w-[140px]">
+                <Dropdown
+                  options={fileSortOptions}
+                  selectedId={fileSort}
+                  onSelect={(id) => setFileSort(id as any)}
+                  placeholder="Sort files"
+                />
               </div>
             </div>
 
-            <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {/* Files Grid */}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {[...module.files]
                 .sort((a, b) => {
                   if (fileSort === 'alpha') return a.name.localeCompare(b.name);
@@ -357,77 +346,87 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
                   return new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime();
                 })
                 .map((file) => (
-                  <div key={file.id} className="surface-soft group relative rounded-3xl p-4 transition hover:-translate-y-0.5">
-                    <div className="flex items-start gap-3">
-                      <div className="rounded-2xl surface-soft p-3 text-accent border border-subtle">
-                        <FileUp className="h-5 w-5" />
+                  <Card key={file.id} spotlight={true} className="p-4 bg-[color:var(--surface-low)] relative group">
+                    <div className="flex items-start gap-3 pr-6">
+                      <div className="rounded-xl bg-[color:var(--surface-med)] p-2.5 text-[color:var(--accent)] border border-[color:var(--border)] shrink-0">
+                        <FileUp className="h-4.5 w-4.5" />
                       </div>
-                      <div className="min-w-0 flex-1 pr-8">
-                        <p className="truncate text-sm font-semibold" title={file.name}>{file.name}</p>
-                        <p className="mt-1 text-xs text-muted">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-semibold text-[color:var(--text)]" title={file.name}>{file.name}</p>
+                        <p className="mt-1 text-[10px] text-[color:var(--muted)]">
                           {(file.size / 1024 / 1024).toFixed(2)} MB · {new Date(file.uploadedAt).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
                     <button
                       onClick={() => updateModule(module.id, { files: module.files.filter((currentFile) => currentFile.id !== file.id) })}
-                      className="absolute right-3 top-3 rounded-full p-2 text-muted opacity-70 transition hover:bg-[color:var(--surface-soft)] hover:text-[color:var(--text)]"
+                      className="absolute right-2.5 top-2.5 rounded-full p-1 text-[color:var(--muted)] opacity-60 hover:opacity-100 hover:bg-[color:var(--surface-med)] hover:text-rose-400 transition-all"
+                      aria-label="Delete file"
                     >
-                      <X className="h-4 w-4" />
+                      <X className="h-3.5 w-3.5" />
                     </button>
-                  </div>
+                  </Card>
                 ))}
-              {module.files.length === 0 && <div className="col-span-full py-10 text-center text-muted">No files uploaded yet.</div>}
+              {module.files.length === 0 && (
+                <div className="col-span-full py-12 text-center text-xs text-[color:var(--muted)]">
+                  No files uploaded yet. Add lecture materials above to start RAG study.
+                </div>
+              )}
             </div>
           </div>
         )}
 
         {activeTab === 'chat' && (
-          <div className="flex min-h-[min(72vh,760px)] flex-col gap-4 lg:flex-row animate-fade-up">
-            {/* Sessions Sidebar */}
+          <div className="flex min-h-[min(70vh,680px)] max-h-[70vh] flex-col gap-4 lg:flex-row animate-fade-up">
+            
+            {/* Desktop Sessions list sidebar (Collapsible) */}
             <div className={cn(
-              "hidden lg:flex flex-col rounded-2xl surface border border-subtle overflow-hidden transition-all duration-300",
-              isSidebarCollapsed ? "w-20" : "w-64"
+              "hidden lg:flex flex-col rounded-2xl bg-[color:var(--surface-low)] border border-[color:var(--border)] overflow-hidden transition-all duration-300 shrink-0",
+              isSidebarCollapsed ? "w-[72px]" : "w-[240px]"
             )}>
-              <div className="p-3 border-b border-subtle flex items-center justify-between gap-2">
+              <div className="p-3 border-b border-[color:var(--border)] flex items-center justify-between gap-2">
                 {!isSidebarCollapsed && (
-                  <button 
+                  <Button
+                    variant="primary"
+                    size="sm"
                     onClick={handleNewChat}
-                    className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-[color:var(--on-accent)] transition hover:scale-[1.02] active:scale-[0.98] truncate"
+                    className="flex-1 text-xs font-semibold h-9"
+                    leftIcon={<Plus className="h-3.5 w-3.5" />}
                   >
-                    <Plus className="h-4 w-4" /> New Chat
-                  </button>
+                    New Chat
+                  </Button>
                 )}
                 <button 
                   onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
                   className={cn(
-                    "rounded-xl p-2 text-muted hover:bg-[color:var(--surface-soft)] hover:text-[color:var(--text)] transition",
+                    "rounded-xl p-1.5 text-[color:var(--muted)] hover:bg-[color:var(--surface-med)] hover:text-[color:var(--text)] transition-colors focus:outline-none",
                     isSidebarCollapsed && "w-full flex justify-center"
                   )}
-                  title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                  title={isSidebarCollapsed ? "Expand study sessions" : "Collapse study sessions"}
                 >
                   {isSidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
                 </button>
               </div>
-              <div className="flex-1 overflow-y-auto p-2 space-y-1">
+
+              <div className="flex-1 overflow-y-auto p-1.5 space-y-0.5">
                 {sessions.map((s) => (
                   <button
                     key={s.id}
                     onClick={() => setActiveSessionId(s.id)}
                     className={cn(
-                      "w-full rounded-xl px-4 py-3 text-left text-sm transition group relative",
+                      "w-full rounded-xl py-2.5 text-left text-xs transition-all relative group flex flex-col justify-center",
                       activeSessionId === s.id 
-                        ? "bg-accent/10 text-accent font-medium" 
-                        : "text-muted hover:bg-[color:var(--surface-soft)] hover:text-[color:var(--text)]",
-                      isSidebarCollapsed && "px-0 flex justify-center"
+                        ? "bg-[color:var(--accent)]/10 text-[color:var(--accent)] font-semibold border border-[color:var(--accent)]/15" 
+                        : "text-[color:var(--muted)] hover:bg-[color:var(--surface-med)] hover:text-[color:var(--text)]",
+                      isSidebarCollapsed ? "px-0 items-center" : "px-3.5"
                     )}
                   >
                     {isSidebarCollapsed ? (
-                      <MessageSquare className="h-5 w-5" />
+                      <MessageSquare className="h-4.5 w-4.5" />
                     ) : (
                       <>
-                        <div className="truncate pr-6">{s.title}</div>
-                        <div className="mt-1 text-[10px] opacity-50">
+                        <div className="truncate pr-5">{s.title}</div>
+                        <div className="mt-0.5 text-[9px] opacity-60">
                           {new Date(s.updatedAt).toLocaleDateString()}
                         </div>
                         <button 
@@ -436,7 +435,8 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
                             updateModule(module.id, { chatSessions: sessions.filter(sess => sess.id !== s.id) });
                             if (activeSessionId === s.id) setActiveSessionId(null);
                           }}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1 hover:text-rose-500 transition"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1 hover:text-rose-400 transition-opacity"
+                          aria-label="Delete chat"
                         >
                           <X className="h-3.5 w-3.5" />
                         </button>
@@ -445,62 +445,70 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
                   </button>
                 ))}
                 {sessions.length === 0 && (
-                  <div className="px-4 py-8 text-center text-xs text-muted">
+                  <div className="px-2 py-8 text-center text-[10px] text-[color:var(--muted)]">
                     {isSidebarCollapsed ? <Plus className="h-4 w-4 mx-auto" /> : "No past sessions"}
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Chat Main Area */}
-            <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl surface border border-subtle">
-              {/* Mobile Sessions Header */}
-              <div className="flex items-center justify-between border-b border-subtle p-3 lg:hidden">
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted">
-                  {activeSession?.title || 'New Chat'}
+            {/* Chat dialog panel container */}
+            <div className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-low)]">
+              
+              {/* Mobile Sessions strip */}
+              <div className="flex items-center justify-between border-b border-[color:var(--border)] p-3 lg:hidden shrink-0 bg-[color:var(--surface-med)]/30">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[color:var(--muted)]">
+                  {activeSession?.title || 'Study Assistant'}
                 </span>
                 <button 
                   onClick={handleNewChat}
-                  className="rounded-lg p-1.5 text-accent hover:bg-accent/10 transition"
+                  className="rounded-lg p-1.5 text-[color:var(--accent)] hover:bg-[color:var(--accent)]/10 transition-colors"
+                  aria-label="New study chat session"
                 >
                   <Plus className="h-4 w-4" />
                 </button>
               </div>
 
-              <div className="flex-1 space-y-5 overflow-y-auto p-4 sm:p-5 lg:p-6 scroll-smooth" ref={scrollRef}>
+              {/* Message scroll list */}
+              <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-5 scroll-smooth" ref={scrollRef}>
                 {currentChatHistory.length === 0 && (
-                  <div className="mx-auto flex h-full max-w-md flex-col items-center justify-center text-center text-muted">
-                    <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-[color:var(--on-accent)]">
-                      <Sparkles className="h-6 w-6" />
+                  <div className="mx-auto flex h-full max-w-sm flex-col items-center justify-center text-center text-[color:var(--muted)] py-12">
+                    <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-r from-[color:var(--accent)] to-[color:var(--accent-2)] text-[color:var(--on-accent)]">
+                      <Sparkles className="h-5 w-5" />
                     </div>
-                    <h3 className="text-xl font-semibold text-[color:var(--text)]">Module AI assistant</h3>
-                    <p className="mt-2 text-sm leading-6">
-                      Ask for summaries, explanations, flashcards, or exam-style questions based on {module.code} materials.
+                    <h3 className="text-sm font-bold text-[color:var(--text)] font-heading">Interactive Module Guide</h3>
+                    <p className="mt-1.5 text-xs leading-relaxed">
+                      Ask for summaries, lecture notes flashcards, syllabus breakdowns, or quiz mockups grounded in {module.code} slides.
                     </p>
                   </div>
                 )}
 
                 {currentChatHistory.map((message) => (
                   <div key={message.id} className={`flex gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''} animate-fade-in`}>
-                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full shadow-sm ${message.role === 'user' ? 'bg-accent text-[color:var(--on-accent)]' : 'surface-strong text-accent border border-subtle'}`}>
-                      {message.role === 'user' ? <span className="text-xs font-bold">YOU</span> : <Sparkles className="h-4 w-4" />}
-                    </div>
-                    <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed shadow-sm ${
+                    <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full shadow-sm text-[9px] font-semibold ${
                       message.role === 'user' 
-                        ? 'surface-strong text-[color:var(--text)] border border-subtle' 
-                        : 'surface-soft text-[color:var(--text)] border border-subtle'
+                        ? 'bg-[color:var(--accent)] text-[color:var(--on-accent)]' 
+                        : 'bg-[color:var(--surface-med)] text-[color:var(--accent)] border border-[color:var(--border)]'
                     }`}>
+                      {message.role === 'user' ? 'YOU' : <Sparkles className="h-3.5 w-3.5" />}
+                    </div>
+                    <div className={cn(
+                      'max-w-[85%] rounded-2xl px-4 py-2.5 text-xs leading-relaxed border shadow-sm',
+                      message.role === 'user' 
+                        ? 'bg-[color:var(--surface-med)] border-[color:var(--border)] text-[color:var(--text)]' 
+                        : 'bg-[color:var(--surface-high)]/30 border-[color:var(--border)] text-[color:var(--text)]'
+                    )}>
                       {message.attachments && message.attachments.length > 0 && (
                         <div className="mb-2 flex flex-wrap gap-2">
                           {message.attachments.map((att, i) => (
-                            <div key={i} className="flex items-center gap-1.5 rounded-lg surface-soft px-2 py-1 text-[10px] font-medium">
+                            <div key={i} className="flex items-center gap-1.5 rounded-lg bg-[color:var(--surface-low)] px-2 py-1 text-[9px] font-medium border border-[color:var(--border)]">
                               {att.type.startsWith('image/') ? <ImageIcon className="h-3 w-3" /> : <Paperclip className="h-3 w-3" />}
-                              <span className="max-w-[100px] truncate">{att.name}</span>
+                              <span className="max-w-[90px] truncate">{att.name}</span>
                             </div>
                           ))}
                         </div>
                       )}
-                      <div className={`prose prose-sm max-w-none dark:prose-invert`}>
+                      <div className="prose prose-sm max-w-none dark:prose-invert text-xs">
                         <Markdown>{message.text}</Markdown>
                       </div>
                     </div>
@@ -508,27 +516,28 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
                 ))}
 
                 {isChatLoading && (
-                  <div className="flex gap-4">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-[color:var(--on-accent)]">
-                      <Sparkles className="h-4 w-4" />
+                  <div className="flex gap-3">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[color:var(--surface-med)] text-[color:var(--accent)] border border-[color:var(--border)]">
+                      <Sparkles className="h-3.5 w-3.5" />
                     </div>
-                    <div className="flex items-center rounded-3xl border border-subtle surface-soft px-4 py-3 text-sm text-muted">
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin text-accent" /> AI is synthesizing...
+                    <div className="flex items-center rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-high)]/20 px-3.5 py-2 text-xs text-[color:var(--muted)]">
+                      <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin text-[color:var(--accent)]" /> AI study assistant is typing...
                     </div>
                   </div>
                 )}
               </div>
 
-              <div className="border-t border-subtle bg-transparent p-4">
+              {/* Chat Input panel */}
+              <div className="border-t border-[color:var(--border)] p-4 shrink-0 bg-[color:var(--surface-med)]/10">
                 {chatAttachments.length > 0 && (
-                  <div className="mb-3 flex flex-wrap gap-2 px-2">
+                  <div className="mb-3 flex flex-wrap gap-2 px-1">
                     {chatAttachments.map((att, i) => (
-                      <div key={i} className="group relative flex items-center gap-2 rounded-xl border border-subtle surface-soft px-3 py-1.5 text-xs animate-fade-in">
-                        {att.type.startsWith('image/') ? <ImageIcon className="h-3.5 w-3.5 text-accent" /> : <Paperclip className="h-3.5 w-3.5 text-accent" />}
-                        <span className="max-w-[120px] truncate font-medium">{att.name}</span>
+                      <div key={i} className="group relative flex items-center gap-2 rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-low)] px-2.5 py-1 text-xs animate-fade-in">
+                        {att.type.startsWith('image/') ? <ImageIcon className="h-3.5 w-3.5 text-[color:var(--accent)]" /> : <Paperclip className="h-3.5 w-3.5 text-[color:var(--accent)]" />}
+                        <span className="max-w-[100px] truncate font-medium text-[11px]">{att.name}</span>
                         <button 
                           onClick={() => setChatAttachments(prev => prev.filter((_, index) => index !== i))}
-                          className="ml-1 rounded-full p-0.5 hover:bg-[color:var(--surface-soft)] text-muted hover:text-[color:var(--text)]"
+                          className="ml-1 rounded-full p-0.5 hover:bg-[color:var(--surface-med)] text-[color:var(--muted)] hover:text-[color:var(--text)] transition-colors"
                         >
                           <X className="h-3 w-3" />
                         </button>
@@ -536,7 +545,8 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
                     ))}
                   </div>
                 )}
-                <div className="mx-auto flex max-w-4xl items-end gap-2">
+                
+                <div className="flex items-end gap-2">
                   <input
                     type="file"
                     ref={fileInputRef}
@@ -562,92 +572,111 @@ export function ModuleDetail({ module, tasks, onToggleTask, onAddTask, onEditTas
                   />
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-2xl surface-soft border border-subtle text-muted transition hover:bg-[color:var(--surface-strong)] hover:text-[color:var(--text)]"
-                    title="Attach images or files"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[color:var(--surface-med)] border border-[color:var(--border)] text-[color:var(--muted)] hover:text-[color:var(--text)] hover:bg-[color:var(--surface-high)] transition-colors"
+                    title="Attach images or slides"
                   >
-                    <Plus className="h-5 w-5" />
+                    <Plus className="h-4.5 w-4.5" />
                   </button>
-                  <textarea
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSendMessage();
-                      }
-                    }}
-                    className="surface-soft min-h-[46px] flex-1 resize-none rounded-2xl px-4 py-3 text-sm outline-none transition focus:ring-2 focus:ring-[color:var(--accent)]/40"
-                    rows={1}
-                    placeholder="Ask a question about the uploaded materials..."
-                  />
-                  <button
-                    onClick={handleSendMessage}
-                    disabled={isChatLoading || (!chatInput.trim() && chatAttachments.length === 0)}
-                    className="flex h-[46px] shrink-0 items-center justify-center rounded-2xl bg-accent px-4 text-[color:var(--on-accent)] transition hover:-translate-y-0.5 disabled:opacity-50"
-                  >
-                    <MessageSquare className="h-5 w-5" />
-                  </button>
+                  
+                  <div className="relative flex-1">
+                    <Textarea
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendMessage();
+                        }
+                      }}
+                      className="min-h-[40px] h-10 py-2.5 pr-10 resize-none"
+                      rows={1}
+                      placeholder="Ask lecture summaries or paper points..."
+                    />
+                    <button
+                      onClick={handleSendMessage}
+                      disabled={isChatLoading || (!chatInput.trim() && chatAttachments.length === 0)}
+                      className="absolute right-2 bottom-1.5 flex h-7 w-7 items-center justify-center rounded-lg bg-[color:var(--accent)] text-[color:var(--on-accent)] transition-all hover:scale-[1.02] disabled:opacity-50 disabled:pointer-events-none"
+                      aria-label="Send study prompt"
+                    >
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
-                <div className="mt-3 text-center text-[10px] uppercase tracking-[0.24em] text-muted">
-                  Responses are grounded in your module files
+                <div className="mt-2 text-center text-[9px] uppercase tracking-[0.2em] text-[color:var(--muted)] opacity-60">
+                  Grounded strictly in your module slides and slides index
                 </div>
               </div>
+
             </div>
           </div>
         )}
+
         {activeTab === 'tasks' && (
           <div className="pb-8 pt-2 animate-fade-up">
-            <TaskList 
-              tasks={tasks}
-              onToggleTask={onToggleTask}
-              onAddTask={onAddTask}
-              onEditTask={onEditTask}
-              onRemoveTask={onRemoveTask}
-              title={`${module.title} Tasks`}
-            />
+            <Card spotlight={false} className="p-5 bg-[color:var(--surface-low)]">
+              <TaskList 
+                tasks={tasks}
+                onToggleTask={onToggleTask}
+                onAddTask={onAddTask}
+                onEditTask={onEditTask}
+                onRemoveTask={onRemoveTask}
+                title="Class Todo tasks"
+              />
+            </Card>
           </div>
         )}
       </div>
 
-      {isMobileSessionsOpen && activeTab === 'chat' && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center p-3 lg:hidden">
-          <button aria-label="Close sessions" className="absolute inset-0 bg-black/40" onClick={() => setIsMobileSessionsOpen(false)} />
-          <div className="surface relative z-10 w-full max-w-md rounded-[1.75rem] border border-subtle p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs uppercase tracking-[0.24em] text-muted">Chat sessions</p>
-                <h3 className="mt-1 text-lg font-semibold">{module.title}</h3>
+      {/* 4. Mobile Session overlay list primitive modal */}
+      <Modal
+        isOpen={isMobileSessionsOpen}
+        onClose={() => setIsMobileSessionsOpen(false)}
+        title={module.title}
+        subtitle="Study Chat Sessions"
+        maxWidthClassName="max-w-sm"
+      >
+        <div className="space-y-3">
+          <Button
+            variant="primary"
+            onClick={() => {
+              handleNewChat();
+              setIsMobileSessionsOpen(false);
+            }}
+            className="w-full text-xs font-semibold h-10"
+            leftIcon={<Plus className="h-4 w-4" />}
+          >
+            New Chat Session
+          </Button>
+          <div className="max-h-[50vh] overflow-y-auto space-y-1.5 -mr-1 pr-1">
+            {sessions.map((session) => (
+              <button
+                key={session.id}
+                onClick={() => {
+                  setActiveSessionId(session.id);
+                  setIsMobileSessionsOpen(false);
+                }}
+                className={cn(
+                  'flex w-full items-start justify-between gap-3 rounded-xl px-4 py-3 text-left border transition-all text-xs',
+                  activeSessionId === session.id 
+                    ? 'bg-[color:var(--accent)]/10 border-[color:var(--accent)] text-[color:var(--accent)] font-semibold' 
+                    : 'bg-[color:var(--surface-low)] border-[color:var(--border)] text-[color:var(--muted)]'
+                )}
+              >
+                <div className="min-w-0">
+                  <div className="truncate font-semibold text-[color:var(--text)]">{session.title}</div>
+                  <div className="mt-1 text-[10px] text-[color:var(--muted)] opacity-80">{new Date(session.updatedAt).toLocaleDateString()}</div>
+                </div>
+              </button>
+            ))}
+            {sessions.length === 0 && (
+              <div className="py-8 text-center text-xs text-[color:var(--muted)]">
+                No past sessions. Create one above to start.
               </div>
-              <button onClick={() => setIsMobileSessionsOpen(false)} className="btn-ghost rounded-full px-3 py-2 text-sm">
-                Close
-              </button>
-            </div>
-            <div className="mt-4 max-h-[60vh] overflow-y-auto space-y-2">
-              <button onClick={handleNewChat} className="btn-primary w-full px-4 py-2.5 text-sm font-semibold">
-                <Plus className="h-4 w-4" /> New Chat
-              </button>
-              {sessions.map((session) => (
-                <button
-                  key={session.id}
-                  onClick={() => {
-                    setActiveSessionId(session.id);
-                    setIsMobileSessionsOpen(false);
-                  }}
-                  className={cn(
-                    'surface-soft flex w-full items-start justify-between gap-3 rounded-2xl px-4 py-3 text-left',
-                    activeSessionId === session.id ? 'border border-[color:var(--accent)]/35' : ''
-                  )}
-                >
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-medium">{session.title}</div>
-                    <div className="mt-1 text-xs text-muted">{new Date(session.updatedAt).toLocaleDateString()}</div>
-                  </div>
-                </button>
-              ))}
-            </div>
+            )}
           </div>
         </div>
-      )}
+      </Modal>
+
     </div>
   );
 }

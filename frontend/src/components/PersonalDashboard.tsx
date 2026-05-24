@@ -1,9 +1,14 @@
 import React, { useMemo } from 'react';
 import { Task, Event } from '../types';
-import { Calendar, CheckSquare, Clock, ArrowRight } from 'lucide-react';
+import { Calendar, CheckSquare, ArrowRight } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { TaskList } from './TaskList';
 import { format, isAfter, isToday, parseISO, startOfDay } from 'date-fns';
+
+// Import UI primitives
+import { Card } from './ui/Card';
+import { Button } from './ui/Button';
+import { SectionHeader } from './ui/SectionHeader';
 
 interface PersonalDashboardProps {
   tasks: Task[];
@@ -14,92 +19,120 @@ interface PersonalDashboardProps {
   onRemoveTask?: (taskId: string) => void;
 }
 
-export function PersonalDashboard({ tasks, events, onToggleTask, onAddTask, onEditTask, onRemoveTask }: PersonalDashboardProps) {
+export function PersonalDashboard({
+  tasks,
+  events,
+  onToggleTask,
+  onAddTask,
+  onEditTask,
+  onRemoveTask
+}: PersonalDashboardProps) {
 
   const completedCount = tasks.filter((task) => task.done).length;
   const openCount = tasks.length - completedCount;
+
   const upcomingTasks = useMemo(
     () => tasks
       .filter((task) => task.moduleId === undefined && task.dueDate && !task.done)
       .filter((task) => {
-        const dueDate = parseISO(task.dueDate as string);
-        return isToday(dueDate) || isAfter(dueDate, startOfDay(new Date()));
+        try {
+          const dueDate = parseISO(task.dueDate as string);
+          return isToday(dueDate) || isAfter(dueDate, startOfDay(new Date()));
+        } catch {
+          return false;
+        }
       })
-      .sort((a, b) => parseISO(a.dueDate as string).getTime() - parseISO(b.dueDate as string).getTime())
+      .sort((a, b) => {
+        try {
+          return parseISO(a.dueDate as string).getTime() - parseISO(b.dueDate as string).getTime();
+        } catch {
+          return 0;
+        }
+      })
       .slice(0, 6),
     [tasks]
   );
 
   return (
     <div className="animate-fade-up text-[color:var(--text)]">
-      <header className="mb-8">
-        <p className="text-xs uppercase tracking-[0.24em] text-muted">Personal space</p>
-        <h1 className="mt-2 text-3xl font-semibold">Tasks, events, and daily focus</h1>
-        <p className="mt-2 max-w-2xl text-sm text-muted">Track what needs attention today without leaving the workspace.</p>
-      </header>
+      
+      {/* 1. Header */}
+      <SectionHeader
+        title="Tasks, events, and daily focus"
+        subtitle="Manage your direct priorities, checklist todos, and daily agenda without leaving the unified workspace."
+        category="Personal Space"
+      />
 
-      <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      {/* 2. Responsive wrap cards grid */}
+      <div className="mb-8 grid gap-4 grid-cols-1 sm:grid-cols-3">
         {[
           { label: 'Open tasks', value: openCount, icon: CheckSquare },
-          { label: 'Completed', value: completedCount, icon: CheckSquare },
+          { label: 'Completed tasks', value: completedCount, icon: CheckSquare },
           { label: 'Upcoming events', value: events.length, icon: Calendar },
         ].map((stat, index) => (
-          <div key={`${stat.label}-${index}`} className="surface-soft rounded-2xl p-4">
+          <Card key={`${stat.label}-${index}`} spotlight={true} className="p-4 bg-[color:var(--surface-low)]">
             <div className="flex items-center justify-between">
-              <p className="text-xs uppercase tracking-[0.2em] text-muted">{stat.label}</p>
-              <stat.icon className="h-4 w-4 text-accent" />
+              <p className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--muted)] font-semibold">{stat.label}</p>
+              <stat.icon className="h-4 w-4 text-[color:var(--accent)]" />
             </div>
-            <p className="mt-3 text-2xl font-semibold text-[color:var(--text)]">{stat.value}</p>
-          </div>
+            <p className="mt-3 text-2xl font-bold font-heading text-[color:var(--text)]">{stat.value}</p>
+          </Card>
         ))}
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_360px]">
-        <TaskList
-          tasks={tasks.filter(t => !t.moduleId)}
-          onToggleTask={onToggleTask}
-          onAddTask={(title, dueDate) => onAddTask(title, dueDate)}
-          onEditTask={onEditTask}
-          onRemoveTask={onRemoveTask}
-          title="Personal Tasks"
-        />
+      {/* 3. Splitted Page Columns */}
+      <div className="grid gap-6 lg:grid-cols-[1.3fr_0.9fr] items-start">
+        
+        {/* Left Column: Personal Checklist */}
+        <Card spotlight={false} className="p-5 bg-[color:var(--surface-low)]">
+          <TaskList
+            tasks={tasks.filter(t => !t.moduleId)}
+            onToggleTask={onToggleTask}
+            onAddTask={(title, dueDate) => onAddTask(title, dueDate)}
+            onEditTask={onEditTask}
+            onRemoveTask={onRemoveTask}
+            title="Personal Todo List"
+          />
+        </Card>
 
-        <div>
-          <div className="mb-4 flex items-center gap-2 text-lg font-semibold">
-            <Calendar className="h-5 w-5 text-accent" /> Upcoming tasks
+        {/* Right Column: Upcoming Agenda */}
+        <div className="space-y-4 min-w-0">
+          <div className="flex items-center gap-2 text-base font-bold font-heading text-[color:var(--text)] pl-1">
+            <Calendar className="h-4.5 w-4.5 text-[color:var(--accent)]" /> 
+            Focus Agenda
           </div>
-
-          <div className="surface-strong rounded-2xl overflow-hidden">
+          <Card spotlight={false} className="p-5 bg-[color:var(--surface-low)]">
             {upcomingTasks.length > 0 ? (
-              <div className="space-y-3 p-4">
+              <div className="space-y-2">
                 {upcomingTasks.map((task) => (
                   <button
                     key={task.id}
                     onClick={() => onToggleTask(task.id)}
                     className={cn(
-                      'surface-soft flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left transition hover:-translate-y-0.5',
+                      'w-full flex items-center justify-between gap-3 rounded-xl bg-[color:var(--surface-med)] border border-[color:var(--border)] px-4 py-3 text-left transition-all hover:-translate-y-0.5 hover:border-[color:var(--border-focus)]/30',
                       task.done ? 'opacity-55' : ''
                     )}
                   >
-                    <div className="min-w-0">
-                      <p className={cn('truncate text-sm font-medium', task.done ? 'text-muted line-through' : 'text-[color:var(--text)]')}>
+                    <div className="min-w-0 flex-1">
+                      <p className={cn('truncate text-xs font-semibold', task.done ? 'text-[color:var(--muted)] line-through' : 'text-[color:var(--text)]')}>
                         {task.title}
                       </p>
-                      <p className="mt-0.5 text-xs text-muted">
-                        Due {format(parseISO(task.dueDate as string), 'MMM d')}
+                      <p className="mt-0.5 text-[10px] text-[color:var(--muted)] font-mono">
+                        Due {format(parseISO(task.dueDate as string), 'MMM d, yyyy')}
                       </p>
                     </div>
-                    <ArrowRight className="h-4 w-4 shrink-0 text-accent" />
+                    <ArrowRight className="h-3.5 w-3.5 shrink-0 text-[color:var(--accent)]" />
                   </button>
                 ))}
               </div>
             ) : (
-              <div className="p-6 text-center text-sm text-muted">
-                No upcoming tasks.
+              <div className="py-8 text-center text-xs text-[color:var(--muted)]">
+                No upcoming focus tasks due this week.
               </div>
             )}
-          </div>
+          </Card>
         </div>
+
       </div>
     </div>
   );

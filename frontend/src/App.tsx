@@ -3,6 +3,7 @@ import {
   ArrowRight,
   Calendar,
   ChevronRight,
+  ChevronLeft,
   Bell,
   Home,
   Library,
@@ -11,7 +12,13 @@ import {
   Sparkles,
   Settings2,
   X,
+  Menu,
+  Clock,
+  CheckCircle,
+  FileText,
+  MessageSquare
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useAppStore } from './store';
 import { GlobalChat } from './components/GlobalChat.tsx';
 import { AcademicOverview } from './components/AcademicOverview.tsx';
@@ -19,6 +26,13 @@ import { ModuleDetail } from './components/ModuleDetail.tsx';
 import { PersonalDashboard } from './components/PersonalDashboard.tsx';
 import CalendarView from './components/CalendarView';
 import { cn } from './lib/utils';
+
+// Import UI primitives
+import { Button } from './components/ui/Button';
+import { Card } from './components/ui/Card';
+import { Input } from './components/ui/Input';
+import { PageContainer } from './components/ui/PageContainer';
+import { SectionHeader } from './components/ui/SectionHeader';
 
 type WorkspaceTab = 'home' | 'academic' | 'personal' | 'calendar';
 type SearchResultKind = 'tab' | 'module' | 'task' | 'event';
@@ -34,50 +48,81 @@ interface SearchResult {
   tab: WorkspaceTab;
 }
 
-function StatCard({ label, value, hint, icon: Icon }: { label: string; value: string; hint: string; icon: any }) {
-  return (
-    <div className="surface rounded-2xl p-4 animate-fade-up">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs uppercase tracking-[0.24em] text-muted">{label}</p>
-          <h3 className="mt-2 text-2xl font-semibold">{value}</h3>
-          <p className="mt-1 text-sm text-muted">{hint}</p>
-        </div>
-        <div className="rounded-2xl surface-soft p-3 text-accent">
-          <Icon className="h-5 w-5" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function App() {
-  const { state, updateState, toggleTask, addModule, addTask, removeTask, updateTask, updateModule, saveGlobalChatMessage, addEvent, removeEvent, updateEvent } = useAppStore();
+  const { 
+    state, 
+    addModule, 
+    addTask, 
+    removeTask, 
+    updateTask, 
+    updateModule, 
+    saveGlobalChatMessage, 
+    addEvent, 
+    removeEvent, 
+    updateEvent,
+    toggleTask
+  } = useAppStore();
   
+  // Persistence state from localStorage
   const [appStage, setAppStage] = useState<'landing' | 'workspace'>(() => {
     const params = new URLSearchParams(window.location.search);
-    return (params.get('stage') as any) || 'landing';
+    const stage = params.get('stage');
+    if (stage === 'landing' || stage === 'workspace') return stage;
+    return (localStorage.getItem('my_notion_stage') as any) || 'landing';
   });
+
   const [activeTab, setActiveTab] = useState<'home' | 'academic' | 'personal' | 'calendar'>(() => {
     const params = new URLSearchParams(window.location.search);
-    return (params.get('tab') as any) || 'home';
+    const tab = params.get('tab');
+    if (tab) return tab as any;
+    return (localStorage.getItem('my_notion_tab') as any) || 'home';
   });
+
   const [activeModuleId, setActiveModuleId] = useState<string | null>(() => {
     const params = new URLSearchParams(window.location.search);
-    return params.get('module');
+    const module = params.get('module');
+    if (module) return module;
+    return localStorage.getItem('my_notion_active_module') || null;
   });
+
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(() => {
+    const saved = localStorage.getItem('my_notion_sidebar_open');
+    return saved !== null ? saved === 'true' : true;
+  });
+
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
+  
   const searchRef = useRef<HTMLDivElement | null>(null);
   const notificationsRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     document.documentElement.classList.add('dark');
-    document.documentElement.classList.remove('light');
   }, []);
+
+  // Save UI Preferences inside localStorage
+  useEffect(() => {
+    localStorage.setItem('my_notion_stage', appStage);
+  }, [appStage]);
+
+  useEffect(() => {
+    localStorage.setItem('my_notion_tab', activeTab);
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeModuleId) {
+      localStorage.setItem('my_notion_active_module', activeModuleId);
+    } else {
+      localStorage.removeItem('my_notion_active_module');
+    }
+  }, [activeModuleId]);
+
+  useEffect(() => {
+    localStorage.setItem('my_notion_sidebar_open', String(isSidebarOpen));
+  }, [isSidebarOpen]);
 
   // Sync state with URL for back button support
   useEffect(() => {
@@ -99,15 +144,13 @@ export default function App() {
     if (activeModuleId) params.set('module', activeModuleId);
 
     const newRelativePathQuery = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
-    if (window.location.search !== '?' + params.toString() && window.location.search !== '' || params.toString() !== '') {
-        // Only push if different to avoid infinite loops or redundant entries
-        const currentParams = new URLSearchParams(window.location.search).toString();
-        if (currentParams !== params.toString()) {
-            window.history.pushState(null, '', newRelativePathQuery);
-        }
+    if (window.location.search !== '?' + params.toString()) {
+      const currentParams = new URLSearchParams(window.location.search).toString();
+      if (currentParams !== params.toString()) {
+        window.history.pushState(null, '', newRelativePathQuery);
+      }
     }
   }, [appStage, activeTab, activeModuleId]);
-  const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
 
   const activeModule = useMemo(
     () => state.modules.find((module) => module.id === activeModuleId) ?? null,
@@ -289,249 +332,317 @@ export default function App() {
     };
   }, []);
 
-  const navItemClass = (isActive: boolean) => cn(
-    'w-full flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition-all duration-200',
-    isActive
-      ? 'surface-soft text-[color:var(--text)] font-medium shadow-sm'
-      : 'text-muted hover:bg-[color:var(--surface-soft)] hover:text-[color:var(--text)]'
-  );
+  // Sync window breadcrumb tag
+  const activeBreadcrumb = useMemo(() => {
+    if (activeTab === 'home') return 'Home';
+    if (activeTab === 'academic') {
+      return activeModule ? `Academic / ${activeModule.code}` : 'Academic Space';
+    }
+    if (activeTab === 'personal') return 'Personal Focus';
+    if (activeTab === 'calendar') return 'Schedule';
+    return 'Dashboard';
+  }, [activeTab, activeModule]);
 
   if (appStage === 'landing') {
     return (
-      <div className="app-shell relative overflow-hidden text-[color:var(--text)]">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute -left-24 top-16 h-80 w-80 rounded-full bg-[color:var(--accent)]/12 blur-3xl animate-drift" />
-          <div className="absolute right-0 top-0 h-96 w-96 rounded-full bg-[color:var(--accent-2)]/10 blur-3xl animate-drift" />
-          <div className="hero-bottom-fade absolute inset-x-0 bottom-0 h-56" />
-        </div>
+      <div className="relative min-h-screen bg-[color:var(--app-bg)] flex flex-col justify-between overflow-x-hidden pt-12 pb-8 px-4 sm:px-6">
+        {/* Futuristic isolated cinematic overlay background grid */}
+        <div className="absolute inset-0 pointer-events-none opacity-45 bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.06),transparent_60%)]" />
+        <div className="absolute inset-0 pointer-events-none opacity-30" style={{
+          backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 0)',
+          backgroundSize: '24px 24px'
+        }} />
 
-        <div className="relative flex min-h-screen flex-col items-center justify-center px-4">
-          <main className="flex w-full max-w-2xl flex-col items-center text-center animate-fade-up">
-            <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-[2rem] bg-accent text-[color:var(--on-accent)] shadow-xl shadow-black/20">
-              <Sparkles className="h-10 w-10" />
-            </div>
-            
-            <h1 className="text-6xl font-bold tracking-tight sm:text-7xl lg:text-8xl">
-              My-Notion
-            </h1>
-            
-            <p className="mt-6 text-lg text-muted sm:text-xl">
-              Manage your academic modules, tasks, and calendar.
-            </p>
+        {/* Landing Top Navbar */}
+        <header className="relative max-w-5xl w-full mx-auto flex items-center justify-between shrink-0 mb-12">
+          <div className="flex items-center gap-2.5 font-semibold text-lg text-[color:var(--text)]">
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-r from-[color:var(--accent)] to-[color:var(--accent-2)] text-[color:var(--on-accent)] shadow-sm">
+              <Sparkles className="h-4.5 w-4.5" />
+            </span>
+            <span className="font-heading tracking-tight font-bold">My-Notion</span>
+          </div>
+          <Button 
+            variant="secondary" 
+            size="sm" 
+            onClick={() => setAppStage('workspace')}
+            rightIcon={<ChevronRight className="h-3.5 w-3.5" />}
+          >
+            Launch app
+          </Button>
+        </header>
 
-            <div className="mt-10">
-              <button
-                onClick={() => setAppStage('workspace')}
-                className="btn-primary px-8 py-3 text-base font-semibold"
-              >
-                Enter workspace
-                <ArrowRight className="h-5 w-5" />
-              </button>
+        {/* Hero details container */}
+        <main className="relative max-w-5xl w-full mx-auto flex flex-col items-center flex-1 justify-center py-6 text-center z-10">
+          <motion.div 
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="inline-flex items-center gap-2 rounded-full border border-[color:var(--border)] bg-[color:var(--surface-low)] px-3.5 py-1.5 text-xs text-[color:var(--muted)] font-medium mb-6"
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            Designed exclusively for university students
+          </motion.div>
+
+          <motion.h1 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="text-4xl font-extrabold tracking-tight sm:text-6xl lg:text-7xl font-heading text-gradient max-w-3xl leading-[1.1]"
+          >
+            The premium student study workspace.
+          </motion.h1>
+
+          <motion.p 
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="mt-6 text-base text-[color:var(--muted)] sm:text-lg max-w-xl leading-relaxed"
+          >
+            Keep your class notes, lectures, task lists, calendar agendas, and RAG-powered AI study rooms perfectly sync'd under one clean, human-designed interface.
+          </motion.p>
+
+          <motion.div 
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="mt-8 flex flex-col sm:flex-row items-center gap-3 shrink-0"
+          >
+            <Button 
+              variant="primary" 
+              size="lg" 
+              onClick={() => setAppStage('workspace')}
+              rightIcon={<ArrowRight className="h-4 w-4" />}
+            >
+              Enter workspace
+            </Button>
+            <a 
+              href="https://github.com" 
+              target="_blank" 
+              rel="noreferrer"
+              className="text-xs text-[color:var(--muted)] hover:text-[color:var(--text)] transition-colors underline underline-offset-4 px-2 py-1.5"
+            >
+              Learn how it works
+            </a>
+          </motion.div>
+
+          {/* Cinematic Interactive Dashboard Layout Preview */}
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.98, y: 30 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ type: 'spring', stiffness: 100, damping: 22, delay: 0.4 }}
+            className="relative mt-16 w-full max-w-4xl rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-low)] p-2 shadow-2xl shadow-black/50 overflow-hidden"
+          >
+            <div className="absolute inset-0 bg-gradient-to-t from-[color:var(--app-bg)] via-transparent to-transparent z-10 pointer-events-none" />
+            <div className="relative rounded-xl bg-[color:var(--surface-med)] border border-[color:var(--border)] overflow-hidden aspect-[16/9] text-left p-4 sm:p-6 flex flex-col justify-between">
+              {/* Miniature Layout Navbar mock */}
+              <div className="flex items-center justify-between border-b border-[color:var(--border)] pb-3 mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="h-3 w-3 rounded-full bg-rose-500/80" />
+                  <div className="h-3 w-3 rounded-full bg-amber-500/80" />
+                  <div className="h-3 w-3 rounded-full bg-emerald-500/80" />
+                  <span className="text-[10px] text-[color:var(--muted)] ml-2 font-mono">my-notion.workspace / home</span>
+                </div>
+                <div className="h-5 w-40 rounded-lg bg-[color:var(--surface-low)] border border-[color:var(--border)]" />
+              </div>
+              
+              {/* Main dashboard mock panels */}
+              <div className="grid grid-cols-3 gap-3 flex-1">
+                <div className="col-span-2 border border-[color:var(--border)] rounded-xl bg-[color:var(--surface-low)] p-3 flex flex-col justify-between">
+                  <div className="space-y-1">
+                    <div className="h-3 w-24 bg-[color:var(--surface-high)] rounded" />
+                    <div className="h-2.5 w-44 bg-[color:var(--muted)]/20 rounded mt-1" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 mt-4">
+                    <div className="h-12 border border-[color:var(--border)] rounded-lg p-2 flex flex-col justify-between">
+                      <div className="h-2 w-10 bg-[color:var(--muted)]/30 rounded" />
+                      <div className="h-3.5 w-6 bg-[color:var(--accent)] rounded" />
+                    </div>
+                    <div className="h-12 border border-[color:var(--border)] rounded-lg p-2 flex flex-col justify-between">
+                      <div className="h-2 w-12 bg-[color:var(--muted)]/30 rounded" />
+                      <div className="h-3.5 w-6 bg-[color:var(--accent-2)] rounded" />
+                    </div>
+                  </div>
+                </div>
+                <div className="border border-[color:var(--border)] rounded-xl bg-[color:var(--surface-low)] p-3 flex flex-col gap-2">
+                  <div className="h-3 w-16 bg-[color:var(--surface-high)] rounded" />
+                  <div className="h-8 border border-[color:var(--border)] rounded-lg flex items-center justify-between px-2">
+                    <div className="h-2 w-16 bg-[color:var(--muted)]/30 rounded" />
+                    <span className="h-2 w-2 rounded-full bg-[color:var(--accent)]" />
+                  </div>
+                  <div className="h-8 border border-[color:var(--border)] rounded-lg flex items-center justify-between px-2">
+                    <div className="h-2 w-20 bg-[color:var(--muted)]/30 rounded" />
+                    <span className="h-2 w-2 rounded-full bg-[color:var(--accent-2)]" />
+                  </div>
+                </div>
+              </div>
             </div>
-          </main>
-        </div>
+          </motion.div>
+        </main>
+
+        {/* Landing footer */}
+        <footer className="relative max-w-5xl w-full mx-auto flex flex-col sm:flex-row items-center justify-between shrink-0 mt-12 pt-6 border-t border-[color:var(--border)] text-xs text-[color:var(--muted)] z-10 gap-3">
+          <p>© 2026 My-Notion. Built for productivity and focus.</p>
+          <div className="flex items-center gap-4">
+            <span className="hover:text-[color:var(--text)] transition-colors cursor-pointer">Security</span>
+            <span className="hover:text-[color:var(--text)] transition-colors cursor-pointer">Terms</span>
+            <span className="hover:text-[color:var(--text)] transition-colors cursor-pointer">Privacy</span>
+          </div>
+        </footer>
       </div>
     );
   }
 
   return (
-    <div className="app-shell relative flex min-h-screen overflow-x-hidden">
-      <button
-        type="button"
-        onClick={() => setIsMobileSidebarOpen(true)}
-        className="fixed left-2 top-[72px] z-50 flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-[rgba(12,18,34,0.82)] text-[color:var(--text)] shadow-lg shadow-black/25 transition hover:bg-[rgba(12,18,34,0.95)] md:hidden"
-        aria-label="Open sidebar"
-      >
-        <ChevronRight className="h-4 w-4" />
-      </button>
+    <div className="app-shell relative min-h-screen bg-[color:var(--app-bg)] text-[color:var(--text)] flex flex-col select-none">
+      
+      {/* 1. Raycast Style Navbar */}
+      <div className="fixed inset-x-0 top-0 z-40 px-4 pt-3 shrink-0">
+        <header className="mx-auto flex h-14 w-full max-w-[1400px] items-center justify-between gap-4 rounded-full border border-white/10 bg-[color:var(--surface-low)]/85 px-4 shadow-[0_16px_50px_rgba(0,0,0,0.3)] backdrop-blur-md">
+          {/* Left: Logo & Breadcrumbs */}
+          <div className="flex items-center gap-2">
+            {/* Mobile Hamburger menu */}
+            <button
+              onClick={() => setIsMobileSidebarOpen(true)}
+              className="flex h-9 w-9 items-center justify-center rounded-full text-[color:var(--muted)] transition-colors hover:bg-[color:var(--surface-med)] hover:text-[color:var(--text)] md:hidden focus:outline-none"
+              aria-label="Open sidebar menu"
+            >
+              <Menu className="h-4.5 w-4.5" />
+            </button>
 
-      {!isSidebarOpen && (
-        <button
-          type="button"
-          onClick={() => setIsSidebarOpen(true)}
-          className="fixed left-2 top-[72px] z-50 hidden h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-[rgba(12,18,34,0.82)] text-[color:var(--text)] shadow-lg shadow-black/25 transition hover:bg-[rgba(12,18,34,0.95)] md:flex"
-          aria-label="Expand sidebar"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </button>
-      )}
-
-      <button
-        type="button"
-        aria-label="Close sidebar"
-        onClick={() => setIsMobileSidebarOpen(false)}
-        className={cn('fixed inset-0 z-40 bg-black/50 transition-opacity md:hidden', isMobileSidebarOpen ? 'opacity-100' : 'pointer-events-none opacity-0')}
-      />
-
-      <aside className={cn('fixed left-0 top-[72px] z-40 flex h-[calc(100vh-72px)] w-[240px] -translate-x-full flex-col overflow-hidden border-r border-subtle bg-[color:var(--app-bg)] px-4 py-4 shadow-2xl shadow-black/20 transition-all duration-300 md:shadow-none', isSidebarOpen ? 'md:translate-x-0 md:w-[240px]' : 'md:-translate-x-full md:w-[240px]', isMobileSidebarOpen ? 'translate-x-0' : '')}>
-        <div className="flex items-center justify-between gap-3 pb-4">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-accent text-[color:var(--on-accent)]">
-              <Sparkles className="h-5 w-5" />
-            </div>
-            <div className="hidden min-w-0 md:block">
-              <p className="text-xs uppercase tracking-[0.24em] text-muted">Workspace</p>
-              <h2 className="truncate text-base font-semibold">Loch's Notion</h2>
-            </div>
-          </div>
-          <div className="flex items-center gap-1">
             <button
               type="button"
-              onClick={() => setIsSidebarOpen((current) => !current)}
-              className="hidden rounded-full p-2 text-muted transition hover:bg-[color:var(--surface-soft)] hover:text-[color:var(--text)] md:inline-flex"
-              aria-label={isSidebarOpen ? 'Minimize sidebar' : 'Expand sidebar'}
+              onClick={() => setAppStage('landing')}
+              className="flex items-center gap-2.5 rounded-full px-2 py-1 text-left transition hover:bg-white/5"
+              aria-label="Go to landing page"
             >
-              <ChevronRight className={cn('h-4 w-4 transition-transform', isSidebarOpen ? 'rotate-180' : '')} />
-            </button>
-            <button
-              onClick={() => setIsMobileSidebarOpen(false)}
-              className="rounded-full p-2 text-muted transition hover:bg-[color:var(--surface-soft)] hover:text-[color:var(--text)] md:hidden"
-              aria-label="Close sidebar"
-            >
-              <X className="h-4 w-4" />
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-[color:var(--accent)] to-[color:var(--accent-2)] text-[color:var(--on-accent)] shadow-sm">
+                <Sparkles className="h-3.5 w-3.5" />
+              </span>
+              <span className="hidden sm:inline-flex items-center gap-2 text-xs font-semibold text-[color:var(--text)]">
+                <span className="font-heading">My-Notion</span>
+                <span className="text-[color:var(--border)]">/</span>
+                <span className="text-[color:var(--muted)] font-normal text-[11px] font-sans truncate max-w-[120px]">
+                  {activeBreadcrumb}
+                </span>
+              </span>
             </button>
           </div>
-        </div>
 
-        <nav className="flex flex-1 flex-col gap-1 pt-2">
-          <button onClick={() => navigateToTab('home')} className={navItemClass(activeTab === 'home')}>
-            <Home className="h-4 w-4 shrink-0" />
-            <span>Home</span>
-          </button>
-          <button onClick={() => navigateToTab('academic')} className={navItemClass(activeTab === 'academic' && !activeModuleId)}>
-            <Library className="h-4 w-4 shrink-0" />
-            <span>Academic</span>
-          </button>
-          <button onClick={() => navigateToTab('personal')} className={navItemClass(activeTab === 'personal')}>
-            <LayoutDashboard className="h-4 w-4 shrink-0" />
-            <span>Personal</span>
-          </button>
-          <button onClick={() => navigateToTab('calendar')} className={navItemClass(activeTab === 'calendar')}>
-            <Calendar className="h-4 w-4 shrink-0" />
-            <span>Calendar</span>
-          </button>
-        </nav>
-
-        <div className="pt-4">
-          <div className="rounded-2xl border border-subtle px-3 py-2 text-center text-xs text-muted">My-Notion v1.0</div>
-        </div>
-      </aside>
-
-      <div className={cn('min-w-0 flex-1 transition-[padding-left] duration-300', isSidebarOpen ? 'md:pl-[240px]' : 'md:pl-0')}>
-        <div className="fixed inset-x-0 top-0 z-50 px-3 pt-3 sm:px-4">
-          <header className="mx-auto flex h-14 max-w-[calc(100vw-1.5rem)] items-center gap-3 rounded-[1.75rem] border border-[rgba(255,255,255,0.12)] bg-[rgba(12,18,34,0.60)] px-3 shadow-[0_16px_50px_rgba(0,0,0,0.22)] backdrop-blur-2xl sm:max-w-[calc(100vw-2rem)] sm:px-4 lg:max-w-[calc(100vw-3rem)] lg:px-5">
+          {/* Center: Search input */}
+          <div ref={searchRef} className="relative flex-1 max-w-[28rem] min-w-0">
+            <div className="relative flex h-9 items-center rounded-full border border-white/10 bg-[color:var(--surface-med)]/40 pl-3.5 pr-10 transition-colors focus-within:border-[color:var(--border-focus)] focus-within:bg-[color:var(--surface-med)]/75">
+              <input
+                value={searchQuery}
+                onChange={(event) => {
+                  setSearchQuery(event.target.value);
+                  setIsSearchOpen(true);
+                }}
+                onFocus={() => setIsSearchOpen(true)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && searchResults[0]) {
+                    runSearchResult(searchResults[0]);
+                  }
+                }}
+                placeholder="Search anything..."
+                className="h-full w-full border-0 bg-transparent p-0 text-xs text-[color:var(--text)] outline-none placeholder:text-[color:var(--muted)]"
+              />
               <button
                 type="button"
-                onClick={() => setAppStage('landing')}
-                className="flex items-center gap-2.5 rounded-full px-2 py-1.5 text-left transition hover:bg-white/5"
-                aria-label="Go to landing page"
+                onClick={() => {
+                  if (searchQuery.trim() && searchResults[0]) {
+                    runSearchResult(searchResults[0]);
+                    return;
+                  }
+                  setIsSearchOpen(true);
+                }}
+                className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-full bg-[color:var(--surface-high)] text-[color:var(--muted)] shadow-sm transition hover:text-[color:var(--text)]"
+                aria-label="Search"
               >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-[color:var(--on-accent)] shadow-lg shadow-black/20">
-                  <Sparkles className="h-4 w-4" />
-                </span>
-                <span className="hidden min-w-0 sm:block">
-                  <span className="block truncate text-sm font-semibold text-[color:var(--text)]">Loch's Notion</span>
-                </span>
+                <Search className="h-3.5 w-3.5" />
               </button>
             </div>
 
-            <div ref={searchRef} className="relative mx-auto min-w-0 w-full max-w-[28rem]">
-              <div className="relative flex h-10 items-center rounded-full border border-white/10 bg-[rgba(12,18,34,0.52)] pl-4 pr-12 transition focus-within:border-[color:rgba(99,102,241,0.45)] focus-within:shadow-[0_0_0_2px_rgba(99,102,241,0.10)]">
-                <input
-                  value={searchQuery}
-                  onChange={(event) => {
-                    setSearchQuery(event.target.value);
-                    setIsSearchOpen(true);
-                  }}
-                  onFocus={() => setIsSearchOpen(true)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' && searchResults[0]) {
-                      runSearchResult(searchResults[0]);
-                    }
-                  }}
-                  placeholder="Search modules, tasks, events, or pages..."
-                  className="h-full w-full border-0 bg-transparent p-0 text-sm outline-none placeholder:text-muted"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (searchQuery.trim() && searchResults[0]) {
-                      runSearchResult(searchResults[0]);
-                      return;
-                    }
-                    setIsSearchOpen(true);
-                  }}
-                  className="absolute right-1 top-1 flex h-8 w-8 items-center justify-center rounded-full bg-[rgba(17,24,39,0.96)] text-[color:var(--text)] shadow-[0_6px_18px_rgba(0,0,0,0.35)] transition hover:brightness-110"
-                  aria-label="Search"
-                >
-                  <Search className="h-4 w-4" />
-                </button>
-              </div>
-
+            <AnimatePresence>
               {isSearchOpen && (
-                <div className="absolute left-0 right-0 top-[calc(100%+0.6rem)] z-40 overflow-hidden rounded-[1.5rem] border border-subtle surface-strong shadow-2xl shadow-black/25">
-                  <div className="flex items-center justify-between border-b border-subtle px-4 py-3">
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.98, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.98, y: 10 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-50 overflow-hidden rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-high)] shadow-2xl shadow-black/40"
+                >
+                  <div className="flex items-center justify-between border-b border-[color:var(--border)] px-4 py-2.5 bg-[color:var(--surface-med)]/50">
                     <div>
-                      <p className="text-xs uppercase tracking-[0.24em] text-muted">Search</p>
-                      <p className="mt-1 text-sm text-[color:var(--text)]">Jump to any page, module, task, or event</p>
+                      <p className="text-[10px] uppercase tracking-[0.24em] text-[color:var(--muted)]">Search results</p>
                     </div>
-                    <p className="text-xs text-muted">{searchResults.length} results</p>
+                    <p className="text-[10px] text-[color:var(--muted)]">{searchResults.length} matches</p>
                   </div>
-                  <div className="max-h-[22rem] overflow-y-auto p-2">
+                  <div className="max-h-[20rem] overflow-y-auto p-1.5 space-y-0.5">
                     {searchResults.length > 0 ? (
                       searchResults.map((result) => (
                         <button
                           key={result.id}
                           type="button"
                           onClick={() => runSearchResult(result)}
-                          className="flex w-full items-center justify-between gap-4 rounded-2xl px-4 py-3 text-left transition hover:bg-[color:var(--surface-soft)]"
+                          className="flex w-full items-center justify-between gap-4 rounded-xl px-3.5 py-2.5 text-left transition hover:bg-[color:var(--surface-low)]"
                         >
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium text-[color:var(--text)]">{result.title}</span>
-                              <span className="rounded-full border border-subtle px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-muted">{result.kind}</span>
+                              <span className="text-xs font-semibold text-[color:var(--text)]">{result.title}</span>
+                              <span className="rounded-full border border-[color:var(--border)] px-1.5 py-0.5 text-[9px] uppercase tracking-[0.12em] text-[color:var(--muted)]">{result.kind}</span>
                             </div>
-                            <p className="mt-1 truncate text-sm text-muted">{result.subtitle}</p>
+                            <p className="mt-0.5 truncate text-[11px] text-[color:var(--muted)]">{result.subtitle}</p>
                           </div>
-                          <span className="shrink-0 text-xs text-accent">{result.actionLabel}</span>
+                          <span className="shrink-0 text-[10px] font-semibold text-[color:var(--accent)]">{result.actionLabel}</span>
                         </button>
                       ))
                     ) : (
-                      <div className="px-4 py-10 text-center text-sm text-muted">
-                        No matches found. Try a module code, task title, or calendar event.
+                      <div className="px-4 py-8 text-center text-xs text-[color:var(--muted)]">
+                        No matches found.
                       </div>
                     )}
                   </div>
-                </div>
+                </motion.div>
               )}
-            </div>
+            </AnimatePresence>
+          </div>
 
-            <div className="flex shrink-0 items-center justify-end gap-2">
-              <div ref={notificationsRef} className="relative">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsNotificationsOpen((current) => !current);
-                    setIsSearchOpen(false);
-                  }}
-                  className="relative flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-[color:var(--text)] transition hover:bg-white/10"
-                  aria-label="Notifications"
-                >
-                  <Bell className="h-4 w-4" />
-                  {upcomingNotifications.length > 0 && (
-                    <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[color:var(--accent)] px-1 text-[10px] font-semibold text-[color:var(--on-accent)]">
-                      {upcomingNotifications.length > 9 ? '9+' : upcomingNotifications.length}
-                    </span>
-                  )}
-                </button>
+          {/* Right: Notifications & Say Hello & Settings */}
+          <div className="flex shrink-0 items-center gap-2">
+            
+            {/* Notification triggers */}
+            <div ref={notificationsRef} className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsNotificationsOpen((current) => !current);
+                  setIsSearchOpen(false);
+                }}
+                className="relative flex h-8.5 w-8.5 items-center justify-center rounded-full border border-white/5 bg-[color:var(--surface-med)]/40 text-[color:var(--muted)] transition-colors hover:bg-[color:var(--surface-med)]/85 hover:text-[color:var(--text)]"
+                aria-label="Notifications widget"
+              >
+                <Bell className="h-4 w-4" />
+                {upcomingNotifications.length > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[color:var(--accent)] px-1 text-[9px] font-bold text-[color:var(--on-accent)] ring-2 ring-[color:var(--surface-low)]">
+                    {upcomingNotifications.length}
+                  </span>
+                )}
+              </button>
 
+              <AnimatePresence>
                 {isNotificationsOpen && (
-                  <div className="absolute right-0 top-[calc(100%+0.6rem)] z-40 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-[1.5rem] border border-subtle surface-strong shadow-2xl shadow-black/25">
-                    <div className="border-b border-subtle px-4 py-3">
-                      <p className="text-xs uppercase tracking-[0.24em] text-muted">Notifications</p>
-                      <p className="mt-1 text-sm text-[color:var(--text)]">Upcoming tasks and events</p>
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.98, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.98, y: 10 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[20rem] overflow-hidden rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-high)] shadow-2xl shadow-black/40"
+                  >
+                    <div className="border-b border-[color:var(--border)] px-4 py-2.5 bg-[color:var(--surface-med)]/50">
+                      <p className="text-[10px] uppercase tracking-[0.24em] text-[color:var(--muted)]">Notifications</p>
+                      <p className="mt-0.5 text-xs text-[color:var(--text)]">Upcoming schedules</p>
                     </div>
-                    <div className="max-h-[22rem] overflow-y-auto p-2">
+                    <div className="max-h-[20rem] overflow-y-auto p-1.5 space-y-0.5">
                       {upcomingNotifications.length > 0 ? (
                         upcomingNotifications.map((item) => (
                           <button
@@ -541,127 +652,264 @@ export default function App() {
                               item.action();
                               setIsNotificationsOpen(false);
                             }}
-                            className="flex w-full items-center justify-between gap-4 rounded-2xl px-4 py-3 text-left transition hover:bg-[color:var(--surface-soft)]"
+                            className="flex w-full items-center justify-between gap-4 rounded-xl px-3 py-2.5 text-left transition hover:bg-[color:var(--surface-low)]"
                           >
                             <div className="min-w-0">
-                              <p className="truncate text-sm font-medium text-[color:var(--text)]">{item.title}</p>
-                              <p className="mt-1 text-sm text-muted">{item.subtitle}</p>
+                              <p className="truncate text-xs font-semibold text-[color:var(--text)]">{item.title}</p>
+                              <p className="mt-0.5 text-[11px] text-[color:var(--muted)]">{item.subtitle}</p>
                             </div>
-                            <ArrowRight className="h-4 w-4 shrink-0 text-accent" />
+                            <ArrowRight className="h-3.5 w-3.5 shrink-0 text-[color:var(--accent)]" />
                           </button>
                         ))
                       ) : (
-                        <div className="px-4 py-10 text-center text-sm text-muted">
-                          No upcoming notifications.
+                        <div className="px-4 py-8 text-center text-xs text-[color:var(--muted)]">
+                          No upcoming tasks or events.
                         </div>
                       )}
                     </div>
-                  </div>
+                  </motion.div>
                 )}
+              </AnimatePresence>
+            </div>
+
+            {/* AI global trigger */}
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setIsAiPanelOpen(true)}
+              leftIcon={<Sparkles className="h-3.5 w-3.5" />}
+              className="h-8.5 text-xs"
+            >
+              Say Hello
+            </Button>
+
+            {/* Profile trigger placeholder */}
+            <button
+              type="button"
+              className="flex h-8.5 w-8.5 items-center justify-center rounded-full border border-white/5 bg-[color:var(--surface-med)]/40 text-[color:var(--muted)] hover:text-[color:var(--text)] transition-colors"
+              aria-label="Settings panel placeholder"
+            >
+              <Settings2 className="h-4 w-4" />
+            </button>
+          </div>
+        </header>
+      </div>
+
+      {/* Main Grid Wrapper (Contains Sidebar + Page Panel) */}
+      <div className="flex-1 flex pt-[72px] min-h-0 relative">
+        
+        {/* 2. Responsive sidebar drawer overlays (Mobile only) */}
+        <AnimatePresence>
+          {isMobileSidebarOpen && (
+            <>
+              {/* Mobile overlay backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.5 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsMobileSidebarOpen(false)}
+                className="fixed inset-0 z-40 bg-black/60 md:hidden"
+              />
+              {/* Mobile Slide-in Drawer */}
+              <motion.aside
+                initial={{ x: '-100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '-100%' }}
+                transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                className="fixed left-0 top-0 bottom-0 z-40 w-[240px] border-r border-[color:var(--border)] bg-[color:var(--surface-low)] p-4 flex flex-col justify-between shadow-2xl md:hidden"
+              >
+                <div className="flex flex-col gap-6">
+                  {/* Top logo */}
+                  <div className="flex items-center justify-between pb-3 border-b border-[color:var(--border)]">
+                    <span className="font-heading tracking-tight font-bold text-[color:var(--text)]">Loch's Workspace</span>
+                    <button
+                      onClick={() => setIsMobileSidebarOpen(false)}
+                      className="rounded-full p-1.5 text-[color:var(--muted)] hover:bg-[color:var(--surface-med)] hover:text-[color:var(--text)] transition-colors"
+                      aria-label="Close sidebar"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                  {/* Nav List */}
+                  <nav className="flex flex-col gap-1">
+                    {[
+                      { id: 'home', label: 'Home', icon: Home },
+                      { id: 'academic', label: 'Academic', icon: Library },
+                      { id: 'personal', label: 'Personal', icon: LayoutDashboard },
+                      { id: 'calendar', label: 'Calendar', icon: Calendar },
+                    ].map((tab) => {
+                      const Icon = tab.icon;
+                      const isActive = activeTab === tab.id;
+                      return (
+                        <button
+                          key={tab.id}
+                          onClick={() => {
+                            navigateToTab(tab.id as any);
+                            setIsMobileSidebarOpen(false);
+                          }}
+                          className={cn(
+                            'flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-xs font-medium transition-colors text-left w-full',
+                            isActive
+                              ? 'bg-[color:var(--accent)] text-[color:var(--on-accent)] font-semibold shadow-sm'
+                              : 'text-[color:var(--muted)] hover:bg-[color:var(--surface-med)] hover:text-[color:var(--text)]'
+                          )}
+                        >
+                          <Icon className="h-4 w-4 shrink-0" />
+                          <span>{tab.label}</span>
+                        </button>
+                      );
+                    })}
+                  </nav>
+                </div>
+                {/* Footer My Notion v1 */}
+                <div className="text-[10px] text-[color:var(--muted)] opacity-60 text-center py-2">
+                  My-Notion v1.0
+                </div>
+              </motion.aside>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* Collapsible Sidebar (Tablet collapsable to icons, Desktop full size) */}
+        <aside 
+          className={cn(
+            'hidden md:flex flex-col border-r border-[color:var(--border)] bg-[color:var(--surface-low)] py-4 transition-all duration-300 relative shrink-0',
+            isSidebarOpen ? 'w-[240px] px-4' : 'w-[72px] px-3'
+          )}
+        >
+          <div className="flex flex-col flex-1 justify-between">
+            <div className="space-y-4">
+              {/* Sidebar toggle buttons */}
+              <div className={cn('flex items-center justify-between pb-3 border-b border-[color:var(--border)]', isSidebarOpen ? '' : 'justify-center')}>
+                {isSidebarOpen && (
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[color:var(--muted)] font-heading">
+                    Workspace
+                  </span>
+                )}
+                <button
+                  onClick={() => setIsSidebarOpen((prev) => !prev)}
+                  className="rounded-xl p-1.5 text-[color:var(--muted)] hover:bg-[color:var(--surface-med)] hover:text-[color:var(--text)] transition-colors focus:outline-none"
+                  aria-label={isSidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+                >
+                  <ChevronLeft className={cn('h-4 w-4 transition-transform duration-300', !isSidebarOpen ? 'rotate-180' : '')} />
+                </button>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setIsAiPanelOpen(true)}
-                className="btn-primary h-9 px-4 text-xs font-semibold sm:px-5"
-              >
-                <Sparkles className="h-4 w-4" />
-                Say Hello
-              </button>
-              <button
-                type="button"
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-[color:var(--text)] transition hover:bg-white/10"
-                aria-label="Settings"
-              >
-                <Settings2 className="h-4 w-4" />
-              </button>
+              {/* Sidebar Nav Links */}
+              <nav className="space-y-1">
+                {[
+                  { id: 'home', label: 'Home', icon: Home },
+                  { id: 'academic', label: 'Academic', icon: Library },
+                  { id: 'personal', label: 'Personal', icon: LayoutDashboard },
+                  { id: 'calendar', label: 'Calendar', icon: Calendar },
+                ].map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => navigateToTab(tab.id as any)}
+                      className={cn(
+                        'flex items-center gap-3 rounded-xl py-2.5 transition-colors text-left w-full relative',
+                        isSidebarOpen ? 'px-3 text-xs font-medium' : 'justify-center px-0 text-sm',
+                        isActive
+                          ? 'bg-[color:var(--accent)] text-[color:var(--on-accent)] font-semibold shadow-sm'
+                          : 'text-[color:var(--muted)] hover:bg-[color:var(--surface-med)] hover:text-[color:var(--text)]'
+                      )}
+                      title={!isSidebarOpen ? tab.label : undefined}
+                    >
+                      <Icon className="h-4.5 w-4.5 shrink-0" />
+                      {isSidebarOpen && <span>{tab.label}</span>}
+                    </button>
+                  );
+                })}
+              </nav>
             </div>
-          </header>
-        </div>
 
-        <main className="overflow-x-hidden px-4 pb-4 pt-[72px] sm:px-6 sm:pb-6 lg:px-8">
-          <div className="mx-auto max-w-[1440px] space-y-6">
+            {/* Footer details redesigned */}
+            <div className={cn('pt-4 border-t border-[color:var(--border)] text-[9px] text-[color:var(--muted)] opacity-60 text-center', isSidebarOpen ? '' : 'truncate')}>
+              {isSidebarOpen ? 'My-Notion v1.0 · Academic Tool' : 'v1.0'}
+            </div>
+          </div>
+        </aside>
+
+        {/* 3. Main content workspace views inside scrollable containment */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden min-w-0">
+          <PageContainer animate={true}>
+            
             {activeTab === 'home' && (
-              <section className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
-                <div className="surface-strong hero-ring rounded-[1.75rem] p-4 sm:p-5 animate-fade-up">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-subtle surface-soft px-3 py-1 text-xs uppercase tracking-[0.24em] text-muted">
-                    <Sparkles className="h-3.5 w-3.5 text-accent" />
-                    Today inside My-Notion
-                  </div>
-                  <h1 className="mt-4 max-w-2xl text-2xl font-semibold tracking-tight sm:text-3xl lg:text-4xl">
-                    Welcome to your personal workspace.
-                  </h1>
-                  <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
-                    Overview of your academics, personal tasks, and upcoming events. Keep everything organized and accessible in one place.
-                  </p>
-                  <div className="mt-5 flex flex-wrap gap-3">
-                    <button
-                      onClick={() => navigateToTab('academic')}
-                      className="btn-primary px-5 py-2.5 text-sm font-semibold"
-                    >
-                      Open academics <ArrowRight className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => navigateToTab('personal')}
-                      className="btn-primary px-5 py-2.5 text-sm font-semibold"
-                    >
-                      Open personal <ArrowRight className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => setIsAiPanelOpen(true)}
-                      className="btn-primary px-5 py-2.5 text-sm font-semibold"
-                    >
-                      <Sparkles className="h-4 w-4" /> Ask AI
-                    </button>
-                  </div>
-                </div>
+              <div className="space-y-6">
+                <SectionHeader 
+                  title="Welcome to your workspace."
+                  subtitle="Keep track of your academic papers, classes, deadlines, and daily agenda under one cohesive, custom-grounded AI-assisted workspace."
+                  category="Today inside My-Notion"
+                />
 
-                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
-                  <div className="surface rounded-[1.75rem] p-4 animate-fade-up">
-                    <div className="flex items-center justify-between">
+                <div className="grid gap-6 lg:grid-cols-3">
+                  
+                  {/* Left Welcome block */}
+                  <Card spotlight={true} className="lg:col-span-2 p-6 flex flex-col justify-between min-h-[220px]">
+                    <div className="space-y-2">
+                      <div className="inline-flex items-center gap-1.5 text-xs text-[color:var(--accent)] font-semibold">
+                        <Sparkles className="h-4 w-4" />
+                        Interactive Context Aware Engine
+                      </div>
+                      <h2 className="text-xl font-bold font-heading text-[color:var(--text)]">
+                        Manage your classes and notes effortlessly
+                      </h2>
+                      <p className="text-xs text-[color:var(--muted)] max-w-xl leading-relaxed">
+                        Create standard academic spaces, upload files/slides, and use standard Gemini LLM configurations to run notes highlights, summaries, exam quizzes, or calendar scheduling prompts.
+                      </p>
+                    </div>
+
+                    <div className="mt-6 flex flex-wrap gap-2.5 shrink-0">
+                      <Button variant="primary" size="sm" onClick={() => navigateToTab('academic')}>
+                        Explore Academics
+                      </Button>
+                      <Button variant="secondary" size="sm" onClick={() => navigateToTab('personal')}>
+                        View Personal Focus
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => setIsAiPanelOpen(true)} leftIcon={<Sparkles className="h-3.5 w-3.5" />}>
+                        Ask AI Assistant
+                      </Button>
+                    </div>
+                  </Card>
+
+                  {/* Right Context summary */}
+                  <div className="flex flex-col gap-4">
+                    <Card spotlight={true} className="p-4 flex-1 flex flex-col justify-between">
                       <div>
-                        <p className="text-xs uppercase tracking-[0.24em] text-muted">Workspace summary</p>
-                        <h2 className="mt-2 text-xl font-semibold">Quick context</h2>
+                        <p className="text-[10px] uppercase tracking-[0.24em] text-[color:var(--muted)] mb-3">Workspace status</p>
+                        <div className="space-y-2 text-xs">
+                          <div className="flex items-center justify-between rounded-xl bg-[color:var(--surface-low)] px-3 py-2 border border-[color:var(--border)]">
+                            <span className="text-[color:var(--muted)]">Academic modules</span>
+                            <span className="font-bold text-[color:var(--text)]">{state.modules.length}</span>
+                          </div>
+                          <div className="flex items-center justify-between rounded-xl bg-[color:var(--surface-low)] px-3 py-2 border border-[color:var(--border)]">
+                            <span className="text-[color:var(--muted)]">Open tasks</span>
+                            <span className="font-bold text-[color:var(--text)]">{state.tasks.filter(t => !t.done).length}</span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="rounded-2xl surface-soft p-3 text-accent">
-                        <Library className="h-5 w-5" />
+                    </Card>
+
+                    <Card spotlight={true} className="p-4 flex-1 flex flex-col justify-center">
+                      <div className="space-y-1">
+                        <p className="text-[10px] uppercase tracking-[0.24em] text-[color:var(--muted)]">System status</p>
+                        <h3 className="text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          Gemini 1.5 RAG Ready
+                        </h3>
                       </div>
-                    </div>
-                    <div className="mt-5 space-y-3 text-sm text-muted">
-                      <div className="flex items-center justify-between rounded-2xl surface-soft px-4 py-3">
-                        <span>Academic modules</span>
-                        <span className="font-semibold text-[color:var(--text)]">{state.modules.length}</span>
-                      </div>
-                      <div className="flex items-center justify-between rounded-2xl surface-soft px-4 py-3">
-                        <span>Personal tasks</span>
-                        <span className="font-semibold text-[color:var(--text)]">{state.tasks.length}</span>
-                      </div>
-                      <div className="flex items-center justify-between rounded-2xl surface-soft px-4 py-3">
-                        <span>Calendar events</span>
-                        <span className="font-semibold text-[color:var(--text)]">{state.events.length}</span>
-                      </div>
-                    </div>
+                    </Card>
                   </div>
 
-                    <div className="surface rounded-[1.75rem] p-4 animate-fade-up">
-                    <p className="text-xs uppercase tracking-[0.24em] text-muted">Entry points</p>
-                    <div className="mt-4 space-y-3 text-sm">
-                      <button onClick={() => navigateToTab('academic')} className="surface-soft flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left transition hover:text-[color:var(--text)]">
-                        <span>Academic dashboard</span>
-                        <ArrowRight className="h-4 w-4 text-accent" />
-                      </button>
-                      <button onClick={() => navigateToTab('personal')} className="surface-soft flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left transition hover:text-[color:var(--text)]">
-                        <span>Personal dashboard</span>
-                        <ArrowRight className="h-4 w-4 text-accent" />
-                      </button>
-                    </div>
-                  </div>
                 </div>
-              </section>
+              </div>
             )}
 
             {activeTab === 'academic' && !activeModuleId && (
-              <div className="surface-strong rounded-[1.75rem] p-4 sm:p-5 animate-fade-up">
+              <div className="animate-fade-up">
                 <AcademicOverview
                   modules={state.modules}
                   tasks={state.tasks}
@@ -676,7 +924,7 @@ export default function App() {
             )}
 
             {activeTab === 'academic' && activeModuleId && activeModule && (
-              <div className="surface-strong rounded-[1.75rem] p-4 sm:p-5 animate-fade-up">
+              <div className="animate-fade-up">
                 <ModuleDetail
                   module={activeModule}
                   tasks={state.tasks.filter(t => t.moduleId === activeModule.id)}
@@ -691,7 +939,7 @@ export default function App() {
             )}
 
             {activeTab === 'personal' && (
-              <div className="surface-strong rounded-[1.75rem] p-4 sm:p-5 animate-fade-up">
+              <div className="animate-fade-up">
                 <PersonalDashboard
                   tasks={state.tasks}
                   events={state.events}
@@ -702,22 +950,32 @@ export default function App() {
                 />
               </div>
             )}
+
             {activeTab === 'calendar' && (
-              <div className="surface-strong rounded-[1.75rem] p-4 sm:p-5 animate-fade-up">
-                <CalendarView events={state.events} onAddEvent={addEvent} onRemoveEvent={removeEvent} onUpdateEvent={updateEvent} />
+              <div className="animate-fade-up">
+                <CalendarView 
+                  events={state.events} 
+                  onAddEvent={addEvent} 
+                  onRemoveEvent={removeEvent} 
+                  onUpdateEvent={updateEvent} 
+                />
               </div>
             )}
-          </div>
-        </main>
+
+          </PageContainer>
+        </div>
       </div>
 
-      {isAiPanelOpen && (
-        <GlobalChat
-          onClose={() => setIsAiPanelOpen(false)}
-          state={state}
-          saveGlobalChatMessage={saveGlobalChatMessage}
-        />
-      )}
+      {/* 4. Global Drawer Assistant (Sidebar panel on desktop, slide modal on mobile) */}
+      <AnimatePresence>
+        {isAiPanelOpen && (
+          <GlobalChat
+            onClose={() => setIsAiPanelOpen(false)}
+            state={state}
+            saveGlobalChatMessage={saveGlobalChatMessage}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
