@@ -1,15 +1,60 @@
 import React, { useMemo, useState } from 'react';
-import { startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, format, isSameMonth, isSameDay, addMonths, subMonths, parseISO, isAfter, compareAsc } from 'date-fns';
+import {
+  addDays,
+  addMonths,
+  compareAsc,
+  endOfMonth,
+  endOfWeek,
+  format,
+  isAfter,
+  isSameDay,
+  isSameMonth,
+  parseISO,
+  startOfMonth,
+  startOfWeek,
+  subMonths,
+} from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Event } from '../types';
 import { cn } from '../lib/utils';
 
-export default function CalendarView({ events, onAddEvent, onRemoveEvent }: { events: Event[]; onAddEvent: (title: string, startTime: string, endTime: string, color: Event['color'], description?: string) => void; onRemoveEvent: (id: string) => void }) {
+type ModalView =
+  | { type: 'none' }
+  | { type: 'day'; date: Date }
+  | { type: 'details'; event: Event }
+  | { type: 'form'; date: Date; event?: Event };
+
+const colorClasses: Record<Event['color'], string> = {
+  blue: 'bg-blue-500',
+  amber: 'bg-amber-500',
+  purple: 'bg-purple-500',
+};
+
+function toInputTime(value?: string) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toISOString().slice(11, 16);
+}
+
+function buildDateTime(date: Date, time: string) {
+  const day = format(date, 'yyyy-MM-dd');
+  return new Date(`${day}T${time}:00`).toISOString();
+}
+
+export default function CalendarView({
+  events,
+  onAddEvent,
+  onRemoveEvent,
+  onUpdateEvent,
+}: {
+  events: Event[];
+  onAddEvent: (title: string, startTime: string, endTime: string, color: Event['color'], description?: string) => void;
+  onRemoveEvent: (id: string) => void;
+  onUpdateEvent: (id: string, updates: Partial<Event>) => void;
+}) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [isAddOpen, setIsAddOpen] = useState(false);
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [modal, setModal] = useState<ModalView>({ type: 'none' });
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(monthStart);
@@ -25,146 +70,261 @@ export default function CalendarView({ events, onAddEvent, onRemoveEvent }: { ev
 
   const eventsByDay = useMemo(() => {
     const map: Record<string, Event[]> = {};
-    for (const e of events) {
+    for (const event of events) {
       try {
-        const d = format(parseISO(e.startTime), 'yyyy-MM-dd');
-        map[d] = map[d] || [];
-        map[d].push(e);
-      } catch (err) {
-        // ignore
+        const key = format(parseISO(event.startTime), 'yyyy-MM-dd');
+        map[key] = map[key] || [];
+        map[key].push(event);
+      } catch {
+        // ignore malformed dates
       }
     }
-    for (const k of Object.keys(map)) {
-      map[k].sort((a, b) => compareAsc(parseISO(a.startTime), parseISO(b.startTime)));
+    for (const key of Object.keys(map)) {
+      map[key].sort((a, b) => compareAsc(parseISO(a.startTime), parseISO(b.startTime)));
     }
     return map;
   }, [events]);
 
   const upcoming = useMemo(() => {
     return events
-      .filter(e => isAfter(parseISO(e.startTime), new Date()))
+      .filter((event) => isAfter(parseISO(event.startTime), new Date()))
       .sort((a, b) => compareAsc(parseISO(a.startTime), parseISO(b.startTime)))
       .slice(0, 8);
   }, [events]);
 
-  function openAdd(date: Date) {
-    setSelectedDate(date);
-    setIsAddOpen(true);
-  }
+  const modalDate = modal.type === 'day' || modal.type === 'form' ? modal.date : null;
+  const modalEvent = modal.type === 'details' || modal.type === 'form' ? modal.event : null;
 
-  function openDetails(ev: Event) {
-    setSelectedEvent(ev);
-    setIsDetailsOpen(true);
-  }
+  const openDay = (date: Date) => setModal({ type: 'day', date });
+  const openDetails = (event: Event) => setModal({ type: 'details', event });
+  const openCreate = (date: Date) => setModal({ type: 'form', date });
+  const openEdit = (event: Event) => setModal({ type: 'form', date: new Date(event.startTime), event });
+  const closeModal = () => setModal({ type: 'none' });
 
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-[1fr_320px]">
-      <div>
-        <div className="flex items-center justify-between mb-4">
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <section className="min-w-0">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="btn-ghost rounded-full p-2"><ChevronLeft className="h-4 w-4"/></button>
-            <h3 className="text-lg font-semibold">{format(monthStart, 'MMMM yyyy')}</h3>
-            <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="btn-ghost rounded-full p-2"><ChevronRight className="h-4 w-4"/></button>
+            <button onClick={() => setCurrentMonth((value) => subMonths(value, 1))} className="btn-ghost rounded-full p-2" aria-label="Previous month">
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <h3 className="text-lg font-semibold sm:text-xl">{format(monthStart, 'MMMM yyyy')}</h3>
+            <button onClick={() => setCurrentMonth((value) => addMonths(value, 1))} className="btn-ghost rounded-full p-2" aria-label="Next month">
+              <ChevronRight className="h-4 w-4" />
+            </button>
           </div>
+          <button onClick={() => openCreate(new Date())} className="btn-primary px-4 py-2 text-sm font-semibold">
+            Add event
+          </button>
         </div>
 
-        <div className="surface rounded-2xl p-4">
-          <div className="grid grid-cols-7 gap-2 text-xs text-muted mb-2">
-            {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => <div key={d} className="text-center">{d}</div>)}
+        <div className="surface rounded-2xl p-3 sm:p-4">
+          <div className="grid grid-cols-7 gap-1.5 pb-2 text-[11px] uppercase tracking-[0.2em] text-muted sm:gap-2 sm:text-xs">
+            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((label) => (
+              <div key={label} className="text-center">
+                {label}
+              </div>
+            ))}
           </div>
 
-          <div className="grid grid-cols-7 gap-2">
-            {calendarDays.map((d, idx) => {
-              const key = format(d, 'yyyy-MM-dd');
+          <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+            {calendarDays.map((date) => {
+              const key = format(date, 'yyyy-MM-dd');
               const dayEvents = eventsByDay[key] || [];
+              const isCurrentMonth = isSameMonth(date, monthStart);
+              const isToday = isSameDay(date, new Date());
+
               return (
-                <div key={idx} className={cn('rounded-2xl p-2 h-28 flex flex-col justify-between cursor-pointer', isSameMonth(d, monthStart) ? 'bg-transparent' : 'opacity-40')} onClick={() => { if (dayEvents.length) { setSelectedDate(d); setIsDetailsOpen(true); } else { openAdd(d); } }}>
-                  <div className="flex items-start justify-between">
-                    <div className={cn('text-sm font-medium', isSameDay(d, new Date()) ? 'text-accent' : '')}>{format(d, 'd')}</div>
-                    {dayEvents.length > 0 && <div className="flex gap-1">{dayEvents.slice(0,3).map((e,i) => <span key={i} className={cn('h-2 w-2 rounded-full', e.color === 'blue' ? 'bg-blue-500' : e.color === 'amber' ? 'bg-amber-500' : 'bg-purple-500')}></span>)}</div>}
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => openDay(date)}
+                  className={cn(
+                    'min-h-[7rem] rounded-2xl border border-transparent p-2 text-left transition hover:-translate-y-0.5 hover:border-[color:var(--accent)]/30 hover:bg-[color:var(--surface-soft)] focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)]/30 sm:min-h-[8rem]',
+                    isCurrentMonth ? 'bg-transparent' : 'opacity-35',
+                    isToday ? 'ring-1 ring-[color:var(--accent)]/30' : ''
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <span className={cn('text-sm font-medium sm:text-base', isToday ? 'text-accent' : 'text-[color:var(--text)]')}>
+                      {format(date, 'd')}
+                    </span>
+                    {dayEvents.length > 0 && (
+                      <div className="flex items-center gap-1.5">
+                        {dayEvents.slice(0, 3).map((event) => (
+                          <span key={event.id} className={cn('h-2 w-2 rounded-full', colorClasses[event.color])} />
+                        ))}
+                      </div>
+                    )}
                   </div>
 
-                  <div className="mt-2 space-y-1">
-                    {dayEvents.slice(0,2).map(ev => (
-                      <button key={ev.id} onClick={(evn) => { evn.stopPropagation(); openDetails(ev); }} className="w-full text-left text-xs rounded-md px-2 py-1 surface-soft">{format(parseISO(ev.startTime), 'HH:mm')} {ev.title}</button>
+                  <div className="mt-2 space-y-1.5">
+                    {dayEvents.slice(0, 2).map((event) => (
+                      <button
+                        key={event.id}
+                        type="button"
+                        onClick={(ev) => {
+                          ev.stopPropagation();
+                          openDetails(event);
+                        }}
+                        className={cn(
+                          'w-full rounded-xl px-2.5 py-1.5 text-left text-xs text-[color:var(--text)] transition hover:brightness-110 sm:text-[13px]',
+                          'surface-soft'
+                        )}
+                      >
+                        <div className="truncate font-medium">
+                          {format(parseISO(event.startTime), 'HH:mm')} {event.title}
+                        </div>
+                      </button>
                     ))}
                     {dayEvents.length > 2 && <div className="text-[11px] text-muted">+{dayEvents.length - 2} more</div>}
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>
         </div>
-      </div>
+      </section>
 
-      <aside>
-        <div className="mb-4 flex items-center justify-between">
-          <h4 className="text-sm font-semibold">Upcoming events</h4>
+      <aside className="min-w-0">
+        <div className="mb-4 flex items-center justify-between gap-2">
+          <h4 className="text-sm font-semibold sm:text-base">Upcoming events</h4>
         </div>
-        <div className="surface rounded-2xl p-3 space-y-2">
-          {upcoming.length > 0 ? upcoming.map(ev => (
-            <div key={ev.id} className="flex items-center justify-between gap-3 rounded-md surface-soft px-3 py-2">
-              <div className="min-w-0">
-                <div className="text-sm font-medium truncate">{ev.title}</div>
-                <div className="text-xs text-muted">{format(parseISO(ev.startTime), 'MMM d')} • {format(parseISO(ev.startTime), 'HH:mm')}</div>
-              </div>
-              <div className={cn('h-8 w-8 rounded-full', ev.color === 'blue' ? 'bg-blue-500' : ev.color === 'amber' ? 'bg-amber-500' : 'bg-purple-500')}></div>
-            </div>
-          )) : <div className="p-4 text-sm text-muted">No upcoming events.</div>}
+        <div className="surface rounded-2xl p-3 sm:p-4">
+          <div className="space-y-2.5">
+            {upcoming.length > 0 ? (
+              upcoming.map((event) => (
+                <button
+                  key={event.id}
+                  type="button"
+                  onClick={() => openDetails(event)}
+                  className="surface-soft flex w-full items-center justify-between gap-3 rounded-2xl px-3 py-2.5 text-left transition hover:-translate-y-0.5"
+                >
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-medium text-[color:var(--text)]">{event.title}</div>
+                    <div className="text-xs text-muted">
+                      {format(parseISO(event.startTime), 'MMM d')} • {format(parseISO(event.startTime), 'HH:mm')}
+                    </div>
+                  </div>
+                  <span className={cn('h-3 w-3 shrink-0 rounded-full', colorClasses[event.color])} />
+                </button>
+              ))
+            ) : (
+              <div className="p-4 text-sm text-muted">No upcoming events.</div>
+            )}
+          </div>
         </div>
       </aside>
 
-      {/* Add Event Modal */}
-      {isAddOpen && selectedDate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setIsAddOpen(false)} />
-          <div className="surface rounded-2xl z-50 w-full max-w-md p-6">
-            <h3 className="text-lg font-semibold">Add Event — {format(selectedDate, 'MMM d, yyyy')}</h3>
-            <EventForm date={selectedDate} onCancel={() => setIsAddOpen(false)} onSave={(title, start, end, color, desc) => { onAddEvent(title, start, end, color, desc); setIsAddOpen(false); }} />
+      {modal.type === 'day' && modalDate && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-3 sm:items-center sm:p-4">
+          <button aria-label="Close day modal" className="absolute inset-0 bg-black/40" onClick={closeModal} />
+          <div className="surface relative z-10 w-full max-w-lg overflow-hidden rounded-[1.75rem] border border-subtle p-4 shadow-2xl sm:p-6">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-semibold sm:text-xl">Events — {format(modalDate, 'MMM d, yyyy')}</h3>
+                <p className="mt-1 text-sm text-muted">Tap an event to view details or edit it.</p>
+              </div>
+              <button onClick={closeModal} className="btn-ghost rounded-full px-3 py-2 text-sm">
+                Close
+              </button>
+            </div>
+
+            <div className="mt-4 space-y-2.5">
+              {(eventsByDay[format(modalDate, 'yyyy-MM-dd')] || []).length > 0 ? (
+                eventsByDay[format(modalDate, 'yyyy-MM-dd')].map((event) => (
+                  <button
+                    key={event.id}
+                    type="button"
+                    onClick={() => openDetails(event)}
+                    className="surface-soft flex w-full items-center justify-between gap-3 rounded-2xl px-3 py-3 text-left transition hover:-translate-y-0.5"
+                  >
+                    <div className="min-w-0">
+                      <div className="truncate font-medium text-[color:var(--text)]">{event.title}</div>
+                      <div className="text-xs text-muted">
+                        {format(parseISO(event.startTime), 'HH:mm')} - {format(parseISO(event.endTime), 'HH:mm')}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={cn('h-3 w-3 rounded-full', colorClasses[event.color])} />
+                      <span className="text-sm text-accent">Details</span>
+                    </div>
+                  </button>
+                ))
+              ) : (
+                <div className="rounded-2xl surface-soft p-4 text-sm text-muted">No events on this day.</div>
+              )}
+            </div>
+
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
+              <button onClick={() => openCreate(modalDate)} className="btn-primary px-4 py-2 text-sm font-semibold">
+                Add event
+              </button>
+              <button onClick={closeModal} className="btn-ghost px-4 py-2 text-sm font-medium">
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Day details / add list modal */}
-      {selectedDate && !isAddOpen && !isDetailsOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setSelectedDate(null)} />
-          <div className="surface rounded-2xl z-50 w-full max-w-lg p-6">
-            <h3 className="text-lg font-semibold">Events — {format(selectedDate, 'MMM d, yyyy')}</h3>
-            <div className="mt-4 space-y-2">
-              {(eventsByDay[format(selectedDate,'yyyy-MM-dd')] || []).map(ev => (
-                <div key={ev.id} className="surface-soft rounded-md p-3 flex items-center justify-between">
-                  <div>
-                    <div className="font-medium">{ev.title}</div>
-                    <div className="text-xs text-muted">{format(parseISO(ev.startTime),'HH:mm')} - {format(parseISO(ev.endTime),'HH:mm')}</div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => openDetails(ev)} className="btn-ghost">Details</button>
-                  </div>
-                </div>
-              ))}
+      {modal.type === 'details' && modalEvent && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-3 sm:items-center sm:p-4">
+          <button aria-label="Close event details" className="absolute inset-0 bg-black/40" onClick={closeModal} />
+          <div className="surface relative z-10 w-full max-w-lg overflow-hidden rounded-[1.75rem] border border-subtle p-4 shadow-2xl sm:p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h3 className="truncate text-lg font-semibold sm:text-xl">{modalEvent.title}</h3>
+                <p className="mt-2 text-sm text-muted">{format(parseISO(modalEvent.startTime), 'MMM d, yyyy')}</p>
+                <p className="mt-1 text-base text-[color:var(--text)]">
+                  {format(parseISO(modalEvent.startTime), 'HH:mm')} - {format(parseISO(modalEvent.endTime), 'HH:mm')}
+                </p>
+              </div>
+              <span className={cn('mt-1 h-3 w-3 shrink-0 rounded-full', colorClasses[modalEvent.color])} />
             </div>
-            <div className="mt-4 flex justify-end gap-2">
-              <button onClick={() => { setIsAddOpen(true); }} className="btn-primary">Add event</button>
-              <button onClick={() => setSelectedDate(null)} className="btn-ghost">Close</button>
+
+            {modalEvent.description && <p className="mt-4 rounded-2xl surface-soft p-4 text-sm leading-6 text-muted">{modalEvent.description}</p>}
+
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
+              <button onClick={() => openEdit(modalEvent)} className="btn-primary px-4 py-2 text-sm font-semibold">
+                Edit
+              </button>
+              <button
+                onClick={() => {
+                  onRemoveEvent(modalEvent.id);
+                  closeModal();
+                }}
+                className="btn-danger px-4 py-2 text-sm font-semibold"
+              >
+                Delete
+              </button>
+              <button onClick={closeModal} className="btn-ghost px-4 py-2 text-sm font-medium">
+                Close
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Event detail modal */}
-      {isDetailsOpen && selectedEvent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setIsDetailsOpen(false)} />
-          <div className="surface rounded-2xl z-50 w-full max-w-md p-6">
-            <h3 className="text-lg font-semibold">{selectedEvent.title}</h3>
-            <div className="mt-2 text-sm text-muted">{format(parseISO(selectedEvent.startTime),'MMM d, yyyy')}</div>
-            <div className="mt-2 text-sm">{format(parseISO(selectedEvent.startTime),'HH:mm')} - {format(parseISO(selectedEvent.endTime),'HH:mm')}</div>
-            {selectedEvent.description && <div className="mt-4 text-sm text-muted">{selectedEvent.description}</div>}
-            <div className="mt-6 flex justify-end gap-2">
-              <button onClick={() => { onRemoveEvent(selectedEvent.id); setIsDetailsOpen(false); }} className="btn-danger">Delete</button>
-              <button onClick={() => setIsDetailsOpen(false)} className="btn-ghost">Close</button>
-            </div>
+      {modal.type === 'form' && modalDate && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-3 sm:items-center sm:p-4">
+          <button aria-label="Close event form" className="absolute inset-0 bg-black/40" onClick={closeModal} />
+          <div className="surface relative z-10 w-full max-w-md overflow-hidden rounded-[1.75rem] border border-subtle p-4 shadow-2xl sm:p-6">
+            <h3 className="text-lg font-semibold sm:text-xl">{modal.event ? 'Edit event' : `Add event — ${format(modalDate, 'MMM d, yyyy')}`}</h3>
+            <EventForm
+              date={modalDate}
+              initial={modal.event}
+              onCancel={closeModal}
+              onSave={(title, startTime, endTime, color, description, eventId) => {
+                if (eventId) {
+                  onUpdateEvent(eventId, { title, startTime, endTime, color, description });
+                } else {
+                  onAddEvent(title, startTime, endTime, color, description);
+                }
+                closeModal();
+              }}
+            />
           </div>
         </div>
       )}
@@ -172,53 +332,84 @@ export default function CalendarView({ events, onAddEvent, onRemoveEvent }: { ev
   );
 }
 
-function EventForm({ date, onCancel, onSave }: { date: Date; onCancel: () => void; onSave: (title: string, start: string, end: string, color: Event['color'], description?: string) => void }) {
-  const [title, setTitle] = useState('');
-  const [startTime, setStartTime] = useState('09:00');
-  const [endTime, setEndTime] = useState('10:00');
-  const [color, setColor] = useState<Event['color']>('blue');
-  const [description, setDescription] = useState('');
+function EventForm({
+  date,
+  onCancel,
+  onSave,
+  initial,
+}: {
+  date: Date;
+  onCancel: () => void;
+  onSave: (title: string, start: string, end: string, color: Event['color'], description?: string, id?: string) => void;
+  initial?: Event;
+}) {
+  const [title, setTitle] = useState(initial?.title ?? '');
+  const [startTime, setStartTime] = useState(toInputTime(initial?.startTime) || '09:00');
+  const [endTime, setEndTime] = useState(toInputTime(initial?.endTime) || '10:00');
+  const [color, setColor] = useState<Event['color']>(initial?.color ?? 'blue');
+  const [description, setDescription] = useState(initial?.description ?? '');
 
   const save = () => {
-    const dateStr = format(date, 'yyyy-MM-dd');
-    const start = new Date(`${dateStr}T${startTime}:00`).toISOString();
-    const end = new Date(`${dateStr}T${endTime}:00`).toISOString();
-    onSave(title, start, end, color, description);
+    const start = buildDateTime(date, startTime);
+    const end = buildDateTime(date, endTime);
+    onSave(title.trim(), start, end, color, description.trim() || undefined, initial?.id);
   };
 
   return (
-    <div className="space-y-3 mt-4">
-      <label className="block text-sm">Title</label>
-      <input value={title} onChange={e => setTitle(e.target.value)} className="w-full surface-soft rounded-md px-3 py-2" />
+    <div className="mt-4 space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-[color:var(--text)]">Title</label>
+        <input value={title} onChange={(e) => setTitle(e.target.value)} className="mt-2 w-full rounded-2xl surface-soft px-3 py-2.5 text-sm outline-none ring-0 placeholder:text-muted focus:ring-2 focus:ring-[color:var(--accent)]/30" placeholder="Event title" />
+      </div>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-sm">Start</label>
-          <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} className="w-full surface-soft rounded-md px-3 py-2" />
+          <label className="block text-sm font-medium text-[color:var(--text)]">Start</label>
+          <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="mt-2 w-full rounded-2xl surface-soft px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[color:var(--accent)]/30" />
         </div>
         <div>
-          <label className="block text-sm">End</label>
-          <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} className="w-full surface-soft rounded-md px-3 py-2" />
+          <label className="block text-sm font-medium text-[color:var(--text)]">End</label>
+          <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="mt-2 w-full rounded-2xl surface-soft px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[color:var(--accent)]/30" />
         </div>
       </div>
 
       <div>
-        <label className="block text-sm">Color</label>
+        <label className="block text-sm font-medium text-[color:var(--text)]">Color</label>
         <div className="mt-2 flex gap-2">
-          <button onClick={() => setColor('blue')} className={cn('h-8 w-8 rounded-full', color === 'blue' ? 'ring-2 ring-offset-2 ring-accent' : '')} style={{ backgroundColor: '#3b82f6' }} />
-          <button onClick={() => setColor('amber')} className={cn('h-8 w-8 rounded-full', color === 'amber' ? 'ring-2 ring-offset-2 ring-accent' : '')} style={{ backgroundColor: '#f59e0b' }} />
-          <button onClick={() => setColor('purple')} className={cn('h-8 w-8 rounded-full', color === 'purple' ? 'ring-2 ring-offset-2 ring-accent' : '')} style={{ backgroundColor: '#8b5cf6' }} />
+          {(['blue', 'amber', 'purple'] as const).map((item) => (
+            <button
+              key={item}
+              type="button"
+              onClick={() => setColor(item)}
+              className={cn(
+                'h-10 w-10 rounded-full border border-white/10 transition ring-offset-2 ring-offset-[color:var(--app-bg)]',
+                item === 'blue' ? 'bg-blue-500' : item === 'amber' ? 'bg-amber-500' : 'bg-purple-500',
+                color === item ? 'ring-2 ring-[color:var(--accent)]' : ''
+              )}
+              aria-label={`Set color ${item}`}
+            />
+          ))}
         </div>
       </div>
 
       <div>
-        <label className="block text-sm">Description (optional)</label>
-        <textarea value={description} onChange={e => setDescription(e.target.value)} className="w-full surface-soft rounded-md px-3 py-2" />
+        <label className="block text-sm font-medium text-[color:var(--text)]">Description</label>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={4}
+          className="mt-2 w-full rounded-2xl surface-soft px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[color:var(--accent)]/30"
+          placeholder="Optional notes"
+        />
       </div>
 
-      <div className="flex justify-end gap-2">
-        <button onClick={onCancel} className="btn-ghost">Cancel</button>
-        <button onClick={save} className="btn-primary">Save</button>
+      <div className="flex flex-wrap justify-end gap-2 pt-1">
+        <button onClick={onCancel} className="btn-ghost px-4 py-2 text-sm font-medium">
+          Cancel
+        </button>
+        <button onClick={save} className="btn-primary px-4 py-2 text-sm font-semibold">
+          {initial ? 'Save changes' : 'Save event'}
+        </button>
       </div>
     </div>
   );

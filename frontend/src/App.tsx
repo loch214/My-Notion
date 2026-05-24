@@ -42,7 +42,7 @@ function StatCard({ label, value, hint, icon: Icon }: { label: string; value: st
 }
 
 export default function App() {
-  const { state, updateState, toggleTask, addModule, addTask, removeTask, updateTask, updateModule, saveGlobalChatMessage, addEvent, removeEvent } = useAppStore();
+  const { state, updateState, toggleTask, addModule, addTask, removeTask, updateTask, updateModule, saveGlobalChatMessage, addEvent, removeEvent, updateEvent } = useAppStore();
   
   const [appStage, setAppStage] = useState<'landing' | 'workspace'>(() => {
     const params = new URLSearchParams(window.location.search);
@@ -371,7 +371,7 @@ export default function App() {
             )}
             {activeTab === 'calendar' && (
               <div className="surface-strong rounded-[2rem] p-5 sm:p-6 animate-fade-up">
-                <CalendarView events={state.events} onAddEvent={addEvent} onRemoveEvent={removeEvent} />
+                <CalendarView events={state.events} onAddEvent={addEvent} onRemoveEvent={removeEvent} onUpdateEvent={updateEvent} />
               </div>
             )}
           </div>

@@ -207,6 +207,25 @@ export function useAppStore() {
     }
   };
 
+  const updateEvent = async (eventId: string, updates: Partial<Event>) => {
+    try {
+      const response = await fetch(`${API_BASE}/events/${eventId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      });
+      if (!response.ok) throw new Error('Failed to update event');
+      const updated = await response.json();
+      updateState(prev => ({
+        ...prev,
+        events: prev.events.map(e => e.id === eventId ? updated : e)
+      }));
+    } catch (err) {
+      console.error('Error updating event:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    }
+  };
+
   const saveGlobalChatMessage = async (message: ChatMessage) => {
     try {
       await fetch(`${API_BASE}/chat/global/message`, {
@@ -245,22 +264,30 @@ export function useAppStore() {
     }
   };
 
-  return { 
-    state, 
-    isLoading, 
+  return {
+    state,
+    isLoading,
     error,
-    updateState, 
-    addModule, 
+    updateState,
+
+    // modules
+    addModule,
     removeModule,
     updateModule,
-    addTask, 
-    toggleTask, 
+
+    // tasks
+    addTask,
+    toggleTask,
     removeTask,
     updateTask,
+
+    // events
     addEvent,
+    updateEvent,
+    removeEvent,
+
+    // chat
     saveGlobalChatMessage,
-    saveModuleChatMessage
-    ,
-    removeEvent
+    saveModuleChatMessage,
   };
 }

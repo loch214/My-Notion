@@ -197,6 +197,41 @@ router.post('/events', async (req, res) => {
   }
 });
 
+router.delete('/events/:eventId', async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const workspace = await getOrCreateWorkspace();
+
+    const idx = workspace.events.findIndex((e: any) => e.id === eventId);
+    if (idx > -1) {
+      (workspace.events as any).splice(idx, 1);
+      await workspace.save();
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting event:', error);
+    res.status(500).json({ error: 'Failed to delete event' });
+  }
+});
+
+router.patch('/events/:eventId', async (req, res) => {
+  try {
+    const { eventId } = req.params;
+    const updates = req.body;
+    const workspace = await getOrCreateWorkspace();
+
+    const idx = workspace.events.findIndex((e: any) => e.id === eventId);
+    if (idx === -1) return res.status(404).json({ error: 'Event not found' });
+
+    Object.assign(workspace.events[idx], updates, { updatedAt: new Date() });
+    await workspace.save();
+    res.json(workspace.events[idx]);
+  } catch (error) {
+    console.error('Error updating event:', error);
+    res.status(500).json({ error: 'Failed to update event' });
+  }
+});
+
 // ===== GLOBAL CHAT =====
 router.get('/chat/global', async (req, res) => {
   try {
