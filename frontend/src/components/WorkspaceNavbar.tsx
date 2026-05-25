@@ -1,4 +1,5 @@
-import { RefObject } from 'react';
+import { RefObject, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
 import { Bell, Menu, Search, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -49,11 +50,84 @@ export function WorkspaceNavbar({
   onGoLanding,
   onOpenAi,
 }: WorkspaceNavbarProps) {
+  const searchIsExpanded = isSearchOpen || searchQuery.trim().length > 0;
+  const [searchPopoverStyle, setSearchPopoverStyle] = useState<CSSProperties | null>(null);
+
+  useEffect(() => {
+    if (!isSearchOpen || !searchRef.current) {
+      setSearchPopoverStyle(null);
+      return;
+    }
+
+    const updateStyle = () => {
+      const rect = searchRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      setSearchPopoverStyle({
+        position: 'fixed',
+        left: rect.left,
+        top: rect.bottom + 10,
+        width: rect.width,
+        zIndex: 220,
+      });
+    };
+
+    updateStyle();
+    window.addEventListener('resize', updateStyle);
+    window.addEventListener('scroll', updateStyle, true);
+    return () => {
+      window.removeEventListener('resize', updateStyle);
+      window.removeEventListener('scroll', updateStyle, true);
+    };
+  }, [isSearchOpen, searchRef]);
+
+  const searchResultsPopover =
+    isSearchOpen && searchPopoverStyle
+      ? createPortal(
+          <motion.div
+            initial={{ opacity: 0, scale: 0.98, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.18 }}
+            style={searchPopoverStyle}
+            className="overflow-hidden rounded-2xl border border-white/10 bg-[color:var(--surface-high)]/95 shadow-2xl backdrop-blur-xl"
+          >
+            <div className="border-b border-[color:var(--border)] px-4 py-2.5">
+              <p className="text-[10px] uppercase tracking-[0.24em] text-[color:var(--muted)]">
+                Search · {searchResults.length} results
+              </p>
+            </div>
+            <div className="max-h-[20rem] overflow-y-auto p-1.5">
+              {searchResults.length > 0 ? (
+                searchResults.map((result) => (
+                  <button
+                    key={result.id}
+                    type="button"
+                    onClick={() => onRunSearchResult(result.id)}
+                    className="flex w-full items-center justify-between gap-4 rounded-xl px-3.5 py-2.5 text-left hover:bg-white/5"
+                  >
+                    <div className="min-w-0">
+                      <span className="text-xs font-semibold text-[color:var(--text)]">{result.title}</span>
+                      <p className="truncate text-[11px] text-[color:var(--muted)]">{result.subtitle}</p>
+                    </div>
+                    <span className="shrink-0 text-[10px] font-semibold text-[color:var(--accent)]">
+                      {result.actionLabel}
+                    </span>
+                  </button>
+                ))
+              ) : (
+                <div className="px-4 py-8 text-center text-xs text-[color:var(--muted)]">No matches found.</div>
+              )}
+            </div>
+          </motion.div>,
+          document.body
+        )
+      : null;
+
   return (
     <div className="flex w-full flex-col px-4 pt-[var(--workspace-nav-inset-top)] pb-[var(--workspace-nav-gap)] sm:px-6">
       <header
         className={cn(
-          'relative mx-auto grid h-[var(--workspace-nav-bar)] w-full max-w-[1400px] items-center gap-3 rounded-full px-3 sm:px-4',
+          'relative z-[120] mx-auto grid h-[var(--workspace-nav-bar)] w-full max-w-[1400px] items-center gap-3 rounded-full px-3 sm:px-4',
           'border border-[color:var(--nav-glass-border)] bg-[color:var(--nav-glass-bg)] shadow-[0_8px_32px_rgba(0,0,0,0.35),inset_0_1px_0_var(--spotlight-hover)]',
           'backdrop-blur-2xl backdrop-saturate-150',
           'max-lg:grid-cols-[auto_1fr_auto] lg:grid-cols-[minmax(0,1fr)_minmax(12rem,28rem)_minmax(0,1fr)]'
@@ -87,8 +161,18 @@ export function WorkspaceNavbar({
           </button>
         </div>
 
-        <div ref={searchRef} className="relative w-full justify-self-center">
-          <div className="relative flex h-10 items-center rounded-full border border-white/[0.1] bg-black/20 pl-4 pr-11 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] focus-within:border-[color:var(--border-focus)] focus-within:bg-black/30">
+        <div
+          ref={searchRef}
+          className="relative w-full justify-self-center"
+          onMouseDown={() => onSearchOpen(true)}
+          onClick={() => onSearchOpen(true)}
+        >
+          <div
+            className={cn(
+              'relative mx-auto flex h-9 items-center rounded-full border border-white/[0.1] bg-black/20 pl-3 pr-9 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-all duration-200 ease focus-within:border-[color:var(--border-focus)] focus-within:bg-black/30',
+              searchIsExpanded ? 'w-full max-w-[28rem]' : 'w-full max-w-[12rem] sm:max-w-[14rem]'
+            )}
+          >
             <input
               value={searchQuery}
               onChange={(e) => {
@@ -101,8 +185,8 @@ export function WorkspaceNavbar({
                   onRunSearchResult(searchResults[0].id);
                 }
               }}
-              placeholder="Search anything..."
-              className="h-full w-full border-0 bg-transparent p-0 text-base text-[color:var(--text)] outline-none placeholder:text-[color:var(--muted)]"
+              placeholder="Search..."
+              className="h-full w-full border-0 bg-transparent p-0 text-sm text-[color:var(--text)] outline-none placeholder:text-[color:var(--muted)]"
             />
             <button
               type="button"
@@ -113,56 +197,18 @@ export function WorkspaceNavbar({
                 }
                 onSearchOpen(true);
               }}
-              className="absolute right-1 top-1 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-[color:var(--muted)] hover:text-[color:var(--text)]"
+              className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-[color:var(--muted)] hover:text-[color:var(--text)]"
               aria-label="Search"
             >
               <Search className="h-4 w-4" />
             </button>
           </div>
 
-          <AnimatePresence>
-            {isSearchOpen && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.98, y: 8 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.98, y: 8 }}
-                transition={{ duration: 0.18 }}
-                className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-[80] overflow-hidden rounded-2xl border border-white/10 bg-[color:var(--surface-high)]/95 shadow-2xl backdrop-blur-xl"
-              >
-                <div className="border-b border-[color:var(--border)] px-4 py-2.5">
-                  <p className="text-[10px] uppercase tracking-[0.24em] text-[color:var(--muted)]">
-                    Search · {searchResults.length} results
-                  </p>
-                </div>
-                <div className="max-h-[20rem] overflow-y-auto p-1.5">
-                  {searchResults.length > 0 ? (
-                    searchResults.map((result) => (
-                      <button
-                        key={result.id}
-                        type="button"
-                        onClick={() => onRunSearchResult(result.id)}
-                        className="flex w-full items-center justify-between gap-4 rounded-xl px-3.5 py-2.5 text-left hover:bg-white/5"
-                      >
-                        <div className="min-w-0">
-                          <span className="text-xs font-semibold text-[color:var(--text)]">{result.title}</span>
-                          <p className="truncate text-[11px] text-[color:var(--muted)]">{result.subtitle}</p>
-                        </div>
-                        <span className="shrink-0 text-[10px] font-semibold text-[color:var(--accent)]">
-                          {result.actionLabel}
-                        </span>
-                      </button>
-                    ))
-                  ) : (
-                    <div className="px-4 py-8 text-center text-xs text-[color:var(--muted)]">No matches found.</div>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {searchResultsPopover}
         </div>
 
         <div className="flex items-center justify-end gap-2 pr-1">
-          <div ref={notificationsRef} className="relative">
+          <div ref={notificationsRef} className="relative z-[120]">
             <button
               type="button"
               onClick={onToggleNotifications}
@@ -183,7 +229,7 @@ export function WorkspaceNavbar({
                   initial={{ opacity: 0, scale: 0.98, y: 8 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.98, y: 8 }}
-                  className="absolute right-0 top-[calc(100%+0.5rem)] z-[80] w-[20rem] overflow-hidden rounded-2xl border border-white/10 bg-[color:var(--surface-high)]/95 shadow-2xl backdrop-blur-xl"
+                  className="absolute right-0 top-[calc(100%+0.5rem)] z-[130] w-[20rem] overflow-hidden rounded-2xl border border-white/10 bg-[color:var(--surface-high)]/95 shadow-2xl backdrop-blur-xl"
                 >
                   <div className="border-b border-[color:var(--border)] px-4 py-2.5">
                     <p className="text-[10px] uppercase tracking-[0.24em] text-[color:var(--muted)]">Notifications</p>
