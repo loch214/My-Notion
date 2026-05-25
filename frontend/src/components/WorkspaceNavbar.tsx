@@ -1,4 +1,4 @@
-import { RefObject, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { RefObject, useEffect, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { Bell, Menu, Search, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -85,6 +85,7 @@ export function WorkspaceNavbar({
     isSearchOpen && searchPopoverStyle
       ? createPortal(
           <motion.div
+            onMouseDown={(event) => event.stopPropagation()}
             initial={{ opacity: 0, scale: 0.98, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.18 }}
