@@ -432,10 +432,11 @@ export default function App() {
 
       <div
         className={cn(
-          'relative flex min-h-0 flex-1 flex-col gap-3 px-4 pb-4 transition-[padding] duration-300 ease md:flex-row md:gap-4 md:px-6 md:pb-6 lg:gap-6 lg:px-8 lg:pb-8',
-          isNavbarVisible
-            ? 'pt-[calc(var(--workspace-nav-height)+1rem)] md:pt-[calc(var(--workspace-nav-height)+1.5rem)] lg:pt-[calc(var(--workspace-nav-height)+2rem)]'
-            : 'pt-4 md:pt-6 lg:pt-8'
+          'relative flex min-h-0 flex-1 flex-col gap-3 px-4 pb-4 md:flex-row md:gap-4 md:px-6 md:pb-6 lg:gap-6 lg:px-8 lg:pb-8',
+          // Keep a constant top offset so hiding/showing the floating navbar
+          // does not change layout height or cause scroll jitter. The navbar
+          // itself is an overlay that translates in/out via transform only.
+          'pt-[calc(var(--workspace-nav-height)+1rem)] md:pt-[calc(var(--workspace-nav-height)+1.5rem)] lg:pt-[calc(var(--workspace-nav-height)+2rem)]'
         )}
       >
         
