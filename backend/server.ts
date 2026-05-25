@@ -3,7 +3,7 @@ import path from 'path';
 import multer from 'multer';
 import fs from 'fs';
 import cors from 'cors';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, FunctionCallingConfigMode, createPartFromFunctionCall, createPartFromFunctionResponse, type FunctionDeclaration } from '@google/genai';
 import Anthropic from '@anthropic-ai/sdk';
 import { createRequire } from 'module';
 import { v4 as uuidv4 } from 'uuid';
@@ -192,6 +192,356 @@ RESTRICTIONS — DO NOT:
 
 type SupportedModel = keyof typeof MODEL_PROVIDERS;
 
+type ChatAction = { action: 'switch_theme'; theme: string };
+
+type ChatReply = {
+  text: string;
+  action?: ChatAction;
+};
+
+const AVAILABLE_THEME_IDS = [
+  'nebula-blue',
+  'midnight-violet',
+  'emerald-pulse',
+  'crimson-noir',
+  'sunset-synthwave',
+  'obsidian-gold',
+  'aurora-dream',
+] as const;
+
+const AVAILABLE_THEMES = [
+  { id: 'nebula-blue', name: 'Nebula Blue' },
+  { id: 'midnight-violet', name: 'Midnight Violet' },
+  { id: 'emerald-pulse', name: 'Emerald Pulse' },
+  { id: 'crimson-noir', name: 'Crimson Noir' },
+  { id: 'sunset-synthwave', name: 'Sunset Synthwave' },
+  { id: 'obsidian-gold', name: 'Obsidian Gold' },
+  { id: 'aurora-dream', name: 'Aurora Dream' },
+] as const;
+
+const CHAT_TOOL_DECLARATIONS: FunctionDeclaration[] = [
+  {
+    name: 'create_task',
+    description: 'Create a new task in the workspace.',
+    parametersJsonSchema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string' },
+        dueDate: { type: 'string', description: 'Optional date in YYYY-MM-DD format' },
+        moduleId: { type: 'string', description: 'Optional module id to attach the task to' },
+      },
+      required: ['title'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'delete_task',
+    description: 'Delete a task by searching for its title.',
+    parametersJsonSchema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string' },
+      },
+      required: ['title'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'toggle_task',
+    description: 'Toggle a task done or undone by searching for its title.',
+    parametersJsonSchema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string' },
+      },
+      required: ['title'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'create_event',
+    description: 'Create a calendar event in the workspace.',
+    parametersJsonSchema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string' },
+        date: { type: 'string', description: 'Event date in YYYY-MM-DD format' },
+        startTime: { type: 'string', description: 'Start time in HH:MM format' },
+        endTime: { type: 'string', description: 'End time in HH:MM format' },
+        color: { type: 'string', enum: ['blue', 'amber', 'purple'] },
+        description: { type: 'string' },
+      },
+      required: ['title', 'date', 'startTime', 'endTime'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'delete_event',
+    description: 'Delete a calendar event by searching for its title.',
+    parametersJsonSchema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string' },
+      },
+      required: ['title'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'create_module',
+    description: 'Create a new academic module.',
+    parametersJsonSchema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string' },
+        code: { type: 'string' },
+        color: { type: 'string', description: 'Optional module color' },
+      },
+      required: ['title', 'code'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'switch_theme',
+    description: 'Switch the app theme.',
+    parametersJsonSchema: {
+      type: 'object',
+      properties: {
+        theme: { type: 'string', description: 'Theme id or theme name from the available themes' },
+      },
+      required: ['theme'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'get_tasks',
+    description: 'Fetch current tasks so the AI can reference them.',
+    parametersJsonSchema: {
+      type: 'object',
+      properties: {},
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'get_events',
+    description: 'Fetch current events so the AI can reference them.',
+    parametersJsonSchema: {
+      type: 'object',
+      properties: {},
+      additionalProperties: false,
+    },
+  },
+];
+
+function getOrCreateWorkspace() {
+  return Workspace.findOne({ id: 'default-user-workspace' }).then(async (workspace) => {
+    if (workspace) return workspace;
+    const created = new Workspace({
+      id: 'default-user-workspace',
+      modules: [],
+      tasks: [],
+      events: [],
+      globalChat: { id: uuidv4(), messages: [] },
+    });
+    await created.save();
+    return created;
+  });
+}
+
+function normalizeText(value: unknown) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function scoreTitleMatch(sourceTitle: string, targetTitle: string) {
+  const source = sourceTitle.trim().toLowerCase();
+  const target = targetTitle.trim().toLowerCase();
+  if (!source || !target) return null;
+  if (source === target) return 0;
+  if (source.startsWith(target) || target.startsWith(source)) return 1;
+  if (source.includes(target) || target.includes(source)) return 2;
+  return null;
+}
+
+function findBestMatch<T>(items: T[], title: string, getTitle: (item: T) => string) {
+  const scored = items
+    .map((item) => {
+      const score = scoreTitleMatch(getTitle(item), title);
+      return score === null ? null : { item, score };
+    })
+    .filter((item): item is { item: T; score: number } => item !== null)
+    .sort((left, right) => left.score - right.score);
+
+  return scored[0]?.item ?? null;
+}
+
+function resolveThemeId(theme: unknown) {
+  const rawTheme = normalizeText(theme);
+  if (!rawTheme) return null;
+
+  const canonical = AVAILABLE_THEME_IDS.find((themeId) => themeId === rawTheme.toLowerCase());
+  if (canonical) return canonical;
+
+  const themeName = rawTheme.toLowerCase();
+  const matchedTheme = AVAILABLE_THEMES.find((entry) => entry.name.toLowerCase() === themeName);
+  return matchedTheme?.id ?? null;
+}
+
+async function executeChatTool(name: string, args: Record<string, unknown>) {
+  const workspace = await getOrCreateWorkspace();
+
+  switch (name) {
+    case 'create_task': {
+      const title = normalizeText(args.title);
+      if (!title) throw new Error('Task title is required.');
+
+      const moduleId = normalizeText(args.moduleId) || undefined;
+      if (moduleId && !workspace.modules.some((module: any) => module.id === moduleId)) {
+        throw new Error(`Module ${moduleId} was not found.`);
+      }
+
+      const task = {
+        id: uuidv4(),
+        title,
+        done: false,
+        dueDate: normalizeText(args.dueDate) || undefined,
+        moduleId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      workspace.tasks.push(task as any);
+      await workspace.save();
+      return {
+        response: {
+          output: {
+            success: true,
+            task,
+          },
+        },
+      };
+    }
+    case 'delete_task': {
+      const title = normalizeText(args.title);
+      if (!title) throw new Error('Task title is required.');
+
+      const task = findBestMatch(workspace.tasks as any[], title, (item: any) => item.title);
+      if (!task) throw new Error(`No task matched "${title}".`);
+
+      (workspace.tasks as any) = workspace.tasks.filter((item: any) => item.id !== task.id);
+      await workspace.save();
+      return { response: { output: { success: true, deletedTask: task } } };
+    }
+    case 'toggle_task': {
+      const title = normalizeText(args.title);
+      if (!title) throw new Error('Task title is required.');
+
+      const task = findBestMatch(workspace.tasks as any[], title, (item: any) => item.title);
+      if (!task) throw new Error(`No task matched "${title}".`);
+
+      task.done = !task.done;
+      task.updatedAt = new Date();
+      await workspace.save();
+      return { response: { output: { success: true, task } } };
+    }
+    case 'create_event': {
+      const title = normalizeText(args.title);
+      const date = normalizeText(args.date);
+      const startTime = normalizeText(args.startTime);
+      const endTime = normalizeText(args.endTime);
+      if (!title || !date || !startTime || !endTime) throw new Error('Title, date, startTime, and endTime are required.');
+
+      const color = normalizeText(args.color).toLowerCase();
+      const eventColor = ['blue', 'amber', 'purple'].includes(color) ? color : 'blue';
+      const event = {
+        id: uuidv4(),
+        title,
+        startTime: `${date}T${startTime}:00`,
+        endTime: `${date}T${endTime}:00`,
+        color: eventColor,
+        description: normalizeText(args.description) || undefined,
+        createdAt: new Date(),
+      };
+
+      workspace.events.push(event as any);
+      await workspace.save();
+      return { response: { output: { success: true, event } } };
+    }
+    case 'delete_event': {
+      const title = normalizeText(args.title);
+      if (!title) throw new Error('Event title is required.');
+
+      const event = findBestMatch(workspace.events as any[], title, (item: any) => item.title);
+      if (!event) throw new Error(`No event matched "${title}".`);
+
+      workspace.events = workspace.events.filter((item: any) => item.id !== event.id) as any;
+      await workspace.save();
+      return { response: { output: { success: true, deletedEvent: event } } };
+    }
+    case 'create_module': {
+      const title = normalizeText(args.title);
+      const code = normalizeText(args.code);
+      if (!title || !code) throw new Error('Module title and code are required.');
+
+      const color = normalizeText(args.color).toLowerCase();
+      const moduleColor = ['blue', 'amber', 'emerald', 'purple', 'rose'].includes(color) ? color : 'blue';
+      const module = {
+        id: uuidv4(),
+        title,
+        code,
+        color: moduleColor,
+        files: [],
+        chatHistory: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      workspace.modules.push(module as any);
+      await workspace.save();
+      return { response: { output: { success: true, module } } };
+    }
+    case 'switch_theme': {
+      const theme = resolveThemeId(args.theme);
+      if (!theme) throw new Error('Theme not found.');
+
+      const matchedTheme = AVAILABLE_THEMES.find((entry) => entry.id === theme);
+      return {
+        action: { action: 'switch_theme', theme },
+        response: {
+          output: {
+            success: true,
+            theme,
+            themeName: matchedTheme?.name ?? theme,
+          },
+        },
+      };
+    }
+    case 'get_tasks': {
+      const tasks = workspace.tasks.map((task: any) => ({
+        id: task.id,
+        title: task.title,
+        done: task.done,
+        dueDate: task.dueDate ?? null,
+        moduleId: task.moduleId ?? null,
+        moduleTitle: task.moduleId ? workspace.modules.find((module: any) => module.id === task.moduleId)?.title ?? null : null,
+      }));
+      return { response: { output: { success: true, tasks } } };
+    }
+    case 'get_events': {
+      const events = workspace.events.map((event: any) => ({
+        id: event.id,
+        title: event.title,
+        startTime: event.startTime,
+        endTime: event.endTime,
+        color: event.color,
+        description: event.description ?? null,
+      }));
+      return { response: { output: { success: true, events } } };
+    }
+    default:
+      throw new Error(`Unknown tool: ${name}`);
+  }
+}
+
 let geminiClient: GoogleGenAI | null = null;
 let claudeClient: Anthropic | null = null;
 
@@ -235,15 +585,12 @@ function mockResponse(message: string, model: SupportedModel, contextLabel: stri
   };
 }
 
-async function runGemini(model: SupportedModel, systemInstruction: string, history: any[], message: string, attachments: any[] = []) {
-  const client = getGeminiClient();
-  if (!client) return null;
-
+function buildGeminiContents(history: any[] = [], message: string, attachments: any[] = []) {
   const contents = history.map((msg) => ({
     role: msg.role === 'user' ? 'user' : 'model',
-    parts: msg.attachments?.length 
+    parts: msg.attachments?.length
       ? [{ text: msg.text }, ...msg.attachments.filter((a: any) => a.type.startsWith('image/')).map((a: any) => ({
-          inlineData: { mimeType: a.type, data: a.data.split(',')[1] || a.data }
+          inlineData: { mimeType: a.type, data: a.data.split(',')[1] || a.data },
         }))]
       : [{ text: msg.text }],
   }));
@@ -262,13 +609,73 @@ async function runGemini(model: SupportedModel, systemInstruction: string, histo
     }
   }
 
-  const response = await client.models.generateContent({
-    model,
-    contents: [...contents, { role: 'user', parts: userParts }],
-    config: { systemInstruction },
-  });
+  return [...contents, { role: 'user', parts: userParts }];
+}
 
-  return response.text ?? '';
+async function runGemini(
+  model: SupportedModel,
+  systemInstruction: string,
+  history: any[],
+  message: string,
+  attachments: any[] = [],
+  toolDeclarations: FunctionDeclaration[] = []
+): Promise<ChatReply | null> {
+  const client = getGeminiClient();
+  if (!client) return null;
+
+  let contents = buildGeminiContents(history, message, attachments);
+  let action: ChatAction | undefined;
+
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const config: any = { systemInstruction };
+    if (toolDeclarations.length > 0) {
+      config.tools = [{ functionDeclarations: toolDeclarations }];
+      config.toolConfig = {
+        functionCallingConfig: {
+          mode: FunctionCallingConfigMode.AUTO,
+        },
+      };
+    }
+
+    const response = await client.models.generateContent({
+      model,
+      contents,
+      config,
+    });
+
+    const functionCalls = response.functionCalls ?? [];
+    if (functionCalls.length === 0) {
+      return {
+        text: response.text ?? '',
+        action,
+      };
+    }
+
+    const modelParts = functionCalls.map((call) => createPartFromFunctionCall(call.name ?? '', call.args ?? {}));
+    const functionResponseParts = [];
+
+    for (const call of functionCalls) {
+      const toolResult = await executeChatTool(call.name ?? '', (call.args ?? {}) as Record<string, unknown>);
+      if (!action && toolResult.action) {
+        action = toolResult.action;
+      }
+
+      functionResponseParts.push(
+        createPartFromFunctionResponse(call.id ?? call.name ?? `call-${attempt}-${functionResponseParts.length}`, call.name ?? '', toolResult.response)
+      );
+    }
+
+    contents = [
+      ...contents,
+      { role: 'model', parts: modelParts },
+      { role: 'user', parts: functionResponseParts },
+    ];
+  }
+
+  return {
+    text: 'No response generated from AI.',
+    action,
+  };
 }
 
 async function runClaude(model: SupportedModel, systemInstruction: string, history: any[], message: string, attachments: any[] = []) {
@@ -345,6 +752,26 @@ async function generateChatReply(params: {
   contextLabel: string;
   attachments?: any[];
 }) {
+  const reply = await generateActionAwareChatReply({
+    model: params.model,
+    systemInstruction: params.systemInstruction,
+    history: params.history,
+    message: params.message,
+    contextLabel: params.contextLabel,
+    attachments: params.attachments,
+  });
+  return reply.text;
+}
+
+async function generateActionAwareChatReply(params: {
+  model: SupportedModel;
+  systemInstruction: string;
+  history: any[];
+  message: string;
+  contextLabel: string;
+  attachments?: any[];
+  toolDeclarations?: FunctionDeclaration[];
+}): Promise<ChatReply> {
   const provider = MODEL_PROVIDERS[params.model];
   
   if (provider === 'gemini' && !process.env.GEMINI_API_KEY) {
@@ -358,12 +785,12 @@ async function generateChatReply(params: {
 
   try {
     if (provider === 'gemini') {
-      const text = await runGemini(params.model, params.systemInstruction, params.history, params.message, params.attachments);
-      if (text !== null) return text;
+      const reply = await runGemini(params.model, params.systemInstruction, params.history, params.message, params.attachments, params.toolDeclarations ?? []);
+      if (reply !== null) return reply;
     } else {
       // Claude model handling requires ANTHROPIC_API_KEY.
       const text = await runClaude(params.model, params.systemInstruction, params.history, params.message, params.attachments);
-      if (text !== null) return text;
+      if (text !== null) return { text };
     }
   } catch (error: any) {
     console.error(`${provider} chat error:`, error);
@@ -378,7 +805,7 @@ async function generateChatReply(params: {
     throw error;
   }
 
-  return 'No response generated from AI.';
+  return { text: 'No response generated from AI.' };
 }
 
 async function extractTextFromBase64(dataBase64: string, originalName: string): Promise<string> {
@@ -445,16 +872,21 @@ app.post('/api/chat/global', async (req, res) => {
 
     const systemInstruction = GLOBAL_CHAT_SYSTEM_PROMPT + `\n\nApp context:\n${JSON.stringify(context, null, 2)}\n\nExtracted text from student materials:\n${allExtractedText}\n\nConversation transcript:\n${transcript(history)}`;
 
-    const text = await generateChatReply({
+    const reply = await generateActionAwareChatReply({
       model: selectedModel,
       systemInstruction,
       history,
       message: attachmentContext ? `${message}\n\n[Attached Files Content]\n${attachmentContext}` : message,
       attachments,
       contextLabel: `global assistant (${provider})`,
+      toolDeclarations: CHAT_TOOL_DECLARATIONS,
     });
 
-    res.json({ role: 'model', text });
+    res.json({
+      role: 'model',
+      text: reply.text,
+      ...(reply.action ? { action: reply.action.action, theme: reply.action.theme } : {}),
+    });
   } catch (error: any) {
     console.error('Global Chat Error:', error);
     res.status(500).json({ error: error.message });
@@ -534,21 +966,26 @@ app.post('/api/chat/module', async (req, res) => {
 
     console.log(`[RAG-Chat] System prompt built. First 200 chars: ${systemInstruction.substring(0, 200).replace(/\n/g, ' ')}...`);
 
-    const textPromise = generateChatReply({
+    const replyPromise = generateActionAwareChatReply({
       model: selectedModel,
       systemInstruction,
       history,
       message: attachmentContext ? `${message}\n\n[Attached Files Content]\n${attachmentContext}` : message,
       attachments,
       contextLabel: `module assistant for ${moduleName} (${provider})`,
+      toolDeclarations: CHAT_TOOL_DECLARATIONS,
     });
 
     let titlePromise = Promise.resolve('');
     if (generateTitle) titlePromise = generateTitleFromMessage(message, selectedModel);
 
-    const [text, title] = await Promise.all([textPromise, titlePromise]);
+    const [reply, title] = await Promise.all([replyPromise, titlePromise]);
 
-    const response: any = { role: 'model', text };
+    const response: any = { role: 'model', text: reply.text };
+    if (reply.action) {
+      response.action = reply.action.action;
+      response.theme = reply.action.theme;
+    }
     if (title) response.title = title;
     if (newFilesSaved > 0) response.files = dbModule?.files;
 

@@ -8,6 +8,14 @@ const chatMessageSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now },
 });
 
+const chatSessionSchema = new mongoose.Schema({
+  id: { type: String, required: true },
+  title: { type: String, required: true },
+  history: [chatMessageSchema],
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+});
+
 // File Schema (for uploaded files)
 const fileSchema = new mongoose.Schema({
   id: { type: String, required: true },
@@ -25,6 +33,7 @@ const moduleSchema = new mongoose.Schema({
   color: { type: String, enum: ['blue', 'amber', 'emerald', 'purple', 'rose'], default: 'blue' },
   files: [fileSchema],
   chatHistory: [chatMessageSchema],
+  chatSessions: [chatSessionSchema],
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
 });

@@ -6,6 +6,8 @@ import Markdown from 'react-markdown';
 import { AI_MODELS, AIModelId, DEFAULT_AI_MODEL } from '../lib/models';
 import { TaskList } from './TaskList';
 import { cn } from '../lib/utils';
+import { useTheme } from '../context/ThemeContext';
+import { isThemeId } from '../lib/themes/applyTheme';
 
 // Import UI primitives
 import { Card } from './ui/Card';
@@ -49,6 +51,7 @@ export function ModuleDetail({
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileSessionsOpen, setIsMobileSessionsOpen] = useState(false);
+  const { setTheme } = useTheme();
 
   // Get sessions, or migrate from chatHistory if none exist
   const sessions: ChatSession[] = module.chatSessions || [];
@@ -203,6 +206,10 @@ export function ModuleDetail({
         }),
       });
       const data = await res.json();
+
+      if (data.action === 'switch_theme' && typeof data.theme === 'string' && isThemeId(data.theme)) {
+        setTheme(data.theme);
+      }
 
       const modelMessage: ChatMessage = {
         id: uuidv4(),

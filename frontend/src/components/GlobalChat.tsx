@@ -5,6 +5,8 @@ import { AppState, ChatMessage } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import Markdown from 'react-markdown';
 import { AI_MODELS, AIModelId, DEFAULT_AI_MODEL } from '../lib/models';
+import { useTheme } from '../context/ThemeContext';
+import { isThemeId } from '../lib/themes/applyTheme';
 
 // Import UI primitives
 import { Card } from './ui/Card';
@@ -23,6 +25,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage }: GlobalChat
   const [isLoading, setIsLoading] = React.useState(false);
   const [model, setModel] = React.useState<AIModelId>(DEFAULT_AI_MODEL);
   const [attachments, setAttachments] = React.useState<{ name: string; type: string; data: string }[]>([]);
+  const { setTheme } = useTheme();
   
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const scrollRef = React.useRef<HTMLDivElement>(null);
@@ -73,6 +76,10 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage }: GlobalChat
       });
 
       const data = await response.json();
+
+      if (data.action === 'switch_theme' && typeof data.theme === 'string' && isThemeId(data.theme)) {
+        setTheme(data.theme);
+      }
 
       const modelMessage: ChatMessage = {
         id: uuidv4(),
