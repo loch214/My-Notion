@@ -41,7 +41,7 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
         )}
         {...props}
       >
-        <div className="relative z-10 w-full h-full">{children}</div>
+        <div className="relative z-10 w-full">{children}</div>
       </div>
     );
   }

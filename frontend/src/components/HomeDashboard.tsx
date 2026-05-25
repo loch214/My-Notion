@@ -72,13 +72,8 @@ export function HomeDashboard({
   ];
 
   return (
-    <div
-      className={cn(
-        'flex min-h-0 flex-col p-4 md:p-6 lg:p-8',
-        className
-      )}
-    >
-      <div className="mx-auto grid w-full max-w-[1400px] auto-rows-min gap-6">
+    <div className={cn('w-full', className)}>
+      <div className="mx-auto w-full max-w-[1400px] space-y-6">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--muted)]">
             Workspace overview

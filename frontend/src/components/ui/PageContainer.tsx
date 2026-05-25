@@ -14,7 +14,7 @@ export const PageContainer = React.forwardRef<HTMLDivElement, PageContainerProps
         <motion.div
           ref={ref as any}
           className={cn(
-            'mx-auto w-full min-w-0 p-4 md:p-6 lg:p-8',
+            'mx-auto w-full min-w-0 pb-6',
             maxWidthClassName,
             className
           )}
@@ -32,7 +32,7 @@ export const PageContainer = React.forwardRef<HTMLDivElement, PageContainerProps
       <div
         ref={ref}
         className={cn(
-          'mx-auto w-full min-w-0 p-4 md:p-6 lg:p-8',
+          'mx-auto w-full min-w-0 pb-6',
           maxWidthClassName,
           className
         )}

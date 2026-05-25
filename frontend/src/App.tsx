@@ -402,41 +402,54 @@ export default function App() {
     );
   }
 
+  const navbarProps = {
+    activeBreadcrumb,
+    searchQuery,
+    onSearchChange: setSearchQuery,
+    isSearchOpen,
+    onSearchOpen: setIsSearchOpen,
+    searchResults: navbarSearchResults,
+    onRunSearchResult: (id: string) => {
+      const result = searchResults.find((r) => r.id === id);
+      if (result) runSearchResult(result);
+    },
+    searchRef,
+    notificationsRef,
+    upcomingCount: upcomingNotifications.length,
+    isNotificationsOpen,
+    onToggleNotifications: () => {
+      setIsNotificationsOpen((c) => !c);
+      setIsSearchOpen(false);
+    },
+    notifications: navbarNotifications,
+    onOpenMobileSidebar: () => setIsMobileSidebarOpen(true),
+    onGoLanding: () => setAppStage('landing'),
+    onOpenAi: () => setIsAiPanelOpen(true),
+  };
+
   return (
     <div className="app-shell relative flex h-[100dvh] flex-col overflow-hidden bg-[color:var(--app-bg)] text-[color:var(--text)] select-none">
-      <WorkspaceNavbar
-        isVisible={isNavbarVisible}
-        activeBreadcrumb={activeBreadcrumb}
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        isSearchOpen={isSearchOpen}
-        onSearchOpen={setIsSearchOpen}
-        searchResults={navbarSearchResults}
-        onRunSearchResult={(id) => {
-          const result = searchResults.find((r) => r.id === id);
-          if (result) runSearchResult(result);
-        }}
-        searchRef={searchRef}
-        notificationsRef={notificationsRef}
-        upcomingCount={upcomingNotifications.length}
-        isNotificationsOpen={isNotificationsOpen}
-        onToggleNotifications={() => {
-          setIsNotificationsOpen((c) => !c);
-          setIsSearchOpen(false);
-        }}
-        notifications={navbarNotifications}
-        onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
-        onGoLanding={() => setAppStage('landing')}
-        onOpenAi={() => setIsAiPanelOpen(true)}
-      />
+      {/* Full-width navbar — own row, never overlaps sidebar or page content */}
+      <div
+        className={cn(
+          'workspace-navbar-slot shrink-0 overflow-hidden transition-[max-height] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]',
+          isNavbarVisible ? 'max-h-[var(--workspace-nav-chrome)]' : 'max-h-0'
+        )}
+      >
+        <div
+          className={cn(
+            'transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]',
+            isNavbarVisible ? 'translate-y-0' : '-translate-y-full'
+          )}
+        >
+          <WorkspaceNavbar {...navbarProps} />
+        </div>
+      </div>
 
       <div
         className={cn(
-          'relative flex min-h-0 flex-1 flex-col gap-3 px-4 pb-4 md:flex-row md:gap-4 md:px-6 md:pb-6 lg:gap-6 lg:px-8 lg:pb-8',
-          // Keep a constant top offset so hiding/showing the floating navbar
-          // does not change layout height or cause scroll jitter. The navbar
-          // itself is an overlay that translates in/out via transform only.
-          'pt-[calc(var(--workspace-nav-height)+1rem)] md:pt-[calc(var(--workspace-nav-height)+1.5rem)] lg:pt-[calc(var(--workspace-nav-height)+2rem)]'
+          'workspace-body-row relative flex min-h-0 flex-1 flex-col gap-3 md:flex-row md:gap-4 lg:gap-6',
+          !isNavbarVisible && 'workspace-body-row--nav-hidden'
         )}
       >
         
@@ -512,17 +525,16 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        {/* Collapsible Sidebar — inset panel below navbar (rounded top, not flush to window) */}
+        {/* Sidebar — full height, separate from content navbar */}
         <div
           className={cn(
-            'relative hidden min-w-0 shrink-0 md:block transition-[width] duration-300 ease',
+            'relative hidden min-h-0 shrink-0 self-stretch md:flex md:flex-col transition-[width] duration-300 ease',
             isSidebarOpen ? 'w-64' : 'w-20'
           )}
         >
-          <div className="workspace-sidebar-fillet" aria-hidden />
           <aside
             className={cn(
-              'workspace-sidebar-panel flex h-full flex-col py-4 transition-all duration-300 ease',
+              'workspace-sidebar-panel flex h-full flex-col py-4 transition-[padding] duration-300 ease',
               isSidebarOpen ? 'px-4' : 'px-3'
             )}
           >
@@ -585,8 +597,9 @@ export default function App() {
 
         <div
           ref={setMainScrollEl}
-          className="workspace-main-panel flex min-h-0 flex-1 flex-col min-w-0 overflow-y-auto overflow-x-hidden"
+          className="workspace-main-panel min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden"
         >
+          <div className="workspace-main-content">
           {activeTab === 'home' ? (
             <HomeDashboard
               state={state}
@@ -595,7 +608,7 @@ export default function App() {
               onViewPersonal={() => navigateToTab('personal')}
               onAskAi={() => setIsAiPanelOpen(true)}
               onOpenRecent={recentPage && recentPage.tab !== 'home' ? openRecentPage : undefined}
-              className="min-h-0 min-w-0 flex-1"
+              className="min-w-0"
             />
           ) : (
           <PageContainer animate={false}>
@@ -654,6 +667,7 @@ export default function App() {
             )}
           </PageContainer>
           )}
+          </div>
         </div>
       </div>
 

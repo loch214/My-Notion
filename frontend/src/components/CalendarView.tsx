@@ -179,7 +179,7 @@ export default function CalendarView({
       <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
         
         {/* Left Column: Interactive Calendar grid */}
-        <Card spotlight={false} className="card-pad bg-[color:var(--surface-low)] border border-[color:var(--border)] overflow-hidden min-w-0 flex-1 xl:flex-[1.3] xl:basis-0">
+        <Card spotlight={false} className="card-pad bg-[color:var(--surface-low)] border border-[color:var(--border)] min-w-0 w-full shrink-0 xl:flex-[1.3] xl:basis-0">
           
           {/* Weekday indicators */}
           <div className="grid grid-cols-7 gap-1 pb-3 text-[10px] font-bold uppercase tracking-wider text-[color:var(--muted)] text-center border-b border-[color:var(--border)] mb-2">
@@ -249,7 +249,7 @@ export default function CalendarView({
         </Card>
 
         {/* Right Column: Upcoming Agenda sidebar */}
-        <div className="space-y-4 min-w-0 flex-1 xl:flex-[0.9] xl:basis-0">
+        <div className="space-y-4 min-w-0 w-full shrink-0 xl:flex-[0.9] xl:basis-0">
           <div className="flex items-center gap-2 text-base font-bold font-heading text-[color:var(--text)] pl-1 shrink-0">
             <CalendarIcon className="h-4.5 w-4.5 text-[color:var(--accent)]" /> 
             Upcoming Schedule
