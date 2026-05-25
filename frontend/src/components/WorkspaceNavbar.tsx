@@ -54,7 +54,7 @@ export function WorkspaceNavbar({
       <header
         className={cn(
           'relative mx-auto grid h-[var(--workspace-nav-bar)] w-full max-w-[1400px] items-center gap-3 rounded-full px-3 sm:px-4',
-          'border border-white/[0.14] bg-white/[0.06] shadow-[0_8px_32px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.12)]',
+          'border border-[color:var(--nav-glass-border)] bg-[color:var(--nav-glass-bg)] shadow-[0_8px_32px_rgba(0,0,0,0.35),inset_0_1px_0_var(--spotlight-hover)]',
           'backdrop-blur-2xl backdrop-saturate-150',
           'max-lg:grid-cols-[auto_1fr_auto] lg:grid-cols-[minmax(0,1fr)_minmax(12rem,28rem)_minmax(0,1fr)]'
         )}
@@ -74,7 +74,7 @@ export function WorkspaceNavbar({
             className="flex min-w-0 max-w-full items-center gap-2.5 rounded-full py-1 pr-2 transition hover:bg-white/[0.06]"
             aria-label="Go to landing page"
           >
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[color:var(--accent)] to-[color:var(--accent-2)] text-[color:var(--on-accent)] shadow-[0_0_20px_rgba(99,102,241,0.45)]">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[color:var(--accent)] to-[color:var(--accent-2)] text-[color:var(--on-accent)] shadow-[0_0_20px_var(--accent-glow)]">
               <Sparkles className="h-4 w-4" />
             </span>
             <span className="hidden min-w-0 items-center gap-2 sm:inline-flex">
@@ -217,7 +217,7 @@ export function WorkspaceNavbar({
             size="sm"
             onClick={onOpenAi}
             leftIcon={<Sparkles className="h-4 w-4" />}
-            className="h-10 shrink-0 px-4 text-sm shadow-[0_4px_24px_rgba(99,102,241,0.45)]"
+            className="h-10 shrink-0 px-4 text-sm shadow-[0_4px_24px_var(--accent-glow)]"
           >
             Say Hello
           </Button>

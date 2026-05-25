@@ -5,6 +5,7 @@ import {
   Home,
   Library,
   LayoutDashboard,
+  Settings,
   Sparkles,
   X,
   Menu,
@@ -23,10 +24,32 @@ import { PageContainer } from './components/ui/PageContainer';
 import { LandingPage } from './components/LandingPage';
 import { HomeDashboard } from './components/HomeDashboard';
 import { WorkspaceNavbar } from './components/WorkspaceNavbar';
+import { SettingsPage } from './components/SettingsPage';
 import { useAutoHideNavbar } from './hooks/useAutoHideNavbar';
 import { loadRecentPage, saveRecentPage } from './lib/recentPage';
 
-type WorkspaceTab = 'home' | 'academic' | 'personal' | 'calendar';
+type WorkspaceTab = 'home' | 'academic' | 'personal' | 'calendar' | 'settings';
+
+const WORKSPACE_NAV_ITEMS = [
+  { id: 'home' as const, label: 'Home', icon: Home },
+  { id: 'academic' as const, label: 'Academic', icon: Library },
+  { id: 'personal' as const, label: 'Personal', icon: LayoutDashboard },
+  { id: 'calendar' as const, label: 'Calendar', icon: Calendar },
+  { id: 'settings' as const, label: 'Settings', icon: Settings },
+];
+
+function parseWorkspaceTab(value: string | null): WorkspaceTab {
+  if (
+    value === 'academic' ||
+    value === 'personal' ||
+    value === 'calendar' ||
+    value === 'settings' ||
+    value === 'home'
+  ) {
+    return value;
+  }
+  return 'home';
+}
 type SearchResultKind = 'tab' | 'module' | 'task' | 'event';
 
 interface SearchResult {
@@ -60,11 +83,11 @@ export default function App() {
     return 'landing';
   });
 
-  const [activeTab, setActiveTab] = useState<'home' | 'academic' | 'personal' | 'calendar'>(() => {
+  const [activeTab, setActiveTab] = useState<WorkspaceTab>(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get('tab');
-    if (tab) return tab as any;
-    return (localStorage.getItem('my_notion_tab') as any) || 'home';
+    if (tab) return parseWorkspaceTab(tab);
+    return parseWorkspaceTab(localStorage.getItem('my_notion_tab'));
   });
 
   const [activeModuleId, setActiveModuleId] = useState<string | null>(() => {
@@ -125,7 +148,7 @@ export default function App() {
     const handlePopState = () => {
       const p = new URLSearchParams(window.location.search);
       setAppStage((p.get('stage') as any) || 'landing');
-      setActiveTab((p.get('tab') as any) || 'home');
+      setActiveTab(parseWorkspaceTab(p.get('tab')));
       setActiveModuleId(p.get('module') || null);
     };
 
@@ -156,7 +179,7 @@ export default function App() {
   const openWorkspaceTab = (tab: WorkspaceTab, moduleId: string | null = null) => {
     setAppStage('workspace');
     setActiveTab(tab);
-    setActiveModuleId(moduleId);
+    setActiveModuleId(tab === 'academic' ? moduleId : null);
     setIsMobileSidebarOpen(false);
   };
 
@@ -242,6 +265,15 @@ export default function App() {
         keywords: ['calendar', 'events', 'schedule', 'meetings'],
         actionLabel: 'Open page',
         tab: 'calendar',
+      },
+      {
+        id: 'tab-settings',
+        kind: 'tab',
+        title: 'Settings',
+        subtitle: 'Themes and workspace preferences',
+        keywords: ['settings', 'theme', 'themes', 'appearance', 'preferences'],
+        actionLabel: 'Open page',
+        tab: 'settings',
       },
     ];
 
@@ -343,11 +375,12 @@ export default function App() {
     }
     if (activeTab === 'personal') return 'Personal Focus';
     if (activeTab === 'calendar') return 'Schedule';
+    if (activeTab === 'settings') return 'Settings';
     return 'Dashboard';
   }, [activeTab, activeModule]);
 
   useEffect(() => {
-    if (appStage !== 'workspace' || activeTab === 'home') return;
+    if (appStage !== 'workspace' || activeTab === 'home' || activeTab === 'settings') return;
     saveRecentPage({
       label: activeBreadcrumb,
       tab: activeTab,
@@ -452,18 +485,12 @@ export default function App() {
     <div className="app-shell relative flex h-[100dvh] flex-col overflow-hidden bg-[color:var(--app-bg)] text-[color:var(--text)] select-none">
       <div
         className={cn(
-          'workspace-navbar-slot shrink-0 overflow-hidden',
+          'workspace-navbar-slot shrink-0',
           isNavbarVisible ? 'workspace-navbar-slot--visible' : 'workspace-navbar-slot--hidden'
         )}
         aria-hidden={!isNavbarVisible}
       >
-        <div
-          className={cn(
-            'workspace-navbar-inner',
-            isNavbarVisible ? 'workspace-navbar-inner--visible' : 'workspace-navbar-inner--hidden',
-            !isNavbarVisible && 'pointer-events-none'
-          )}
-        >
+        <div className={cn('workspace-navbar-inner', !isNavbarVisible && 'pointer-events-none')}>
           <WorkspaceNavbar {...navbarProps} />
         </div>
       </div>
@@ -509,19 +536,14 @@ export default function App() {
                   </div>
                   {/* Nav List */}
                   <nav className="flex flex-col gap-1">
-                    {[
-                      { id: 'home', label: 'Home', icon: Home },
-                      { id: 'academic', label: 'Academic', icon: Library },
-                      { id: 'personal', label: 'Personal', icon: LayoutDashboard },
-                      { id: 'calendar', label: 'Calendar', icon: Calendar },
-                    ].map((tab) => {
+                    {WORKSPACE_NAV_ITEMS.map((tab) => {
                       const Icon = tab.icon;
                       const isActive = activeTab === tab.id;
                       return (
                         <button
                           key={tab.id}
                           onClick={() => {
-                            navigateToTab(tab.id as any);
+                            navigateToTab(tab.id);
                             setIsMobileSidebarOpen(false);
                           }}
                           className={cn(
@@ -580,18 +602,13 @@ export default function App() {
 
               {/* Sidebar Nav Links */}
               <nav className="space-y-1">
-                {[
-                  { id: 'home', label: 'Home', icon: Home },
-                  { id: 'academic', label: 'Academic', icon: Library },
-                  { id: 'personal', label: 'Personal', icon: LayoutDashboard },
-                  { id: 'calendar', label: 'Calendar', icon: Calendar },
-                ].map((tab) => {
+                {WORKSPACE_NAV_ITEMS.map((tab) => {
                   const Icon = tab.icon;
                   const isActive = activeTab === tab.id;
                   return (
                     <button
                       key={tab.id}
-                      onClick={() => navigateToTab(tab.id as any)}
+                      onClick={() => navigateToTab(tab.id)}
                       className={cn(
                         'flex items-center gap-3 rounded-xl transition-all duration-150 ease text-left w-full relative',
                         isSidebarOpen ? 'px-4 py-3.5 text-base font-medium' : 'justify-center px-0 py-3.5 text-base',
@@ -685,6 +702,12 @@ export default function App() {
                   onRemoveEvent={removeEvent} 
                   onUpdateEvent={updateEvent} 
                 />
+              </div>
+            )}
+
+            {activeTab === 'settings' && (
+              <div>
+                <SettingsPage />
               </div>
             )}
           </PageContainer>

@@ -1,13 +1,14 @@
 import { useEffect, useRef } from 'react';
 
-/** Minimum scroll movement (px) before toggling visibility */
-const SCROLL_DELTA_PX = 6;
-/** Debounce rapid direction flips during momentum scroll */
-const COOLDOWN_MS = 200;
+/** Scroll down this many px (accumulated) before hiding */
+const HIDE_AFTER_PX = 10;
+/** Scroll up this many px (accumulated) before showing */
+const SHOW_AFTER_PX = 6;
 
 /**
  * Hides the workspace navbar when the user scrolls down inside `scrollRoot`,
  * shows it when scrolling up or when scrolled back to the top.
+ * Uses accumulated delta so trackpad / wheel scrolling feels the same on every page.
  */
 export function useAutoHideNavbar(
   enabled: boolean,
@@ -17,8 +18,9 @@ export function useAutoHideNavbar(
 ) {
   const lastYRef = useRef(0);
   const visibleRef = useRef(true);
+  const downAccumRef = useRef(0);
+  const upAccumRef = useRef(0);
   const rafIdRef = useRef<number | null>(null);
-  const lastToggleAtRef = useRef(0);
 
   useEffect(() => {
     if (!enabled) {
@@ -30,19 +32,38 @@ export function useAutoHideNavbar(
     const applyVisible = (next: boolean) => {
       if (visibleRef.current === next) return;
       visibleRef.current = next;
-      lastToggleAtRef.current = Date.now();
       setVisible(next);
+      if (next) {
+        downAccumRef.current = 0;
+      } else {
+        upAccumRef.current = 0;
+      }
     };
 
-    const resetScrollState = () => {
+    const syncFromScroll = (showAtTop = true) => {
       const el = scrollRoot;
       if (!el) return;
-      el.scrollTop = 0;
+      const y = el.scrollTop;
+      lastYRef.current = y;
+      downAccumRef.current = 0;
+      upAccumRef.current = 0;
+      if (showAtTop && y <= 1) {
+        applyVisible(true);
+      }
+    };
+
+    const resetForNavigation = () => {
+      const el = scrollRoot;
+      if (el) {
+        el.scrollTop = 0;
+      }
       lastYRef.current = 0;
+      downAccumRef.current = 0;
+      upAccumRef.current = 0;
       applyVisible(true);
     };
 
-    resetScrollState();
+    resetForNavigation();
 
     const tick = () => {
       const el = scrollRoot;
@@ -50,33 +71,34 @@ export function useAutoHideNavbar(
 
       const currentY = el.scrollTop;
       const delta = currentY - lastYRef.current;
+      lastYRef.current = currentY;
 
       if (currentY <= 1) {
         applyVisible(true);
-        lastYRef.current = currentY;
+        downAccumRef.current = 0;
+        upAccumRef.current = 0;
         return;
       }
 
-      if (Date.now() - lastToggleAtRef.current < COOLDOWN_MS) {
-        lastYRef.current = currentY;
+      if (delta > 0) {
+        downAccumRef.current += delta;
+        upAccumRef.current = 0;
+        if (downAccumRef.current >= HIDE_AFTER_PX) {
+          applyVisible(false);
+        }
         return;
       }
-
-      if (Math.abs(delta) < SCROLL_DELTA_PX) {
-        lastYRef.current = currentY;
-        return;
-      }
-
-      lastYRef.current = currentY;
 
       if (delta < 0) {
-        applyVisible(true);
-      } else if (delta > 0) {
-        applyVisible(false);
+        upAccumRef.current += -delta;
+        downAccumRef.current = 0;
+        if (upAccumRef.current >= SHOW_AFTER_PX) {
+          applyVisible(true);
+        }
       }
     };
 
-    const onScroll = () => {
+    const scheduleTick = () => {
       if (rafIdRef.current !== null) return;
       rafIdRef.current = requestAnimationFrame(() => {
         rafIdRef.current = null;
@@ -84,10 +106,40 @@ export function useAutoHideNavbar(
       });
     };
 
-    scrollRoot?.addEventListener('scroll', onScroll, { passive: true });
+    const el = scrollRoot;
+    el?.addEventListener('scroll', scheduleTick, { passive: true });
+
+    const onWheel = (e: WheelEvent) => {
+      if (!scrollRoot || e.deltaY === 0) return;
+      if (e.deltaY > 0) {
+        downAccumRef.current += e.deltaY;
+        upAccumRef.current = 0;
+        if (downAccumRef.current >= HIDE_AFTER_PX && scrollRoot.scrollTop > 1) {
+          applyVisible(false);
+        }
+      } else {
+        upAccumRef.current += -e.deltaY;
+        downAccumRef.current = 0;
+        if (upAccumRef.current >= SHOW_AFTER_PX) {
+          applyVisible(true);
+        }
+      }
+      scheduleTick();
+    };
+
+    el?.addEventListener('wheel', onWheel, { passive: true });
+
+    const resizeObserver =
+      el &&
+      new ResizeObserver(() => {
+        syncFromScroll(false);
+      });
+    resizeObserver?.observe(el);
 
     return () => {
-      scrollRoot?.removeEventListener('scroll', onScroll);
+      el?.removeEventListener('scroll', scheduleTick);
+      el?.removeEventListener('wheel', onWheel);
+      resizeObserver?.disconnect();
       if (rafIdRef.current !== null) {
         cancelAnimationFrame(rafIdRef.current);
       }
