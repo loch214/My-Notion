@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Calendar,
   ChevronLeft,
@@ -90,7 +90,8 @@ export default function App() {
   
   const searchRef = useRef<HTMLDivElement | null>(null);
 
-  useAutoHideNavbar(appStage === 'workspace', mainScrollEl, setIsNavbarVisible, activeTab);
+  const navScrollResetKey = `${activeTab}:${activeModuleId ?? ''}`;
+  useAutoHideNavbar(appStage === 'workspace', mainScrollEl, setIsNavbarVisible, navScrollResetKey);
 
   const notificationsRef = useRef<HTMLDivElement | null>(null);
 
@@ -393,6 +394,51 @@ export default function App() {
     [state.modules]
   );
 
+  const handleNavbarSearchResult = useCallback(
+    (id: string) => {
+      const result = searchResults.find((r) => r.id === id);
+      if (result) runSearchResult(result);
+    },
+    [searchResults]
+  );
+
+  const handleToggleNotifications = useCallback(() => {
+    setIsNotificationsOpen((c) => !c);
+    setIsSearchOpen(false);
+  }, []);
+
+  const navbarProps = useMemo(
+    () => ({
+      activeBreadcrumb,
+      searchQuery,
+      onSearchChange: setSearchQuery,
+      isSearchOpen,
+      onSearchOpen: setIsSearchOpen,
+      searchResults: navbarSearchResults,
+      onRunSearchResult: handleNavbarSearchResult,
+      searchRef,
+      notificationsRef,
+      upcomingCount: upcomingNotifications.length,
+      isNotificationsOpen,
+      onToggleNotifications: handleToggleNotifications,
+      notifications: navbarNotifications,
+      onOpenMobileSidebar: () => setIsMobileSidebarOpen(true),
+      onGoLanding: () => setAppStage('landing'),
+      onOpenAi: () => setIsAiPanelOpen(true),
+    }),
+    [
+      activeBreadcrumb,
+      searchQuery,
+      isSearchOpen,
+      navbarSearchResults,
+      handleNavbarSearchResult,
+      upcomingNotifications.length,
+      isNotificationsOpen,
+      handleToggleNotifications,
+      navbarNotifications,
+    ]
+  );
+
   if (appStage === 'landing') {
     return (
       <LandingPage
@@ -402,44 +448,20 @@ export default function App() {
     );
   }
 
-  const navbarProps = {
-    activeBreadcrumb,
-    searchQuery,
-    onSearchChange: setSearchQuery,
-    isSearchOpen,
-    onSearchOpen: setIsSearchOpen,
-    searchResults: navbarSearchResults,
-    onRunSearchResult: (id: string) => {
-      const result = searchResults.find((r) => r.id === id);
-      if (result) runSearchResult(result);
-    },
-    searchRef,
-    notificationsRef,
-    upcomingCount: upcomingNotifications.length,
-    isNotificationsOpen,
-    onToggleNotifications: () => {
-      setIsNotificationsOpen((c) => !c);
-      setIsSearchOpen(false);
-    },
-    notifications: navbarNotifications,
-    onOpenMobileSidebar: () => setIsMobileSidebarOpen(true),
-    onGoLanding: () => setAppStage('landing'),
-    onOpenAi: () => setIsAiPanelOpen(true),
-  };
-
   return (
     <div className="app-shell relative flex h-[100dvh] flex-col overflow-hidden bg-[color:var(--app-bg)] text-[color:var(--text)] select-none">
-      {/* Full-width navbar — own row, never overlaps sidebar or page content */}
       <div
         className={cn(
-          'workspace-navbar-slot shrink-0 overflow-hidden transition-[max-height] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]',
-          isNavbarVisible ? 'max-h-[var(--workspace-nav-chrome)]' : 'max-h-0'
+          'workspace-navbar-slot shrink-0 overflow-hidden',
+          isNavbarVisible ? 'workspace-navbar-slot--visible' : 'workspace-navbar-slot--hidden'
         )}
+        aria-hidden={!isNavbarVisible}
       >
         <div
           className={cn(
-            'transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]',
-            isNavbarVisible ? 'translate-y-0' : '-translate-y-full'
+            'workspace-navbar-inner',
+            isNavbarVisible ? 'workspace-navbar-inner--visible' : 'workspace-navbar-inner--hidden',
+            !isNavbarVisible && 'pointer-events-none'
           )}
         >
           <WorkspaceNavbar {...navbarProps} />
@@ -597,7 +619,7 @@ export default function App() {
 
         <div
           ref={setMainScrollEl}
-          className="workspace-main-panel min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden"
+          className="workspace-main-panel min-h-0 min-w-0 flex-1"
         >
           <div className="workspace-main-content">
           {activeTab === 'home' ? (

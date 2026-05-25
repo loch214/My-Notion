@@ -1,8 +1,14 @@
 import { useEffect, useRef } from 'react';
 
-const SCROLL_DELTA_PX = 4;
-const COOLDOWN_MS = 160;
+/** Minimum scroll movement (px) before toggling visibility */
+const SCROLL_DELTA_PX = 6;
+/** Debounce rapid direction flips during momentum scroll */
+const COOLDOWN_MS = 200;
 
+/**
+ * Hides the workspace navbar when the user scrolls down inside `scrollRoot`,
+ * shows it when scrolling up or when scrolled back to the top.
+ */
 export function useAutoHideNavbar(
   enabled: boolean,
   scrollRoot: HTMLElement | null,
@@ -27,6 +33,16 @@ export function useAutoHideNavbar(
       lastToggleAtRef.current = Date.now();
       setVisible(next);
     };
+
+    const resetScrollState = () => {
+      const el = scrollRoot;
+      if (!el) return;
+      el.scrollTop = 0;
+      lastYRef.current = 0;
+      applyVisible(true);
+    };
+
+    resetScrollState();
 
     const tick = () => {
       const el = scrollRoot;
@@ -55,10 +71,7 @@ export function useAutoHideNavbar(
 
       if (delta < 0) {
         applyVisible(true);
-        return;
-      }
-
-      if (delta > 0) {
+      } else if (delta > 0) {
         applyVisible(false);
       }
     };
@@ -71,16 +84,10 @@ export function useAutoHideNavbar(
       });
     };
 
-    const el = scrollRoot;
-    if (el) {
-      lastYRef.current = el.scrollTop;
-      applyVisible(el.scrollTop <= 1);
-    }
-
-    el?.addEventListener('scroll', onScroll, { passive: true });
+    scrollRoot?.addEventListener('scroll', onScroll, { passive: true });
 
     return () => {
-      el?.removeEventListener('scroll', onScroll);
+      scrollRoot?.removeEventListener('scroll', onScroll);
       if (rafIdRef.current !== null) {
         cancelAnimationFrame(rafIdRef.current);
       }

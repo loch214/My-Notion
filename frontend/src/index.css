@@ -30,6 +30,8 @@
   );
   /* Gap between viewport edge and sidebar / main panel (matches body row padding) */
   --workspace-edge-inset: 1rem;
+  --workspace-motion-duration: 300ms;
+  --workspace-motion-ease: cubic-bezier(0.32, 0.72, 0, 1);
   
   /* Module colors - sophisticated low saturation background, distinct border & text */
   --module-blue-bg: rgba(56, 189, 248, 0.08);
@@ -271,7 +273,7 @@ h1, h2, h3, h4, h5, h6 {
   padding-bottom: var(--workspace-edge-inset);
   padding-left: var(--workspace-edge-inset);
   padding-right: var(--workspace-edge-inset);
-  transition: padding-top 300ms cubic-bezier(0.32, 0.72, 0, 1);
+  transition: padding-top var(--workspace-motion-duration) var(--workspace-motion-ease);
 }
 
 .workspace-body-row--nav-hidden {
@@ -292,6 +294,35 @@ h1, h2, h3, h4, h5, h6 {
 
 .workspace-navbar-slot {
   z-index: 80;
+  transition: max-height var(--workspace-motion-duration) var(--workspace-motion-ease);
+}
+
+.workspace-navbar-slot--visible {
+  max-height: var(--workspace-nav-chrome);
+}
+
+.workspace-navbar-slot--hidden {
+  max-height: 0;
+}
+
+.workspace-navbar-inner {
+  transition: transform var(--workspace-motion-duration) var(--workspace-motion-ease);
+}
+
+.workspace-navbar-inner--visible {
+  transform: translateY(0);
+}
+
+.workspace-navbar-inner--hidden {
+  transform: translateY(-100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace-navbar-slot,
+  .workspace-navbar-inner,
+  .workspace-body-row {
+    transition-duration: 0.01ms;
+  }
 }
 
 .workspace-main-panel::-webkit-scrollbar {
