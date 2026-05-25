@@ -16,28 +16,29 @@ export function useAppStore() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const refreshWorkspace = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/workspace`);
+      if (!response.ok) throw new Error('Failed to load workspace');
+      const data = await response.json();
+      setState({
+        modules: data.modules || [],
+        tasks: data.tasks || [],
+        events: data.events || [],
+        globalChatHistory: data.globalChatHistory || []
+      });
+      setError(null);
+    } catch (err) {
+      console.error('Error loading workspace:', err);
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Load initial state from backend
   useEffect(() => {
-    const loadWorkspace = async () => {
-      try {
-        const response = await fetch(`${API_BASE}/workspace`);
-        if (!response.ok) throw new Error('Failed to load workspace');
-        const data = await response.json();
-        setState({
-          modules: data.modules || [],
-          tasks: data.tasks || [],
-          events: data.events || [],
-          globalChatHistory: data.globalChatHistory || []
-        });
-      } catch (err) {
-        console.error('Error loading workspace:', err);
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadWorkspace();
+    refreshWorkspace();
   }, []);
 
   const updateState = (updates: Partial<AppState> | ((prev: AppState) => AppState)) => {
@@ -289,5 +290,6 @@ export function useAppStore() {
     // chat
     saveGlobalChatMessage,
     saveModuleChatMessage,
+    refreshWorkspace,
   };
 }

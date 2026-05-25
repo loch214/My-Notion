@@ -26,6 +26,7 @@ interface ModuleDetailProps {
   onRemoveTask?: (taskId: string) => void;
   onBack: () => void;
   updateModule: (moduleId: string, updates: Partial<Module>) => void;
+  refreshWorkspace: () => Promise<void>;
 }
 
 export function ModuleDetail({
@@ -36,7 +37,8 @@ export function ModuleDetail({
   onEditTask,
   onRemoveTask,
   onBack,
-  updateModule
+  updateModule,
+  refreshWorkspace
 }: ModuleDetailProps) {
   const [activeTab, setActiveTab] = useState<'files' | 'chat' | 'tasks'>('files');
   const [isUploading, setIsUploading] = useState(false);
@@ -234,6 +236,10 @@ export function ModuleDetail({
         }
         updateModule(module.id, updates);
       }
+
+      if (data.action) {
+        await refreshWorkspace();
+      }
     } catch (error) {
       console.error(error);
     } finally {
@@ -406,8 +412,8 @@ export function ModuleDetail({
                 <button 
                   onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
                   className={cn(
-                    "h-10 w-10 rounded-full text-[color:var(--muted)] transition-all duration-150 ease hover:bg-[color:var(--surface-med)] hover:text-[color:var(--text)] focus:outline-none",
-                    isSidebarCollapsed && "w-full flex justify-center"
+                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[color:var(--muted)] transition-all duration-150 ease hover:bg-[color:var(--surface-med)] hover:text-[color:var(--text)] focus:outline-none",
+                    isSidebarCollapsed && "mx-auto"
                   )}
                   title={isSidebarCollapsed ? "Expand study sessions" : "Collapse study sessions"}
                 >

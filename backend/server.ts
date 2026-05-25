@@ -386,6 +386,23 @@ function resolveThemeId(theme: unknown) {
   return matchedTheme?.id ?? null;
 }
 
+function inferAllowedFunctionNames(message: string) {
+  const text = message.toLowerCase();
+  const allowed = new Set<string>();
+
+  if (/(create|add|new).*(task)|task.*(create|add|new)/i.test(text)) allowed.add('create_task');
+  if (/(delete|remove|discard).*(task)|task.*(delete|remove|discard)/i.test(text)) allowed.add('delete_task');
+  if (/(toggle|complete|done|undone|check off).*(task)|task.*(toggle|complete|done|undone|check off)/i.test(text)) allowed.add('toggle_task');
+  if (/(create|add|new).*(event|calendar|birthday|meeting)|event.*(create|add|new)/i.test(text)) allowed.add('create_event');
+  if (/(delete|remove|discard).*(event)|event.*(delete|remove|discard)/i.test(text)) allowed.add('delete_event');
+  if (/(create|add|new).*(module)|module.*(create|add|new)/i.test(text)) allowed.add('create_module');
+  if (/(theme|color|palette|switch|change look|change theme)/i.test(text)) allowed.add('switch_theme');
+  if (/\b(get|show|list|see).*(task|tasks)\b/i.test(text)) allowed.add('get_tasks');
+  if (/\b(get|show|list|see).*(event|events|calendar)\b/i.test(text)) allowed.add('get_events');
+
+  return allowed.size > 0 ? Array.from(allowed) : undefined;
+}
+
 async function executeChatTool(name: string, args: Record<string, unknown>) {
   const workspace = await getOrCreateWorkspace();
 
@@ -625,6 +642,7 @@ async function runGemini(
 
   let contents = buildGeminiContents(history, message, attachments);
   let action: ChatAction | undefined;
+  const allowedFunctionNames = toolDeclarations.length > 0 ? inferAllowedFunctionNames(message) : undefined;
 
   for (let attempt = 0; attempt < 4; attempt += 1) {
     const config: any = { systemInstruction };
@@ -633,6 +651,7 @@ async function runGemini(
       config.toolConfig = {
         functionCallingConfig: {
           mode: FunctionCallingConfigMode.AUTO,
+          ...(allowedFunctionNames ? { allowedFunctionNames } : {}),
         },
       };
     }
@@ -655,7 +674,16 @@ async function runGemini(
     const functionResponseParts = [];
 
     for (const call of functionCalls) {
-      const toolResult = await executeChatTool(call.name ?? '', (call.args ?? {}) as Record<string, unknown>);
+      let toolResult;
+      try {
+        toolResult = await executeChatTool(call.name ?? '', (call.args ?? {}) as Record<string, unknown>);
+      } catch (error: any) {
+        toolResult = {
+          response: {
+            error: error instanceof Error ? error.message : 'Tool execution failed.',
+          },
+        };
+      }
       if (!action && toolResult.action) {
         action = toolResult.action;
       }

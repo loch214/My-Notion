@@ -52,6 +52,7 @@ export function WorkspaceNavbar({
 }: WorkspaceNavbarProps) {
   const searchIsExpanded = isSearchOpen || searchQuery.trim().length > 0;
   const [searchPopoverStyle, setSearchPopoverStyle] = useState<CSSProperties | null>(null);
+  const [notificationsPopoverStyle, setNotificationsPopoverStyle] = useState<CSSProperties | null>(null);
 
   useEffect(() => {
     if (!isSearchOpen || !searchRef.current) {
@@ -80,6 +81,34 @@ export function WorkspaceNavbar({
       window.removeEventListener('scroll', updateStyle, true);
     };
   }, [isSearchOpen, searchRef]);
+
+  useEffect(() => {
+    if (!isNotificationsOpen || !notificationsRef.current) {
+      setNotificationsPopoverStyle(null);
+      return;
+    }
+
+    const updateStyle = () => {
+      const rect = notificationsRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      setNotificationsPopoverStyle({
+        position: 'fixed',
+        right: Math.max(16, window.innerWidth - rect.right),
+        top: rect.bottom + 10,
+        width: 320,
+        zIndex: 230,
+      });
+    };
+
+    updateStyle();
+    window.addEventListener('resize', updateStyle);
+    window.addEventListener('scroll', updateStyle, true);
+    return () => {
+      window.removeEventListener('resize', updateStyle);
+      window.removeEventListener('scroll', updateStyle, true);
+    };
+  }, [isNotificationsOpen, notificationsRef]);
 
   const searchResultsPopover =
     isSearchOpen && searchPopoverStyle
@@ -223,14 +252,17 @@ export function WorkspaceNavbar({
                 </span>
               )}
             </button>
+          </div>
 
-            <AnimatePresence>
-              {isNotificationsOpen && (
+          {isNotificationsOpen && notificationsPopoverStyle
+            ? createPortal(
                 <motion.div
+                  onMouseDown={(event) => event.stopPropagation()}
                   initial={{ opacity: 0, scale: 0.98, y: 8 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.98, y: 8 }}
-                  className="absolute right-0 top-[calc(100%+0.5rem)] z-[130] w-[20rem] overflow-hidden rounded-2xl border border-white/10 bg-[color:var(--surface-high)]/95 shadow-2xl backdrop-blur-xl"
+                  style={notificationsPopoverStyle}
+                  className="overflow-hidden rounded-2xl border border-white/10 bg-[color:var(--surface-high)]/95 shadow-2xl backdrop-blur-xl"
                 >
                   <div className="border-b border-[color:var(--border)] px-4 py-2.5">
                     <p className="text-[10px] uppercase tracking-[0.24em] text-[color:var(--muted)]">Notifications</p>
@@ -254,10 +286,10 @@ export function WorkspaceNavbar({
                       <div className="px-4 py-8 text-center text-xs text-[color:var(--muted)]">No upcoming items.</div>
                     )}
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+                </motion.div>,
+                document.body
+              )
+            : null}
 
           <Button
             variant="primary"

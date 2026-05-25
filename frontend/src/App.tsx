@@ -50,6 +50,11 @@ function parseWorkspaceTab(value: string | null): WorkspaceTab {
   }
   return 'home';
 }
+
+function parseAppStage(value: string | null): 'landing' | 'workspace' {
+  return value === 'workspace' ? 'workspace' : 'landing';
+}
+
 type SearchResultKind = 'tab' | 'module' | 'task' | 'event';
 
 interface SearchResult {
@@ -75,12 +80,14 @@ export default function App() {
     addEvent, 
     removeEvent, 
     updateEvent,
-    toggleTask
+    toggleTask,
+    refreshWorkspace
   } = useAppStore();
   
   // Persistence state from localStorage
   const [appStage, setAppStage] = useState<'landing' | 'workspace'>(() => {
-    return 'landing';
+    const params = new URLSearchParams(window.location.search);
+    return parseAppStage(params.get('stage'));
   });
 
   const [activeTab, setActiveTab] = useState<WorkspaceTab>(() => {
@@ -147,7 +154,7 @@ export default function App() {
   useEffect(() => {
     const handlePopState = () => {
       const p = new URLSearchParams(window.location.search);
-      setAppStage((p.get('stage') as any) || 'landing');
+      setAppStage(parseAppStage(p.get('stage')));
       setActiveTab(parseWorkspaceTab(p.get('tab')));
       setActiveModuleId(p.get('module') || null);
     };
@@ -677,6 +684,7 @@ export default function App() {
                   onRemoveTask={(id) => removeTask(id)}
                   onBack={() => setActiveModuleId(null)}
                   updateModule={updateModule}
+                  refreshWorkspace={refreshWorkspace}
                 />
               </div>
             )}
@@ -723,6 +731,7 @@ export default function App() {
             onClose={() => setIsAiPanelOpen(false)}
             state={state}
             saveGlobalChatMessage={saveGlobalChatMessage}
+            refreshWorkspace={refreshWorkspace}
           />
         )}
       </AnimatePresence>

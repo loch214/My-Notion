@@ -18,9 +18,10 @@ interface GlobalChatProps {
   onClose: () => void;
   state: AppState;
   saveGlobalChatMessage: (message: ChatMessage) => Promise<void>;
+  refreshWorkspace: () => Promise<void>;
 }
 
-export function GlobalChat({ onClose, state, saveGlobalChatMessage }: GlobalChatProps) {
+export function GlobalChat({ onClose, state, saveGlobalChatMessage, refreshWorkspace }: GlobalChatProps) {
   const [input, setInput] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
   const [model, setModel] = React.useState<AIModelId>(DEFAULT_AI_MODEL);
@@ -88,7 +89,11 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage }: GlobalChat
         timestamp: new Date().toISOString(),
       };
 
-      saveGlobalChatMessage(modelMessage);
+      await saveGlobalChatMessage(modelMessage);
+
+      if (data.action) {
+        await refreshWorkspace();
+      }
     } catch (error) {
       console.error(error);
     } finally {
