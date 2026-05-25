@@ -105,7 +105,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage }: GlobalChat
   }, []);
 
   return (
-    <div className="fixed inset-0 z-[90] flex justify-end p-0 md:p-4">
+    <div className="fixed inset-0 z-[90] flex justify-end p-0 md:p-4 max-md:items-start">
       {/* Backdrop overlay */}
       <motion.div
         initial={{ opacity: 0 }}
@@ -122,7 +122,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage }: GlobalChat
         animate={isMobile ? { y: 0 } : { x: 0 }}
         exit={isMobile ? { y: '100%' } : { x: '100%' }}
         transition={{ type: 'tween', duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-        className="relative z-[90] flex h-[100dvh] w-full flex-col overflow-hidden border border-[color:var(--border)] bg-[color:var(--surface-med)]/96 text-[color:var(--text)] shadow-[0_20px_60px_rgba(0,0,0,0.5)] backdrop-blur-2xl max-md:rounded-t-[1.75rem] md:my-0 md:ml-0 md:h-[calc(100dvh-2rem)] md:w-[430px] md:rounded-[2rem]"
+        className="workspace-chat-drawer relative z-[90] flex flex-col overflow-hidden border border-[color:var(--border)] bg-[color:var(--surface-med)]/96 text-[color:var(--text)] shadow-[0_20px_60px_rgba(0,0,0,0.5)] backdrop-blur-2xl"
       >
         {/* Header bar */}
         <div className="flex items-center justify-between border-b border-[color:var(--border)] px-5 py-4 shrink-0 bg-[color:var(--surface-low)]/70 backdrop-blur-xl">

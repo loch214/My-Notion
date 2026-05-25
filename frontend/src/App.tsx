@@ -520,7 +520,7 @@ export default function App() {
                 animate={{ x: 0 }}
                 exit={{ x: '-100%' }}
                 transition={{ type: 'tween', duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-                className="fixed left-0 top-0 bottom-0 z-40 w-60 max-w-[80vw] border-r border-[color:var(--border)] bg-[color:var(--surface-low)] p-4 flex flex-col justify-between shadow-2xl md:hidden max-md:top-0"
+                className="workspace-mobile-drawer fixed z-40 flex flex-col justify-between border border-[color:var(--border)] bg-[color:var(--surface-low)] p-4 shadow-2xl md:hidden"
               >
                 <div className="flex flex-col gap-6">
                   {/* Top logo */}

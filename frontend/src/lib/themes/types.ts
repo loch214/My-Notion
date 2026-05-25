@@ -3,7 +3,6 @@ export type ThemeId =
   | 'midnight-violet'
   | 'emerald-pulse'
   | 'crimson-noir'
-  | 'arctic-frost'
   | 'sunset-synthwave'
   | 'obsidian-gold'
   | 'aurora-dream';

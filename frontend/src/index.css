@@ -341,6 +341,38 @@ h1, h2, h3, h4, h5, h6 {
   height: var(--workspace-nav-chrome);
 }
 
+.workspace-mobile-drawer {
+  left: var(--workspace-edge-inset);
+  right: var(--workspace-edge-inset);
+  top: calc(var(--workspace-nav-chrome) + var(--workspace-edge-inset));
+  bottom: var(--workspace-edge-inset);
+  width: auto;
+  max-width: none;
+  border-radius: 1.75rem;
+}
+
+.workspace-chat-drawer {
+  position: fixed;
+  right: var(--workspace-edge-inset);
+  top: var(--workspace-edge-inset);
+  bottom: var(--workspace-edge-inset);
+  width: min(430px, calc(100vw - (var(--workspace-edge-inset) * 2)));
+  height: calc(100dvh - (var(--workspace-edge-inset) * 2));
+  border-radius: 2rem;
+}
+
+@media (max-width: 767px) {
+  .workspace-chat-drawer {
+    left: var(--workspace-edge-inset);
+    right: var(--workspace-edge-inset);
+    top: calc(var(--workspace-nav-chrome) + var(--workspace-edge-inset));
+    bottom: var(--workspace-edge-inset);
+    width: auto;
+    height: auto;
+    border-radius: 1.75rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .workspace-navbar-slot,
   .workspace-body-row {
