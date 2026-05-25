@@ -58,10 +58,10 @@ export function WorkspaceNavbar({
         isVisible ? 'translate-y-0' : '-translate-y-full pointer-events-none'
       )}
     >
-      <div className="px-4 py-3 sm:px-5">
+      <div className="px-4 py-4 sm:px-5">
         <header
           className={cn(
-            'relative mx-auto grid h-[3.75rem] w-full max-w-[1400px] items-center gap-3 rounded-full px-3 sm:px-4',
+            'relative mx-auto grid h-[3.5rem] w-full max-w-[1400px] items-center gap-3 rounded-full px-3 sm:px-4',
             'border border-white/[0.14] bg-white/[0.06] shadow-[0_8px_32px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.12)]',
             'backdrop-blur-2xl backdrop-saturate-150',
             'max-lg:grid-cols-[auto_1fr_auto] lg:grid-cols-[minmax(0,1fr)_minmax(12rem,28rem)_minmax(0,1fr)]'

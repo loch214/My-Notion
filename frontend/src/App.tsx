@@ -57,10 +57,7 @@ export default function App() {
   
   // Persistence state from localStorage
   const [appStage, setAppStage] = useState<'landing' | 'workspace'>(() => {
-    const params = new URLSearchParams(window.location.search);
-    const stage = params.get('stage');
-    if (stage === 'landing' || stage === 'workspace') return stage;
-    return (localStorage.getItem('my_notion_stage') as any) || 'landing';
+    return 'landing';
   });
 
   const [activeTab, setActiveTab] = useState<'home' | 'academic' | 'personal' | 'calendar'>(() => {
@@ -89,11 +86,11 @@ export default function App() {
   const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
   const [isNavbarVisible, setIsNavbarVisible] = useState(true);
   const [recentPage, setRecentPage] = useState(() => loadRecentPage());
-  const mainScrollRef = useRef<HTMLDivElement | null>(null);
+  const [mainScrollEl, setMainScrollEl] = useState<HTMLDivElement | null>(null);
   
   const searchRef = useRef<HTMLDivElement | null>(null);
 
-  useAutoHideNavbar(appStage === 'workspace', mainScrollRef, setIsNavbarVisible, activeTab);
+  useAutoHideNavbar(appStage === 'workspace', mainScrollEl, setIsNavbarVisible, activeTab);
 
   const notificationsRef = useRef<HTMLDivElement | null>(null);
 
@@ -103,8 +100,8 @@ export default function App() {
 
   // Save UI Preferences inside localStorage
   useEffect(() => {
-    localStorage.setItem('my_notion_stage', appStage);
-  }, [appStage]);
+    localStorage.removeItem('my_notion_stage');
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('my_notion_tab', activeTab);
@@ -159,6 +156,13 @@ export default function App() {
     setAppStage('workspace');
     setActiveTab(tab);
     setActiveModuleId(moduleId);
+    setIsMobileSidebarOpen(false);
+  };
+
+  const enterWorkspace = () => {
+    setAppStage('workspace');
+    setActiveTab('home');
+    setActiveModuleId(null);
     setIsMobileSidebarOpen(false);
   };
 
@@ -288,7 +292,7 @@ export default function App() {
             else return null;
             return { ...result, score };
           })
-          .filter(Boolean)
+          .filter((result): result is SearchResult & { score: number } => result !== null)
           .sort((left, right) => (left!.score - right!.score) || left!.title.localeCompare(right!.title))
           .slice(0, 8)
           .map(({ score, ...result }) => result)
@@ -392,7 +396,7 @@ export default function App() {
   if (appStage === 'landing') {
     return (
       <LandingPage
-        onEnterWorkspace={() => setAppStage('workspace')}
+        onEnterWorkspace={enterWorkspace}
         moduleCodes={landingModuleCodes}
       />
     );
@@ -579,7 +583,7 @@ export default function App() {
         </div>
 
         <div
-          ref={mainScrollRef}
+          ref={setMainScrollEl}
           className="workspace-main-panel flex min-h-0 flex-1 flex-col min-w-0 overflow-y-auto overflow-x-hidden"
         >
           {activeTab === 'home' ? (
