@@ -54,7 +54,7 @@ export function WorkspaceNavbar({
   return (
     <div
       className={cn(
-        'relative z-[80] shrink-0 overflow-visible transition-[max-height,opacity] duration-300 ease-out',
+        'relative z-[80] min-w-0 shrink-0 overflow-visible transition-[max-height,opacity] duration-300 ease-out',
         isVisible ? 'max-h-[5.5rem] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'
       )}
     >

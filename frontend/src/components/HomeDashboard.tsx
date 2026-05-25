@@ -73,11 +73,11 @@ export function HomeDashboard({
   return (
     <div
       className={cn(
-        'flex h-full min-h-0 flex-col px-4 py-4 sm:px-6 sm:py-5 lg:px-8',
+        'flex min-h-0 flex-col p-4 md:p-6 lg:p-8',
         className
       )}
     >
-      <div className="mx-auto grid h-full w-full max-w-[1400px] min-h-0 grid-rows-[auto_1fr_auto_auto_auto] gap-4 sm:gap-5">
+      <div className="mx-auto grid w-full max-w-[1400px] auto-rows-min gap-3 md:gap-4 lg:gap-6">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--muted)]">
             Workspace overview
@@ -87,7 +87,7 @@ export function HomeDashboard({
           </h1>
         </div>
 
-        <div className="grid min-h-0 grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <div className="grid min-h-0 grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4 lg:grid-cols-4 lg:gap-6">
           {stats.map((stat) => {
             const Icon = stat.icon;
             return (

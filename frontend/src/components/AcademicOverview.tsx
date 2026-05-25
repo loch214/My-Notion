@@ -90,7 +90,7 @@ export function AcademicOverview({
         subtitle="Create an academic module, then attach lecture slides or notes and study with your choose of grounded AI models."
         category="Academic Space"
         actions={
-          <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:flex-nowrap">
             <Button
               variant="primary"
               size="sm"
@@ -99,7 +99,7 @@ export function AcademicOverview({
             >
               New module
             </Button>
-            <div className="w-[160px]">
+            <div className="w-full sm:w-40">
               <Dropdown
                 options={sortOptions}
                 selectedId={sortOrder}
@@ -112,7 +112,7 @@ export function AcademicOverview({
       />
 
       {/* 2. Top Stats Section */}
-      <div className="grid gap-4 sm:grid-cols-3 mb-8">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4 lg:grid-cols-4 lg:gap-6 mb-8">
         {[
           { label: 'Total modules', value: modules.length, icon: BookOpen },
           { label: 'Uploaded files', value: totalFiles, icon: FileText },
@@ -134,11 +134,11 @@ export function AcademicOverview({
       </div>
 
       {/* 3. Grid Columns with flexible stacks for medium screen */}
-      <div className="grid gap-6 lg:grid-cols-[1.3fr_0.9fr] items-start">
+      <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
         
         {/* Left Column: Modules Grid & Add Task */}
-        <div className="space-y-6 min-w-0">
-          <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-6 min-w-0 flex-1 xl:flex-[1.3] xl:basis-0">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {sortedModules.map((module) => (
               <Card
                 key={module.id}
@@ -187,7 +187,7 @@ export function AcademicOverview({
         </div>
 
         {/* Right Column: Academic Agenda */}
-        <div className="space-y-4 min-w-0">
+        <div className="space-y-4 min-w-0 flex-1 xl:flex-[0.9] xl:basis-0">
           <div className="flex items-center gap-2 text-base font-bold font-heading text-[color:var(--text)] pl-1">
             <Calendar className="h-4.5 w-4.5 text-[color:var(--accent)]" /> 
             Academic Agenda

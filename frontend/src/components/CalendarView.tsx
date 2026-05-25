@@ -141,7 +141,7 @@ export default function CalendarView({
         subtitle="Manage lecture timings, assignment due dates, group study runs, and calendar events."
         category="Schedule"
         actions={
-          <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto sm:flex-nowrap">
             <div className="flex items-center gap-1 rounded-2xl bg-[color:var(--surface-low)] border border-[color:var(--border)] p-1 shrink-0">
               <Button 
                 variant="ghost" 
@@ -176,10 +176,10 @@ export default function CalendarView({
       />
 
       {/* 2. Responsive Layout Columns */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_300px] items-start">
+      <div className="flex flex-col gap-3 md:gap-4 lg:gap-6 xl:flex-row xl:items-start">
         
         {/* Left Column: Interactive Calendar grid */}
-        <Card spotlight={false} className="p-4 bg-[color:var(--surface-low)] border border-[color:var(--border)] overflow-hidden">
+        <Card spotlight={false} className="p-4 bg-[color:var(--surface-low)] border border-[color:var(--border)] overflow-hidden min-w-0 flex-1 xl:flex-[1.3] xl:basis-0">
           
           {/* Weekday indicators */}
           <div className="grid grid-cols-7 gap-1 pb-3 text-[10px] font-bold uppercase tracking-wider text-[color:var(--muted)] text-center border-b border-[color:var(--border)] mb-2">
@@ -249,7 +249,7 @@ export default function CalendarView({
         </Card>
 
         {/* Right Column: Upcoming Agenda sidebar */}
-        <div className="space-y-4">
+        <div className="space-y-4 min-w-0 flex-1 xl:flex-[0.9] xl:basis-0">
           <div className="flex items-center gap-2 text-base font-bold font-heading text-[color:var(--text)] pl-1 shrink-0">
             <CalendarIcon className="h-4.5 w-4.5 text-[color:var(--accent)]" /> 
             Upcoming Schedule

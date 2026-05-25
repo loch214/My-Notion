@@ -64,7 +64,7 @@ export function PersonalDashboard({
       />
 
       {/* 2. Responsive wrap cards grid */}
-      <div className="mb-8 grid gap-4 grid-cols-1 sm:grid-cols-3">
+      <div className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4 lg:grid-cols-4 lg:gap-6">
         {[
           { label: 'Open tasks', value: openCount, icon: CheckSquare },
           { label: 'Completed tasks', value: completedCount, icon: CheckSquare },
@@ -81,10 +81,10 @@ export function PersonalDashboard({
       </div>
 
       {/* 3. Splitted Page Columns */}
-      <div className="grid gap-6 lg:grid-cols-[1.3fr_0.9fr] items-start">
+      <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
         
         {/* Left Column: Personal Checklist */}
-        <Card spotlight={false} className="p-5 bg-[color:var(--surface-low)]">
+        <Card spotlight={false} className="p-5 bg-[color:var(--surface-low)] flex-1 min-w-0 xl:flex-[1.3] xl:basis-0">
           <TaskList
             tasks={tasks.filter(t => !t.moduleId)}
             onToggleTask={onToggleTask}
@@ -96,7 +96,7 @@ export function PersonalDashboard({
         </Card>
 
         {/* Right Column: Upcoming Agenda */}
-        <div className="space-y-4 min-w-0">
+        <div className="space-y-4 min-w-0 flex-1 xl:flex-[0.9] xl:basis-0">
           <div className="flex items-center gap-2 text-base font-bold font-heading text-[color:var(--text)] pl-1">
             <Calendar className="h-4.5 w-4.5 text-[color:var(--accent)]" /> 
             Focus Agenda

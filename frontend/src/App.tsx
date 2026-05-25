@@ -431,7 +431,7 @@ export default function App() {
         onOpenAi={() => setIsAiPanelOpen(true)}
       />
 
-      <div className="relative flex min-h-0 flex-1 gap-2 px-3 pb-3 pt-2">
+      <div className="relative flex min-h-0 flex-1 flex-col gap-3 p-4 md:flex-row md:gap-4 md:p-6 lg:gap-6 lg:p-8">
         
         {/* 2. Responsive sidebar drawer overlays (Mobile only) */}
         <AnimatePresence>
@@ -451,7 +451,7 @@ export default function App() {
                 animate={{ x: 0 }}
                 exit={{ x: '-100%' }}
                 transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-                className="fixed left-0 top-0 bottom-0 z-40 w-[240px] border-r border-[color:var(--border)] bg-[color:var(--surface-low)] p-4 flex flex-col justify-between shadow-2xl md:hidden max-md:top-0"
+                className="fixed left-0 top-0 bottom-0 z-40 w-60 max-w-[80vw] border-r border-[color:var(--border)] bg-[color:var(--surface-low)] p-4 flex flex-col justify-between shadow-2xl md:hidden max-md:top-0"
               >
                 <div className="flex flex-col gap-6">
                   {/* Top logo */}
@@ -508,8 +508,8 @@ export default function App() {
         {/* Collapsible Sidebar — inset panel below navbar (rounded top, not flush to window) */}
         <div
           className={cn(
-            'relative hidden shrink-0 md:block transition-[width] duration-300',
-            isSidebarOpen ? 'w-[260px]' : 'w-[80px]'
+            'relative hidden min-w-0 shrink-0 md:block transition-[width] duration-300',
+            isSidebarOpen ? 'w-64' : 'w-20'
           )}
         >
           <div className="workspace-sidebar-fillet" aria-hidden />
@@ -591,7 +591,7 @@ export default function App() {
               onViewPersonal={() => navigateToTab('personal')}
               onAskAi={() => setIsAiPanelOpen(true)}
               onOpenRecent={recentPage && recentPage.tab !== 'home' ? openRecentPage : undefined}
-              className="min-h-0 flex-1 animate-fade-in"
+              className="min-h-0 min-w-0 flex-1 animate-fade-in"
             />
           ) : (
           <PageContainer animate={true}>

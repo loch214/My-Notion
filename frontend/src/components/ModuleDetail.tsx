@@ -284,7 +284,7 @@ export function ModuleDetail({
         </div>
 
         {activeTab === 'chat' && (
-          <div className="flex items-center gap-2 self-start shrink-0 lg:self-auto">
+          <div className="flex flex-wrap items-center gap-2 self-start shrink-0 lg:self-auto">
             <Button
               variant="secondary"
               size="sm"
@@ -293,7 +293,7 @@ export function ModuleDetail({
             >
               Sessions
             </Button>
-            <div className="w-[160px]">
+            <div className="w-full sm:w-40">
               <Dropdown
                 options={modelOptions}
                 selectedId={chatModel}
@@ -325,9 +325,9 @@ export function ModuleDetail({
               </label>
             </Card>
 
-            <div className="flex items-center justify-between gap-4">
-              <h3 className="text-sm font-semibold text-[color:var(--text)]">Uploaded Files ({module.files.length})</h3>
-              <div className="w-[140px]">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <h3 className="text-sm font-semibold text-[color:var(--text)] min-w-0">Uploaded Files ({module.files.length})</h3>
+              <div className="w-full sm:w-36">
                 <Dropdown
                   options={fileSortOptions}
                   selectedId={fileSort}
@@ -381,8 +381,8 @@ export function ModuleDetail({
             
             {/* Desktop Sessions list sidebar (Collapsible) */}
             <div className={cn(
-              "hidden lg:flex flex-col rounded-2xl bg-[color:var(--surface-low)] border border-[color:var(--border)] overflow-hidden transition-all duration-300 shrink-0",
-              isSidebarCollapsed ? "w-[72px]" : "w-[240px]"
+              "hidden lg:flex flex-col rounded-2xl bg-[color:var(--surface-low)] border border-[color:var(--border)] overflow-hidden transition-all duration-300 shrink-0 min-w-0",
+              isSidebarCollapsed ? "w-20" : "w-60"
             )}>
               <div className="p-3 border-b border-[color:var(--border)] flex items-center justify-between gap-2">
                 {!isSidebarCollapsed && (
