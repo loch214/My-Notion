@@ -54,8 +54,8 @@ export function WorkspaceNavbar({
   return (
     <div
       className={cn(
-        'relative z-[80] min-w-0 shrink-0 overflow-visible transition-[max-height,opacity] duration-300 ease-out',
-        isVisible ? 'max-h-[5.5rem] opacity-100' : 'max-h-0 opacity-0 pointer-events-none'
+        'absolute inset-x-0 top-0 z-[80] min-w-0 overflow-visible transform-gpu transition-[transform,opacity] duration-300 ease-out',
+        isVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none'
       )}
     >
       <div className="px-4 pb-2 pt-3 sm:px-5">

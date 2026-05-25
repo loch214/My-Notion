@@ -22,6 +22,7 @@
   --accent-2: #8b5cf6;
   --on-accent: #ffffff;
   --shadow: 0 4px 20px -2px rgba(8, 12, 24, 0.4);
+  --workspace-nav-height: 5rem;
   
   /* Module colors - sophisticated low saturation background, distinct border & text */
   --module-blue-bg: rgba(56, 189, 248, 0.08);
@@ -240,6 +241,13 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 1rem;
   border: 1px solid rgba(255, 255, 255, 0.06);
   background: color-mix(in srgb, var(--app-bg) 40%, var(--surface-low) 60%);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.workspace-main-panel::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 /* Animations */

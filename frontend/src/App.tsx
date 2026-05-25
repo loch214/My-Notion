@@ -95,11 +95,6 @@ export default function App() {
 
   useAutoHideNavbar(appStage === 'workspace', mainScrollRef, setIsNavbarVisible, activeTab);
 
-  useEffect(() => {
-    if (activeTab === 'home') {
-      setIsNavbarVisible(true);
-    }
-  }, [activeTab]);
   const notificationsRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -431,7 +426,14 @@ export default function App() {
         onOpenAi={() => setIsAiPanelOpen(true)}
       />
 
-      <div className="relative flex min-h-0 flex-1 flex-col gap-3 p-4 md:flex-row md:gap-4 md:p-6 lg:gap-6 lg:p-8">
+      <div
+        className={cn(
+          'relative flex min-h-0 flex-1 flex-col gap-3 px-4 pb-4 transition-[padding] duration-300 ease-out md:flex-row md:gap-4 md:px-6 md:pb-6 lg:gap-6 lg:px-8 lg:pb-8',
+          isNavbarVisible
+            ? 'pt-[calc(var(--workspace-nav-height)+1rem)] md:pt-[calc(var(--workspace-nav-height)+1.5rem)] lg:pt-[calc(var(--workspace-nav-height)+2rem)]'
+            : 'pt-4 md:pt-6 lg:pt-8'
+        )}
+      >
         
         {/* 2. Responsive sidebar drawer overlays (Mobile only) */}
         <AnimatePresence>
@@ -578,10 +580,7 @@ export default function App() {
 
         <div
           ref={mainScrollRef}
-          className={cn(
-            'workspace-main-panel flex min-h-0 flex-1 flex-col min-w-0 overflow-hidden',
-            activeTab === 'home' ? 'overflow-hidden' : 'overflow-y-auto overflow-x-hidden'
-          )}
+          className="workspace-main-panel flex min-h-0 flex-1 flex-col min-w-0 overflow-y-auto overflow-x-hidden"
         >
           {activeTab === 'home' ? (
             <HomeDashboard
