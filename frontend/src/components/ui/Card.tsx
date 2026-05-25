@@ -34,7 +34,7 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
         ref={setRefs}
         onMouseMove={handleMouseMove}
         className={cn(
-          'relative rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-med)] transition-all duration-300 overflow-hidden',
+          'relative rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-med)] transition-all duration-150 ease overflow-hidden',
           spotlight ? 'spotlight-card' : '',
           interactive ? 'hover:-translate-y-0.5 hover:border-[color:var(--border-focus)] hover:shadow-md cursor-pointer' : '',
           className

@@ -133,7 +133,7 @@ export default function CalendarView({
   const closeModal = () => setModal({ type: 'none' });
 
   return (
-    <div className="animate-fade-up text-[color:var(--text)]">
+    <div className="text-[color:var(--text)]">
       
       {/* 1. Header controls */}
       <SectionHeader
@@ -141,13 +141,13 @@ export default function CalendarView({
         subtitle="Manage lecture timings, assignment due dates, group study runs, and calendar events."
         category="Schedule"
         actions={
-          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto sm:flex-nowrap">
+          <div className="flex flex-wrap items-center gap-4 w-full sm:w-auto sm:flex-nowrap">
             <div className="flex items-center gap-1 rounded-2xl bg-[color:var(--surface-low)] border border-[color:var(--border)] p-1 shrink-0">
               <Button 
                 variant="ghost" 
                 size="sm" 
                 onClick={() => setCurrentMonth((value) => subMonths(value, 1))} 
-                className="h-8 w-8 rounded-xl p-0"
+                className="icon-btn"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -158,7 +158,7 @@ export default function CalendarView({
                 variant="ghost" 
                 size="sm" 
                 onClick={() => setCurrentMonth((value) => addMonths(value, 1))} 
-                className="h-8 w-8 rounded-xl p-0"
+                className="icon-btn"
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -176,10 +176,10 @@ export default function CalendarView({
       />
 
       {/* 2. Responsive Layout Columns */}
-      <div className="flex flex-col gap-3 md:gap-4 lg:gap-6 xl:flex-row xl:items-start">
+      <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
         
         {/* Left Column: Interactive Calendar grid */}
-        <Card spotlight={false} className="p-4 bg-[color:var(--surface-low)] border border-[color:var(--border)] overflow-hidden min-w-0 flex-1 xl:flex-[1.3] xl:basis-0">
+        <Card spotlight={false} className="card-pad bg-[color:var(--surface-low)] border border-[color:var(--border)] overflow-hidden min-w-0 flex-1 xl:flex-[1.3] xl:basis-0">
           
           {/* Weekday indicators */}
           <div className="grid grid-cols-7 gap-1 pb-3 text-[10px] font-bold uppercase tracking-wider text-[color:var(--muted)] text-center border-b border-[color:var(--border)] mb-2">
@@ -204,7 +204,7 @@ export default function CalendarView({
                   type="button"
                   onClick={() => openDay(date)}
                   className={cn(
-                    'min-h-[85px] max-h-[120px] rounded-xl border p-2 text-left transition-all flex flex-col justify-between hover:bg-[color:var(--surface-high)]/35 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)]/15',
+                    'min-h-[85px] max-h-[120px] rounded-xl border p-2 text-left transition-all duration-150 ease flex flex-col justify-between hover:bg-[color:var(--surface-high)]/35 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)]/15',
                     isCurrentMonth ? 'bg-[color:var(--surface-med)]/30 border-[color:var(--border)]' : 'bg-transparent border-transparent opacity-30 pointer-events-none',
                     isToday ? 'border-[color:var(--accent)]/45 bg-[color:var(--accent)]/5' : ''
                   )}
@@ -231,7 +231,7 @@ export default function CalendarView({
                           ev.stopPropagation();
                           openDetails(event);
                         }}
-                        className="w-full rounded-md bg-[color:var(--surface-high)]/60 px-1.5 py-0.5 text-[9px] text-[color:var(--text)] truncate font-medium hover:bg-[color:var(--surface-high)] border border-[color:var(--border)] transition-colors cursor-pointer"
+                        className="w-full rounded-md bg-[color:var(--surface-high)]/60 px-1.5 py-0.5 text-[9px] text-[color:var(--text)] truncate font-medium hover:bg-[color:var(--surface-high)] border border-[color:var(--border)] transition-all duration-150 ease cursor-pointer"
                       >
                         {format(parseISO(event.startTime), 'HH:mm')} {event.title}
                       </div>
@@ -254,7 +254,7 @@ export default function CalendarView({
             <CalendarIcon className="h-4.5 w-4.5 text-[color:var(--accent)]" /> 
             Upcoming Schedule
           </div>
-          <Card spotlight={false} className="p-4 bg-[color:var(--surface-low)]">
+          <Card spotlight={false} className="card-pad bg-[color:var(--surface-low)]">
             <div className="space-y-2">
               {upcoming.length > 0 ? (
                 upcoming.map((event) => (
@@ -262,7 +262,7 @@ export default function CalendarView({
                     key={event.id}
                     type="button"
                     onClick={() => openDetails(event)}
-                    className="w-full flex items-center justify-between gap-3 rounded-xl bg-[color:var(--surface-med)] border border-[color:var(--border)] px-3.5 py-2.5 text-left transition-all hover:-translate-y-0.5 hover:border-[color:var(--border-focus)]/35"
+                    className="w-full flex items-center justify-between gap-3 rounded-xl bg-[color:var(--surface-med)] border border-[color:var(--border)] px-3.5 py-2.5 text-left transition-all duration-150 ease hover:-translate-y-0.5 hover:border-[color:var(--border-focus)]/35"
                   >
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-xs font-semibold text-[color:var(--text)]">{event.title}</div>
@@ -299,7 +299,7 @@ export default function CalendarView({
               <div
                 key={event.id}
                 onClick={() => openDetails(event)}
-                className="w-full flex items-center justify-between gap-4 rounded-xl bg-[color:var(--surface-low)] border border-[color:var(--border)] px-4 py-3 text-left transition-all hover:-translate-y-0.5 cursor-pointer"
+                className="w-full flex items-center justify-between gap-4 rounded-xl bg-[color:var(--surface-low)] border border-[color:var(--border)] px-4 py-3 text-left transition-all duration-150 ease hover:-translate-y-0.5 cursor-pointer"
               >
                 <div className="min-w-0">
                   <div className="truncate font-semibold text-xs text-[color:var(--text)]">{event.title}</div>
@@ -362,7 +362,7 @@ export default function CalendarView({
                 variant="primary"
                 onClick={() => modalEvent && openEdit(modalEvent)}
                 leftIcon={<Edit3 className="h-3.5 w-3.5" />}
-                className="flex-1 text-xs"
+                className="flex-1"
               >
                 Edit Event
               </Button>
@@ -373,7 +373,7 @@ export default function CalendarView({
                   closeModal();
                 }}
                 leftIcon={<Trash2 className="h-3.5 w-3.5" />}
-                className="flex-1 text-xs"
+                className="flex-1"
               >
                 Delete
               </Button>
@@ -466,7 +466,7 @@ function EventForm({
               type="button"
               onClick={() => setColor(item)}
               className={cn(
-                'h-9 w-9 rounded-full border border-white/10 transition-all focus:outline-none shrink-0',
+                'h-9 w-9 rounded-full border border-white/10 transition-all duration-150 ease focus:outline-none shrink-0',
                 item === 'blue' ? 'bg-indigo-500 hover:bg-indigo-600' : 
                 item === 'amber' ? 'bg-amber-500 hover:bg-amber-600' : 
                 item === 'purple' ? 'bg-purple-500 hover:bg-purple-600' : 

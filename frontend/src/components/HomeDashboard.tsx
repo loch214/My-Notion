@@ -12,6 +12,7 @@ import { AppState } from '../types';
 import { AI_MODELS } from '../lib/models';
 import { RecentPage } from '../lib/recentPage';
 import { Button } from './ui/Button';
+import { Card } from './ui/Card';
 import { cn } from '../lib/utils';
 
 interface HomeDashboardProps {
@@ -77,32 +78,31 @@ export function HomeDashboard({
         className
       )}
     >
-      <div className="mx-auto grid w-full max-w-[1400px] auto-rows-min gap-3 md:gap-4 lg:gap-6">
+      <div className="mx-auto grid w-full max-w-[1400px] auto-rows-min gap-6">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--muted)]">
             Workspace overview
           </p>
-          <h1 className="mt-1 font-heading text-2xl font-bold tracking-tight text-[color:var(--text)] sm:text-3xl">
+          <h1 className="mt-1 font-heading text-3xl font-bold tracking-tight text-[color:var(--text)]">
             Home
           </h1>
         </div>
 
-        <div className="grid min-h-0 grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4 lg:grid-cols-4 lg:gap-6">
+        <div className="grid min-h-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat) => {
             const Icon = stat.icon;
             return (
-              <div
-                key={stat.label}
-                className="flex min-h-0 flex-col justify-between rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-low)] p-4 sm:p-5"
-              >
+              <Card key={stat.label} spotlight={true} className="card-pad bg-[color:var(--surface-low)]">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium text-[color:var(--muted)]">{stat.label}</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--muted)]">
+                    {stat.label}
+                  </p>
                   <Icon className="h-5 w-5 shrink-0 text-[color:var(--accent)]" />
                 </div>
                 <p className="mt-3 font-heading text-3xl font-bold text-[color:var(--text)] sm:text-4xl">
                   {stat.value}
                 </p>
-              </div>
+              </Card>
             );
           })}
         </div>
@@ -112,7 +112,7 @@ export function HomeDashboard({
           onClick={onOpenRecent}
           disabled={!recentPage || !onOpenRecent}
           className={cn(
-            'flex items-center justify-between gap-4 rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-low)] px-4 py-3.5 text-left transition sm:px-5 sm:py-4',
+            'card-pad flex items-center justify-between gap-4 rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-low)] text-left transition-all duration-150 ease',
             recentPage && onOpenRecent
               ? 'hover:border-[color:var(--border-focus)] hover:bg-[color:var(--surface-med)]/40'
               : 'cursor-default opacity-90'
@@ -134,7 +134,7 @@ export function HomeDashboard({
           )}
         </button>
 
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-4">
           <Button variant="primary" size="md" onClick={onExploreAcademic} className="min-w-[10rem]">
             Explore Academics
           </Button>
@@ -152,7 +152,7 @@ export function HomeDashboard({
           </Button>
         </div>
 
-        <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-low)] p-4 sm:p-5">
+        <div className="card-pad rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-low)]">
           <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[color:var(--muted)]">
             System status
           </p>

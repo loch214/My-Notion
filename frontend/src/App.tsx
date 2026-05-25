@@ -428,7 +428,7 @@ export default function App() {
 
       <div
         className={cn(
-          'relative flex min-h-0 flex-1 flex-col gap-3 px-4 pb-4 transition-[padding] duration-300 ease-out md:flex-row md:gap-4 md:px-6 md:pb-6 lg:gap-6 lg:px-8 lg:pb-8',
+          'relative flex min-h-0 flex-1 flex-col gap-3 px-4 pb-4 transition-[padding] duration-300 ease md:flex-row md:gap-4 md:px-6 md:pb-6 lg:gap-6 lg:px-8 lg:pb-8',
           isNavbarVisible
             ? 'pt-[calc(var(--workspace-nav-height)+1rem)] md:pt-[calc(var(--workspace-nav-height)+1.5rem)] lg:pt-[calc(var(--workspace-nav-height)+2rem)]'
             : 'pt-4 md:pt-6 lg:pt-8'
@@ -452,7 +452,7 @@ export default function App() {
                 initial={{ x: '-100%' }}
                 animate={{ x: 0 }}
                 exit={{ x: '-100%' }}
-                transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                transition={{ type: 'tween', duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
                 className="fixed left-0 top-0 bottom-0 z-40 w-60 max-w-[80vw] border-r border-[color:var(--border)] bg-[color:var(--surface-low)] p-4 flex flex-col justify-between shadow-2xl md:hidden max-md:top-0"
               >
                 <div className="flex flex-col gap-6">
@@ -461,7 +461,7 @@ export default function App() {
                     <span className="font-heading tracking-tight font-bold text-[color:var(--text)]">Loch's Workspace</span>
                     <button
                       onClick={() => setIsMobileSidebarOpen(false)}
-                      className="rounded-full p-1.5 text-[color:var(--muted)] hover:bg-[color:var(--surface-med)] hover:text-[color:var(--text)] transition-colors"
+                      className="rounded-full p-1.5 text-[color:var(--muted)] transition-all duration-150 ease hover:bg-[color:var(--surface-med)] hover:text-[color:var(--text)]"
                       aria-label="Close sidebar"
                     >
                       <X className="h-4 w-4" />
@@ -485,7 +485,7 @@ export default function App() {
                             setIsMobileSidebarOpen(false);
                           }}
                           className={cn(
-                            'flex items-center gap-3 rounded-xl px-4 py-3.5 text-base font-medium transition-colors text-left w-full',
+                            'flex items-center gap-3 rounded-xl px-4 py-3.5 text-base font-medium transition-all duration-150 ease text-left w-full',
                             isActive
                               ? 'bg-[color:var(--accent)] text-[color:var(--on-accent)] font-semibold shadow-sm'
                               : 'text-[color:var(--muted)] hover:bg-[color:var(--surface-med)] hover:text-[color:var(--text)]'
@@ -510,14 +510,14 @@ export default function App() {
         {/* Collapsible Sidebar — inset panel below navbar (rounded top, not flush to window) */}
         <div
           className={cn(
-            'relative hidden min-w-0 shrink-0 md:block transition-[width] duration-300',
+            'relative hidden min-w-0 shrink-0 md:block transition-[width] duration-300 ease',
             isSidebarOpen ? 'w-64' : 'w-20'
           )}
         >
           <div className="workspace-sidebar-fillet" aria-hidden />
           <aside
             className={cn(
-              'workspace-sidebar-panel flex h-full flex-col py-4 transition-all duration-300',
+              'workspace-sidebar-panel flex h-full flex-col py-4 transition-all duration-300 ease',
               isSidebarOpen ? 'px-4' : 'px-3'
             )}
           >
@@ -532,7 +532,7 @@ export default function App() {
                 )}
                 <button
                   onClick={() => setIsSidebarOpen((prev) => !prev)}
-                  className="rounded-xl p-1.5 text-[color:var(--muted)] hover:bg-[color:var(--surface-med)] hover:text-[color:var(--text)] transition-colors focus:outline-none"
+                  className="rounded-xl p-1.5 text-[color:var(--muted)] transition-all duration-150 ease hover:bg-[color:var(--surface-med)] hover:text-[color:var(--text)] focus:outline-none"
                   aria-label={isSidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
                 >
                   <ChevronLeft className={cn('h-4 w-4 transition-transform duration-300', !isSidebarOpen ? 'rotate-180' : '')} />
@@ -554,7 +554,7 @@ export default function App() {
                       key={tab.id}
                       onClick={() => navigateToTab(tab.id as any)}
                       className={cn(
-                        'flex items-center gap-3 rounded-xl transition-colors text-left w-full relative',
+                        'flex items-center gap-3 rounded-xl transition-all duration-150 ease text-left w-full relative',
                         isSidebarOpen ? 'px-4 py-3.5 text-base font-medium' : 'justify-center px-0 py-3.5 text-base',
                         isActive
                           ? 'bg-[color:var(--accent)] text-[color:var(--on-accent)] font-semibold shadow-sm'
@@ -590,12 +590,12 @@ export default function App() {
               onViewPersonal={() => navigateToTab('personal')}
               onAskAi={() => setIsAiPanelOpen(true)}
               onOpenRecent={recentPage && recentPage.tab !== 'home' ? openRecentPage : undefined}
-              className="min-h-0 min-w-0 flex-1 animate-fade-in"
+              className="min-h-0 min-w-0 flex-1"
             />
           ) : (
-          <PageContainer animate={true}>
+          <PageContainer animate={false}>
             {activeTab === 'academic' && !activeModuleId && (
-              <div className="animate-fade-up">
+              <div>
                 <AcademicOverview
                   modules={state.modules}
                   tasks={state.tasks}
@@ -610,7 +610,7 @@ export default function App() {
             )}
 
             {activeTab === 'academic' && activeModuleId && activeModule && (
-              <div className="animate-fade-up">
+              <div>
                 <ModuleDetail
                   module={activeModule}
                   tasks={state.tasks.filter(t => t.moduleId === activeModule.id)}
@@ -625,7 +625,7 @@ export default function App() {
             )}
 
             {activeTab === 'personal' && (
-              <div className="animate-fade-up">
+              <div>
                 <PersonalDashboard
                   tasks={state.tasks}
                   events={state.events}
@@ -638,7 +638,7 @@ export default function App() {
             )}
 
             {activeTab === 'calendar' && (
-              <div className="animate-fade-up">
+              <div>
                 <CalendarView 
                   events={state.events} 
                   onAddEvent={addEvent} 

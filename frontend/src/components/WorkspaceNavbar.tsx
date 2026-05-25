@@ -54,11 +54,11 @@ export function WorkspaceNavbar({
   return (
     <div
       className={cn(
-        'absolute inset-x-0 top-0 z-[80] min-w-0 overflow-visible transform-gpu transition-[transform,opacity] duration-300 ease-out',
-        isVisible ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none'
+        'absolute inset-x-0 top-0 z-[80] min-w-0 overflow-visible transform-gpu transition-transform duration-300 ease',
+        isVisible ? 'translate-y-0' : '-translate-y-full pointer-events-none'
       )}
     >
-      <div className="px-4 pb-2 pt-3 sm:px-5">
+      <div className="px-4 py-3 sm:px-5">
         <header
           className={cn(
             'relative mx-auto grid h-[3.75rem] w-full max-w-[1400px] items-center gap-3 rounded-full px-3 sm:px-4',
@@ -71,7 +71,7 @@ export function WorkspaceNavbar({
           <div className="flex min-w-0 items-center justify-start gap-2 pl-1">
             <button
               onClick={onOpenMobileSidebar}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-[color:var(--muted)] hover:bg-white/10 hover:text-[color:var(--text)] md:hidden"
+              className="icon-btn shrink-0 text-[color:var(--muted)] hover:bg-white/10 hover:text-[color:var(--text)] md:hidden"
               aria-label="Open sidebar menu"
             >
               <Menu className="h-5 w-5" />
@@ -80,7 +80,7 @@ export function WorkspaceNavbar({
             <button
               type="button"
               onClick={onGoLanding}
-              className="flex min-w-0 max-w-full items-center gap-2.5 rounded-full py-1 pr-2 transition hover:bg-white/[0.06]"
+              className="flex min-w-0 max-w-full items-center gap-2.5 rounded-full py-1 pr-2 transition-all duration-150 ease hover:bg-white/[0.06]"
               aria-label="Go to landing page"
             >
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[color:var(--accent)] to-[color:var(--accent-2)] text-[color:var(--on-accent)] shadow-[0_0_20px_rgba(99,102,241,0.45)]">
@@ -98,7 +98,7 @@ export function WorkspaceNavbar({
 
           {/* Center — search */}
           <div ref={searchRef} className="relative w-full justify-self-center">
-            <div className="relative flex h-10 items-center rounded-full border border-white/[0.1] bg-black/20 pl-4 pr-11 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] focus-within:border-[color:var(--border-focus)] focus-within:bg-black/30">
+            <div className="relative flex h-10 items-center rounded-full border border-white/[0.1] bg-black/20 pl-4 pr-12 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] focus-within:border-[color:var(--border-focus)] focus-within:bg-black/30">
               <input
                 value={searchQuery}
                 onChange={(e) => {
@@ -123,7 +123,7 @@ export function WorkspaceNavbar({
                   }
                   onSearchOpen(true);
                 }}
-                className="absolute right-1 top-1 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-[color:var(--muted)] hover:text-[color:var(--text)]"
+                className="icon-btn absolute right-0 top-0 bg-white/10 text-[color:var(--muted)] hover:text-[color:var(--text)]"
                 aria-label="Search"
               >
                 <Search className="h-4 w-4" />
@@ -151,7 +151,7 @@ export function WorkspaceNavbar({
                           key={result.id}
                           type="button"
                           onClick={() => onRunSearchResult(result.id)}
-                          className="flex w-full items-center justify-between gap-4 rounded-xl px-3.5 py-2.5 text-left hover:bg-white/5"
+                          className="flex w-full items-center justify-between gap-4 rounded-xl px-3.5 py-2.5 text-left transition-all duration-150 ease hover:bg-white/5"
                         >
                           <div className="min-w-0">
                             <span className="text-xs font-semibold text-[color:var(--text)]">{result.title}</span>
@@ -177,7 +177,7 @@ export function WorkspaceNavbar({
               <button
                 type="button"
                 onClick={onToggleNotifications}
-                className="relative flex h-10 w-10 items-center justify-center rounded-full border border-white/[0.08] bg-black/20 text-[color:var(--muted)] hover:bg-white/10 hover:text-[color:var(--text)]"
+                className="relative icon-btn border border-white/[0.08] bg-black/20 text-[color:var(--muted)] hover:bg-white/10 hover:text-[color:var(--text)]"
                 aria-label="Notifications"
               >
                 <Bell className="h-[1.125rem] w-[1.125rem]" />
@@ -206,7 +206,7 @@ export function WorkspaceNavbar({
                             key={item.id}
                             type="button"
                             onClick={item.onSelect}
-                            className="flex w-full rounded-xl px-3 py-2.5 text-left hover:bg-white/5"
+                            className="flex w-full rounded-xl px-3 py-2.5 text-left transition-all duration-150 ease hover:bg-white/5"
                           >
                             <div className="min-w-0">
                               <p className="truncate text-xs font-semibold">{item.title}</p>
@@ -228,7 +228,7 @@ export function WorkspaceNavbar({
               size="sm"
               onClick={onOpenAi}
               leftIcon={<Sparkles className="h-4 w-4" />}
-              className="h-10 shrink-0 px-4 text-sm shadow-[0_4px_24px_rgba(99,102,241,0.45)]"
+              className="shrink-0 shadow-[0_4px_24px_rgba(99,102,241,0.45)]"
             >
               Say Hello
             </Button>

@@ -42,10 +42,10 @@ export function LandingPage({ onEnterWorkspace, moduleCodes = [] }: LandingPageP
           <button
             type="button"
             onClick={onEnterWorkspace}
-            className="group inline-flex items-center gap-3 rounded-2xl border border-white/10 bg-[color:var(--accent)] px-12 py-5 text-xl font-bold text-white shadow-[0_4px_24px_rgba(99,102,241,0.35),inset_0_1px_0_rgba(255,255,255,0.18)] backdrop-blur-md transition-all hover:scale-[1.04] hover:brightness-110 hover:shadow-[0_8px_40px_rgba(99,102,241,0.48)]"
+            className="group inline-flex items-center gap-3 rounded-2xl border border-white/10 bg-[color:var(--accent)] px-12 py-5 text-xl font-bold text-white shadow-[0_4px_24px_rgba(99,102,241,0.35),inset_0_1px_0_rgba(255,255,255,0.18)] backdrop-blur-md transition-all duration-150 ease hover:scale-[1.04] hover:brightness-110 hover:shadow-[0_8px_40px_rgba(99,102,241,0.48)]"
           >
             Enter workspace
-            <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />
+            <ArrowRight className="h-5 w-5 transition-all duration-150 ease group-hover:translate-x-0.5" />
           </button>
         </motion.div>
       </div>

@@ -111,6 +111,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage }: GlobalChat
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         onClick={onClose}
         className="fixed inset-0 bg-black/60 backdrop-blur-[2px]"
       />
@@ -120,7 +121,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage }: GlobalChat
         initial={isMobile ? { y: '100%' } : { x: '100%' }}
         animate={isMobile ? { y: 0 } : { x: 0 }}
         exit={isMobile ? { y: '100%' } : { x: '100%' }}
-        transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+        transition={{ type: 'tween', duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         className="relative z-10 flex h-[100dvh] w-full flex-col border-l border-[color:var(--border)] bg-[color:var(--surface-med)] text-[color:var(--text)] md:w-[430px] shadow-2xl shadow-black/50"
       >
         {/* Header bar */}
@@ -136,7 +137,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage }: GlobalChat
           </div>
           <button 
             onClick={onClose} 
-            className="rounded-full p-2 text-[color:var(--muted)] transition-colors hover:bg-[color:var(--surface-low)] hover:text-[color:var(--text)]" 
+            className="h-10 w-10 rounded-full text-[color:var(--muted)] transition-all duration-150 ease hover:bg-[color:var(--surface-low)] hover:text-[color:var(--text)]" 
             aria-label="Close global chat"
           >
             <X className="h-5 w-5" />
@@ -156,7 +157,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage }: GlobalChat
         {/* Messages listing */}
         <div className="flex-1 space-y-4 overflow-y-auto px-4 py-5 text-xs leading-relaxed" ref={scrollRef}>
           {state.globalChatHistory.length === 0 && (
-            <Card spotlight={true} className="p-4 bg-[color:var(--surface-low)]/80">
+            <Card spotlight={true} className="card-pad bg-[color:var(--surface-low)]/80">
               <p className="text-sm font-bold text-[color:var(--text)] font-heading">Start standard prompt runs</p>
               <p className="text-xs text-[color:var(--muted)] mt-1.5 leading-relaxed">
                 Ask anything about academic modules, events, daily prioritize tasks, or summarize readings.
@@ -164,13 +165,13 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage }: GlobalChat
               <div className="mt-4 flex flex-wrap gap-2">
                 <button 
                   onClick={() => setInput('What do I need to finish this week?')} 
-                  className="rounded-full border border-[color:var(--border)] bg-[color:var(--surface-high)]/60 px-3 py-1.5 text-[10px] text-[color:var(--muted)] transition hover:text-[color:var(--text)] hover:border-[color:var(--border-focus)]/30"
+                  className="rounded-full border border-[color:var(--border)] bg-[color:var(--surface-high)]/60 px-3 py-1.5 text-[10px] text-[color:var(--muted)] transition-all duration-150 ease hover:text-[color:var(--text)] hover:border-[color:var(--border-focus)]/30"
                 >
                   Due this week
                 </button>
                 <button 
                   onClick={() => setInput('Summarize my modules and file counts.')} 
-                  className="rounded-full border border-[color:var(--border)] bg-[color:var(--surface-high)]/60 px-3 py-1.5 text-[10px] text-[color:var(--muted)] transition hover:text-[color:var(--text)] hover:border-[color:var(--border-focus)]/30"
+                  className="rounded-full border border-[color:var(--border)] bg-[color:var(--surface-high)]/60 px-3 py-1.5 text-[10px] text-[color:var(--muted)] transition-all duration-150 ease hover:text-[color:var(--text)] hover:border-[color:var(--border-focus)]/30"
                 >
                   Module summary
                 </button>
@@ -179,7 +180,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage }: GlobalChat
           )}
 
           {state.globalChatHistory.map((message) => (
-            <div key={message.id} className={`flex gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''} animate-fade-in`}>
+            <div key={message.id} className={`flex gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}>
               <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full shadow-sm text-[9px] font-bold ${
                 message.role === 'user' 
                   ? 'bg-[color:var(--accent)] text-[color:var(--on-accent)]' 
@@ -226,12 +227,12 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage }: GlobalChat
           {attachments.length > 0 && (
             <div className="mb-3 flex flex-wrap gap-2 px-1">
               {attachments.map((att, i) => (
-                <div key={i} className="group relative flex items-center gap-2 rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-low)] px-2.5 py-1.5 text-xs animate-fade-in">
+                <div key={i} className="group relative flex items-center gap-2 rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-low)] px-2.5 py-1.5 text-xs">
                   {att.type.startsWith('image/') ? <ImageIcon className="h-3.5 w-3.5 text-[color:var(--accent)]" /> : <Paperclip className="h-3.5 w-3.5 text-[color:var(--accent)]" />}
                   <span className="max-w-[120px] truncate font-medium text-[11px]">{att.name}</span>
                   <button 
                     onClick={() => setAttachments(prev => prev.filter((_, index) => index !== i))}
-                    className="ml-1 rounded-full p-0.5 hover:bg-[color:var(--surface-med)] text-[color:var(--muted)] hover:text-[color:var(--text)] transition-colors"
+                    className="ml-1 rounded-full p-0.5 text-[color:var(--muted)] transition-all duration-150 ease hover:bg-[color:var(--surface-med)] hover:text-[color:var(--text)]"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -267,7 +268,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage }: GlobalChat
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[color:var(--surface-med)] border border-[color:var(--border)] text-[color:var(--muted)] hover:text-[color:var(--text)] hover:bg-[color:var(--surface-high)] transition-colors"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[color:var(--surface-med)] border border-[color:var(--border)] text-[color:var(--muted)] transition-all duration-150 ease hover:text-[color:var(--text)] hover:bg-[color:var(--surface-high)]"
               title="Attach images or slides"
             >
               <Plus className="h-4.5 w-4.5" />
@@ -277,12 +278,12 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage }: GlobalChat
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ask about tasks, calendar, or modules..."
-                className="pr-10"
+                className="pr-12"
               />
               <button
                 type="submit"
                 disabled={isLoading || (!input.trim() && attachments.length === 0)}
-                className="absolute right-2 top-1/2 flex -translate-y-1/2 h-7 w-7 items-center justify-center rounded-lg bg-[color:var(--accent)] text-[color:var(--on-accent)] transition-all hover:scale-[1.02] disabled:opacity-50 disabled:pointer-events-none"
+                className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-lg bg-[color:var(--accent)] text-[color:var(--on-accent)] transition-all duration-150 ease hover:scale-[1.02] disabled:opacity-50 disabled:pointer-events-none"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>

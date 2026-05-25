@@ -46,7 +46,7 @@ export function Dropdown({
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
         className={cn(
-          'flex h-10 w-full items-center justify-between gap-2 rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-low)] px-4 py-2 text-sm text-[color:var(--text)] transition-colors hover:border-[color:var(--border-focus)]/30 focus:border-[color:var(--border-focus)] focus:ring-2 focus:ring-[color:var(--accent)]/15 focus:outline-none',
+          'flex h-10 w-full items-center justify-between gap-2 rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-low)] px-4 py-2 text-sm text-[color:var(--text)] transition-all duration-150 ease hover:border-[color:var(--border-focus)]/30 focus:border-[color:var(--border-focus)] focus:ring-2 focus:ring-[color:var(--accent)]/15 focus:outline-none',
           triggerClassName
         )}
       >
@@ -63,7 +63,7 @@ export function Dropdown({
           )}
         </span>
         <svg
-          className={cn('h-4 w-4 text-[color:var(--muted)] transition-transform duration-200', isOpen ? 'rotate-180' : '')}
+          className={cn('h-4 w-4 text-[color:var(--muted)] transition-all duration-150 ease', isOpen ? 'rotate-180' : '')}
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -96,7 +96,7 @@ export function Dropdown({
                       setIsOpen(false);
                     }}
                     className={cn(
-                      'flex w-full items-center justify-between rounded-xl px-4 py-2.5 text-left text-sm transition-colors',
+                      'flex w-full items-center justify-between rounded-xl px-4 py-2.5 text-left text-sm transition-all duration-150 ease',
                       isSelected
                         ? 'bg-[color:var(--accent)] text-[color:var(--on-accent)] font-medium'
                         : 'text-[color:var(--text)] hover:bg-[color:var(--surface-low)] hover:text-[color:var(--text)]'

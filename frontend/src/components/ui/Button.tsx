@@ -12,7 +12,7 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', isLoading, leftIcon, rightIcon, children, disabled, ...props }, ref) => {
-    const baseStyles = 'inline-flex items-center justify-center font-medium rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent)]/50 disabled:opacity-50 disabled:pointer-events-none active:scale-[0.98]';
+    const baseStyles = 'inline-flex items-center justify-center font-medium rounded-full transition-all duration-150 ease focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent)]/50 disabled:opacity-50 disabled:pointer-events-none active:scale-[0.98]';
     
     const variants = {
       primary: 'bg-gradient-to-r from-[color:var(--accent)] to-[color:var(--accent-2)] text-[color:var(--on-accent)] border border-white/10 hover:brightness-110 shadow-sm active:from-[color:var(--accent-2)] active:to-[color:var(--accent)]',
@@ -22,9 +22,9 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     };
 
     const sizes = {
-      sm: 'h-8 px-3.5 text-xs gap-1.5',
+      sm: 'h-10 px-5 text-sm gap-2',
       md: 'h-10 px-5 text-sm gap-2',
-      lg: 'h-12 px-7 text-base gap-2.5',
+      lg: 'h-10 px-5 text-sm gap-2',
     };
 
     return (

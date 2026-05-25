@@ -54,7 +54,7 @@ export function PersonalDashboard({
   );
 
   return (
-    <div className="animate-fade-up text-[color:var(--text)]">
+    <div className="text-[color:var(--text)]">
       
       {/* 1. Header */}
       <SectionHeader
@@ -64,18 +64,18 @@ export function PersonalDashboard({
       />
 
       {/* 2. Responsive wrap cards grid */}
-      <div className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4 lg:grid-cols-4 lg:gap-6">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           { label: 'Open tasks', value: openCount, icon: CheckSquare },
           { label: 'Completed tasks', value: completedCount, icon: CheckSquare },
           { label: 'Upcoming events', value: events.length, icon: Calendar },
         ].map((stat, index) => (
-          <Card key={`${stat.label}-${index}`} spotlight={true} className="p-5 bg-[color:var(--surface-low)]">
+          <Card key={`${stat.label}-${index}`} spotlight={true} className="card-pad bg-[color:var(--surface-low)]">
             <div className="flex items-center justify-between">
               <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--muted)] font-semibold">{stat.label}</p>
-              <stat.icon className="h-4.5 w-4.5 text-[color:var(--accent)]" />
+              <stat.icon className="h-5 w-5 text-[color:var(--accent)]" />
             </div>
-            <p className="mt-3 text-3xl font-bold font-heading text-[color:var(--text)]">{stat.value}</p>
+            <p className="mt-3 text-3xl font-bold font-heading text-[color:var(--text)] sm:text-4xl">{stat.value}</p>
           </Card>
         ))}
       </div>
@@ -84,7 +84,7 @@ export function PersonalDashboard({
       <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
         
         {/* Left Column: Personal Checklist */}
-        <Card spotlight={false} className="p-5 bg-[color:var(--surface-low)] flex-1 min-w-0 xl:flex-[1.3] xl:basis-0">
+        <Card spotlight={false} className="card-pad bg-[color:var(--surface-low)] flex-1 min-w-0 xl:flex-[1.3] xl:basis-0">
           <TaskList
             tasks={tasks.filter(t => !t.moduleId)}
             onToggleTask={onToggleTask}
@@ -101,7 +101,7 @@ export function PersonalDashboard({
             <Calendar className="h-4.5 w-4.5 text-[color:var(--accent)]" /> 
             Focus Agenda
           </div>
-          <Card spotlight={false} className="p-5 bg-[color:var(--surface-low)]">
+          <Card spotlight={false} className="card-pad bg-[color:var(--surface-low)]">
             {upcomingTasks.length > 0 ? (
               <div className="space-y-2">
                 {upcomingTasks.map((task) => (
@@ -109,7 +109,7 @@ export function PersonalDashboard({
                     key={task.id}
                     onClick={() => onToggleTask(task.id)}
                     className={cn(
-                      'w-full flex items-center justify-between gap-3 rounded-xl bg-[color:var(--surface-med)] border border-[color:var(--border)] px-4 py-3 text-left transition-all hover:-translate-y-0.5 hover:border-[color:var(--border-focus)]/30',
+                      'w-full flex items-center justify-between gap-3 rounded-xl bg-[color:var(--surface-med)] border border-[color:var(--border)] px-4 py-3 text-left transition-all duration-150 ease hover:-translate-y-0.5 hover:border-[color:var(--border-focus)]/30',
                       task.done ? 'opacity-55' : ''
                     )}
                   >

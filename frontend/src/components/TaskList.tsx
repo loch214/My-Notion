@@ -111,7 +111,7 @@ export function TaskList({ tasks, onToggleTask, onAddTask, onEditTask, onRemoveT
           {groupTasks.map((task) => (
             <div
               key={task.id}
-              className={cn('surface-soft flex w-full items-start gap-3 rounded-3xl px-4 py-3 text-left transition hover:-translate-y-0.5 sm:items-center', task.done ? 'opacity-55' : '')}
+              className={cn('surface-soft flex w-full items-start gap-3 rounded-3xl px-4 py-3 text-left transition-all duration-150 ease hover:-translate-y-0.5 sm:items-center', task.done ? 'opacity-55' : '')}
             >
               <input
                 type="checkbox"
@@ -141,15 +141,15 @@ export function TaskList({ tasks, onToggleTask, onAddTask, onEditTask, onRemoveT
               <div className="ml-auto flex shrink-0 gap-2 self-start sm:self-center">
                 {editingId === task.id ? (
                   <>
-                    <button onClick={async () => { if (editingTitle.trim()) { await (onEditTask?.(task.id, { title: editingTitle, dueDate: editingDueDate || undefined }) ); setEditingId(null); } }} className="btn-primary px-3 py-1 text-sm">Save</button>
-                    <button onClick={() => setEditingId(null)} className="btn-secondary px-3 py-1 text-sm">Cancel</button>
+                    <button onClick={async () => { if (editingTitle.trim()) { await (onEditTask?.(task.id, { title: editingTitle, dueDate: editingDueDate || undefined }) ); setEditingId(null); } }} className="btn-primary">Save</button>
+                    <button onClick={() => setEditingId(null)} className="btn-secondary">Cancel</button>
                   </>
                 ) : (
                   <>
-                    <button onClick={() => { setEditingId(task.id); setEditingTitle(task.title); setEditingDueDate(task.dueDate || ''); }} className="surface-soft rounded-full p-2 text-muted transition hover:bg-[color:var(--surface-strong)]">
+                    <button onClick={() => { setEditingId(task.id); setEditingTitle(task.title); setEditingDueDate(task.dueDate || ''); }} className="surface-soft icon-btn text-muted hover:bg-[color:var(--surface-strong)]">
                       <Edit3 className="h-4 w-4" />
                     </button>
-                    <button onClick={() => onRemoveTask?.(task.id)} className="surface-soft rounded-full p-2 text-muted transition hover:bg-[color:var(--surface-strong)]">
+                    <button onClick={() => onRemoveTask?.(task.id)} className="surface-soft icon-btn text-muted hover:bg-[color:var(--surface-strong)]">
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </>
@@ -173,7 +173,7 @@ export function TaskList({ tasks, onToggleTask, onAddTask, onEditTask, onRemoveT
         {showAddControls && !isAddingTask && (
           <button
             onClick={() => setIsAddingTask(true)}
-            className="btn-secondary px-3 py-2 text-sm font-medium"
+            className="btn-secondary"
           >
             <Plus className="h-4 w-4" /> Add task
           </button>
@@ -193,7 +193,7 @@ export function TaskList({ tasks, onToggleTask, onAddTask, onEditTask, onRemoveT
               value={newTaskTitle}
               onChange={(e) => setNewTaskTitle(e.target.value)}
               placeholder="What needs to be done?"
-              className="surface-soft mb-3 w-full rounded-2xl px-4 py-3 text-sm outline-none transition focus:ring-2 focus:ring-[color:var(--accent)]/40 text-[color:var(--text)]"
+              className="surface-soft mb-3 w-full rounded-2xl px-4 py-3 text-sm outline-none transition-all duration-150 ease focus:ring-2 focus:ring-[color:var(--accent)]/40 text-[color:var(--text)]"
             />
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-wrap gap-2">
@@ -201,7 +201,7 @@ export function TaskList({ tasks, onToggleTask, onAddTask, onEditTask, onRemoveT
                   <button
                     type="button"
                     onClick={() => setIsDateOpen((open) => !open)}
-                    className="surface-soft flex items-center gap-2 rounded-2xl px-4 py-2 text-sm transition hover:text-[color:var(--text)]"
+                    className="surface-soft flex items-center gap-2 rounded-2xl px-4 py-2 text-sm transition-all duration-150 ease hover:text-[color:var(--text)]"
                   >
                     <CalendarIcon className="h-4 w-4 text-muted" />
                     {selectedDueDate ? format(selectedDueDate, 'MMM d, yyyy') : 'No due date'}
@@ -213,7 +213,7 @@ export function TaskList({ tasks, onToggleTask, onAddTask, onEditTask, onRemoveT
                         <button
                           type="button"
                           onClick={() => setCalendarMonth((month) => subMonths(month, 1))}
-                          className="surface-soft rounded-full p-1.5 text-muted transition hover:text-[color:var(--text)]"
+                          className="surface-soft rounded-full p-1.5 text-muted transition-all duration-150 ease hover:text-[color:var(--text)]"
                         >
                           <ChevronLeft className="h-3.5 w-3.5" />
                         </button>
@@ -223,7 +223,7 @@ export function TaskList({ tasks, onToggleTask, onAddTask, onEditTask, onRemoveT
                         <button
                           type="button"
                           onClick={() => setCalendarMonth((month) => addMonths(month, 1))}
-                          className="surface-soft rounded-full p-1.5 text-muted transition hover:text-[color:var(--text)]"
+                          className="surface-soft rounded-full p-1.5 text-muted transition-all duration-150 ease hover:text-[color:var(--text)]"
                         >
                           <ChevronRight className="h-3.5 w-3.5" />
                         </button>
@@ -249,7 +249,7 @@ export function TaskList({ tasks, onToggleTask, onAddTask, onEditTask, onRemoveT
                                 setIsDateOpen(false);
                               }}
                               className={cn(
-                                'flex h-8 items-center justify-center rounded-lg text-xs transition',
+                                'flex h-8 items-center justify-center rounded-lg text-xs transition-all duration-150 ease',
                                 isCurrentMonth ? 'text-[color:var(--text)]' : 'text-muted',
                                 isSelected ? 'bg-accent text-[color:var(--on-accent)] font-medium' : 'hover:bg-[color:var(--surface-soft)]',
                                 isTodayDate && !isSelected ? 'ring-1 ring-[color:var(--accent)]/35' : ''
@@ -268,7 +268,7 @@ export function TaskList({ tasks, onToggleTask, onAddTask, onEditTask, onRemoveT
                             setNewTaskDueDate('');
                             setIsDateOpen(false);
                           }}
-                          className="btn-secondary px-2.5 py-1.5 text-xs font-medium"
+                          className="btn-secondary"
                         >
                           Clear
                         </button>
@@ -279,7 +279,7 @@ export function TaskList({ tasks, onToggleTask, onAddTask, onEditTask, onRemoveT
                             setCalendarMonth(startOfMonth(new Date()));
                             setIsDateOpen(false);
                           }}
-                          className="btn-secondary px-2.5 py-1.5 text-xs font-medium"
+                          className="btn-secondary"
                         >
                           Today
                         </button>
@@ -289,10 +289,10 @@ export function TaskList({ tasks, onToggleTask, onAddTask, onEditTask, onRemoveT
                 </div>
               </div>
               <div className="flex gap-2">
-                <button type="button" onClick={() => setIsAddingTask(false)} className="btn-secondary px-4 py-2 text-sm font-medium">
+                <button type="button" onClick={() => setIsAddingTask(false)} className="btn-secondary">
                   Cancel
                 </button>
-                <button type="submit" className="btn-primary px-4 py-2 text-sm font-semibold">
+                <button type="submit" className="btn-primary">
                   Save task
                 </button>
               </div>
@@ -304,7 +304,7 @@ export function TaskList({ tasks, onToggleTask, onAddTask, onEditTask, onRemoveT
             {showAddControls && (
               <button
                 onClick={() => setIsAddingTask(true)}
-                className="btn-primary mt-4 px-4 py-2 text-sm font-semibold"
+                className="btn-primary mt-4"
               >
                 <Plus className="h-4 w-4" /> Add first task
               </button>

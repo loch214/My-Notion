@@ -256,16 +256,16 @@ export function ModuleDetail({
     <div className="flex min-h-0 flex-col text-[color:var(--text)]">
       
       {/* 1. Module Header */}
-      <header className="mb-5 flex shrink-0 flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
+      <header className="mb-6 flex shrink-0 flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <button 
             onClick={onBack} 
-            className="mb-2 inline-flex items-center gap-1.5 text-xs text-[color:var(--muted)] transition-colors hover:text-[color:var(--text)]"
+            className="mb-2 inline-flex items-center gap-1.5 text-xs text-[color:var(--muted)] transition-all duration-150 ease hover:text-[color:var(--text)]"
           >
             <ChevronLeft className="h-3.5 w-3.5" /> Back to overview
           </button>
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-bold font-heading tracking-tight">{module.title}</h1>
+            <h1 className="text-3xl font-bold font-heading tracking-tight">{module.title}</h1>
             <span className="rounded-full border border-[color:var(--border)] bg-[color:var(--surface-low)] px-3 py-0.5 text-xs font-mono text-[color:var(--muted)]">
               {module.code}
             </span>
@@ -274,7 +274,7 @@ export function ModuleDetail({
       </header>
 
       {/* 2. Responsive Tabs and Model selects */}
-      <div className="mb-5 flex flex-col gap-3 border-b border-[color:var(--border)] pb-3 lg:flex-row lg:items-end lg:justify-between shrink-0">
+      <div className="mb-6 flex flex-col gap-3 border-b border-[color:var(--border)] pb-3 lg:flex-row lg:items-end lg:justify-between shrink-0">
         <div className="flex-1 min-w-0 pr-4">
           <Tabs
             tabs={detailTabs}
@@ -289,7 +289,7 @@ export function ModuleDetail({
               variant="secondary"
               size="sm"
               onClick={() => setIsMobileSessionsOpen(true)}
-              className="lg:hidden h-9 text-xs"
+              className="lg:hidden"
             >
               Sessions
             </Button>
@@ -308,10 +308,10 @@ export function ModuleDetail({
       {/* 3. Render Tabs details */}
       <div className="flex-1 min-h-0">
         {activeTab === 'files' && (
-          <div className="pb-8 animate-fade-up space-y-6">
+          <div className="pb-8 space-y-6">
             
             {/* Upload Area inside Card */}
-            <Card spotlight={true} className="p-6 text-center bg-[color:var(--surface-low)]">
+            <Card spotlight={true} className="card-pad text-center bg-[color:var(--surface-low)]">
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-r from-[color:var(--accent)] to-[color:var(--accent-2)] text-[color:var(--on-accent)]">
                 {isUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
               </div>
@@ -319,7 +319,7 @@ export function ModuleDetail({
               <p className="mx-auto mt-1.5 max-w-md text-xs text-[color:var(--muted)] leading-relaxed">
                 Add standard lecture PDFs, DOCX slides, or syllabus text files. These files are used as context for the Study Assistant.
               </p>
-              <label className="btn-primary mt-5 cursor-pointer px-5 py-2.5 text-xs font-semibold inline-flex items-center gap-2">
+              <label className="btn-primary mt-5 cursor-pointer">
                 Select files
                 <input type="file" className="hidden" onChange={handleFileUpload} accept=".pdf,.doc,.docx,.txt" disabled={isUploading} />
               </label>
@@ -346,7 +346,7 @@ export function ModuleDetail({
                   return new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime();
                 })
                 .map((file) => (
-                  <Card key={file.id} spotlight={true} className="p-4 bg-[color:var(--surface-low)] relative group">
+                  <Card key={file.id} spotlight={true} className="card-pad bg-[color:var(--surface-low)] relative group">
                     <div className="flex items-start gap-3 pr-6">
                       <div className="rounded-xl bg-[color:var(--surface-med)] p-2.5 text-[color:var(--accent)] border border-[color:var(--border)] shrink-0">
                         <FileUp className="h-4.5 w-4.5" />
@@ -360,7 +360,7 @@ export function ModuleDetail({
                     </div>
                     <button
                       onClick={() => updateModule(module.id, { files: module.files.filter((currentFile) => currentFile.id !== file.id) })}
-                      className="absolute right-2.5 top-2.5 rounded-full p-1 text-[color:var(--muted)] opacity-60 hover:opacity-100 hover:bg-[color:var(--surface-med)] hover:text-rose-400 transition-all"
+                      className="absolute right-2.5 top-2.5 rounded-full p-1 text-[color:var(--muted)] opacity-60 transition-all duration-150 ease hover:opacity-100 hover:bg-[color:var(--surface-med)] hover:text-rose-400"
                       aria-label="Delete file"
                     >
                       <X className="h-3.5 w-3.5" />
@@ -377,11 +377,11 @@ export function ModuleDetail({
         )}
 
         {activeTab === 'chat' && (
-          <div className="flex min-h-[min(70vh,680px)] max-h-[70vh] flex-col gap-4 lg:flex-row animate-fade-up">
+          <div className="flex min-h-[min(70vh,680px)] max-h-[70vh] flex-col gap-4 lg:flex-row">
             
             {/* Desktop Sessions list sidebar (Collapsible) */}
             <div className={cn(
-              "hidden lg:flex flex-col rounded-2xl bg-[color:var(--surface-low)] border border-[color:var(--border)] overflow-hidden transition-all duration-300 shrink-0 min-w-0",
+              "hidden lg:flex flex-col rounded-2xl bg-[color:var(--surface-low)] border border-[color:var(--border)] overflow-hidden transition-all duration-150 ease shrink-0 min-w-0",
               isSidebarCollapsed ? "w-20" : "w-60"
             )}>
               <div className="p-3 border-b border-[color:var(--border)] flex items-center justify-between gap-2">
@@ -390,7 +390,7 @@ export function ModuleDetail({
                     variant="primary"
                     size="sm"
                     onClick={handleNewChat}
-                    className="flex-1 text-xs font-semibold h-9"
+                    className="flex-1"
                     leftIcon={<Plus className="h-3.5 w-3.5" />}
                   >
                     New Chat
@@ -399,7 +399,7 @@ export function ModuleDetail({
                 <button 
                   onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
                   className={cn(
-                    "rounded-xl p-1.5 text-[color:var(--muted)] hover:bg-[color:var(--surface-med)] hover:text-[color:var(--text)] transition-colors focus:outline-none",
+                    "h-10 w-10 rounded-full text-[color:var(--muted)] transition-all duration-150 ease hover:bg-[color:var(--surface-med)] hover:text-[color:var(--text)] focus:outline-none",
                     isSidebarCollapsed && "w-full flex justify-center"
                   )}
                   title={isSidebarCollapsed ? "Expand study sessions" : "Collapse study sessions"}
@@ -414,7 +414,7 @@ export function ModuleDetail({
                     key={s.id}
                     onClick={() => setActiveSessionId(s.id)}
                     className={cn(
-                      "w-full rounded-xl py-2.5 text-left text-xs transition-all relative group flex flex-col justify-center",
+                      "w-full rounded-xl py-2.5 text-left text-xs transition-all duration-150 ease relative group flex flex-col justify-center",
                       activeSessionId === s.id 
                         ? "bg-[color:var(--accent)]/10 text-[color:var(--accent)] font-semibold border border-[color:var(--accent)]/15" 
                         : "text-[color:var(--muted)] hover:bg-[color:var(--surface-med)] hover:text-[color:var(--text)]",
@@ -435,7 +435,7 @@ export function ModuleDetail({
                             updateModule(module.id, { chatSessions: sessions.filter(sess => sess.id !== s.id) });
                             if (activeSessionId === s.id) setActiveSessionId(null);
                           }}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1 hover:text-rose-400 transition-opacity"
+                          className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1 transition-all duration-150 ease hover:text-rose-400"
                           aria-label="Delete chat"
                         >
                           <X className="h-3.5 w-3.5" />
@@ -462,7 +462,7 @@ export function ModuleDetail({
                 </span>
                 <button 
                   onClick={handleNewChat}
-                  className="rounded-lg p-1.5 text-[color:var(--accent)] hover:bg-[color:var(--accent)]/10 transition-colors"
+                  className="h-10 w-10 rounded-full text-[color:var(--accent)] transition-all duration-150 ease hover:bg-[color:var(--accent)]/10"
                   aria-label="New study chat session"
                 >
                   <Plus className="h-4 w-4" />
@@ -484,7 +484,7 @@ export function ModuleDetail({
                 )}
 
                 {currentChatHistory.map((message) => (
-                  <div key={message.id} className={`flex gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''} animate-fade-in`}>
+                  <div key={message.id} className={`flex gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}>
                     <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full shadow-sm text-[9px] font-semibold ${
                       message.role === 'user' 
                         ? 'bg-[color:var(--accent)] text-[color:var(--on-accent)]' 
@@ -532,12 +532,12 @@ export function ModuleDetail({
                 {chatAttachments.length > 0 && (
                   <div className="mb-3 flex flex-wrap gap-2 px-1">
                     {chatAttachments.map((att, i) => (
-                      <div key={i} className="group relative flex items-center gap-2 rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-low)] px-2.5 py-1 text-xs animate-fade-in">
+                      <div key={i} className="group relative flex items-center gap-2 rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-low)] px-2.5 py-1 text-xs">
                         {att.type.startsWith('image/') ? <ImageIcon className="h-3.5 w-3.5 text-[color:var(--accent)]" /> : <Paperclip className="h-3.5 w-3.5 text-[color:var(--accent)]" />}
                         <span className="max-w-[100px] truncate font-medium text-[11px]">{att.name}</span>
                         <button 
                           onClick={() => setChatAttachments(prev => prev.filter((_, index) => index !== i))}
-                          className="ml-1 rounded-full p-0.5 hover:bg-[color:var(--surface-med)] text-[color:var(--muted)] hover:text-[color:var(--text)] transition-colors"
+                          className="ml-1 rounded-full p-0.5 text-[color:var(--muted)] transition-all duration-150 ease hover:bg-[color:var(--surface-med)] hover:text-[color:var(--text)]"
                         >
                           <X className="h-3 w-3" />
                         </button>
@@ -572,7 +572,7 @@ export function ModuleDetail({
                   />
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[color:var(--surface-med)] border border-[color:var(--border)] text-[color:var(--muted)] hover:text-[color:var(--text)] hover:bg-[color:var(--surface-high)] transition-colors"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[color:var(--surface-med)] border border-[color:var(--border)] text-[color:var(--muted)] transition-all duration-150 ease hover:text-[color:var(--text)] hover:bg-[color:var(--surface-high)]"
                     title="Attach images or slides"
                   >
                     <Plus className="h-4.5 w-4.5" />
@@ -588,14 +588,14 @@ export function ModuleDetail({
                           handleSendMessage();
                         }
                       }}
-                      className="min-h-[40px] h-10 py-2.5 pr-10 resize-none"
+                      className="min-h-[40px] h-10 py-2.5 pr-12 resize-none"
                       rows={1}
                       placeholder="Ask lecture summaries or paper points..."
                     />
                     <button
                       onClick={handleSendMessage}
                       disabled={isChatLoading || (!chatInput.trim() && chatAttachments.length === 0)}
-                      className="absolute right-2 bottom-1.5 flex h-7 w-7 items-center justify-center rounded-lg bg-[color:var(--accent)] text-[color:var(--on-accent)] transition-all hover:scale-[1.02] disabled:opacity-50 disabled:pointer-events-none"
+                      className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-lg bg-[color:var(--accent)] text-[color:var(--on-accent)] transition-all duration-150 ease hover:scale-[1.02] disabled:opacity-50 disabled:pointer-events-none"
                       aria-label="Send study prompt"
                     >
                       <ArrowRight className="h-4 w-4" />
@@ -612,8 +612,8 @@ export function ModuleDetail({
         )}
 
         {activeTab === 'tasks' && (
-          <div className="pb-8 pt-2 animate-fade-up">
-            <Card spotlight={false} className="p-5 bg-[color:var(--surface-low)]">
+          <div className="pb-8 pt-2">
+            <Card spotlight={false} className="card-pad bg-[color:var(--surface-low)]">
               <TaskList 
                 tasks={tasks}
                 onToggleTask={onToggleTask}
@@ -642,7 +642,7 @@ export function ModuleDetail({
               handleNewChat();
               setIsMobileSessionsOpen(false);
             }}
-            className="w-full text-xs font-semibold h-10"
+            className="w-full"
             leftIcon={<Plus className="h-4 w-4" />}
           >
             New Chat Session
@@ -656,7 +656,7 @@ export function ModuleDetail({
                   setIsMobileSessionsOpen(false);
                 }}
                 className={cn(
-                  'flex w-full items-start justify-between gap-3 rounded-xl px-4 py-3 text-left border transition-all text-xs',
+                  'flex w-full items-start justify-between gap-3 rounded-xl px-4 py-3 text-left border transition-all duration-150 ease text-xs',
                   activeSessionId === session.id 
                     ? 'bg-[color:var(--accent)]/10 border-[color:var(--accent)] text-[color:var(--accent)] font-semibold' 
                     : 'bg-[color:var(--surface-low)] border-[color:var(--border)] text-[color:var(--muted)]'

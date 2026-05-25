@@ -82,7 +82,7 @@ export function AcademicOverview({
   ];
 
   return (
-    <div className="animate-fade-up text-[color:var(--text)]">
+    <div className="text-[color:var(--text)]">
       
       {/* 1. Header controls */}
       <SectionHeader
@@ -112,25 +112,25 @@ export function AcademicOverview({
       />
 
       {/* 2. Top Stats Section */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4 lg:grid-cols-4 lg:gap-6 mb-8">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
         {[
           { label: 'Total modules', value: modules.length, icon: BookOpen },
           { label: 'Uploaded files', value: totalFiles, icon: FileText },
           { label: 'Study chats', value: totalChats, icon: MessageSquare },
         ].map((stat) => (
-          <Card key={stat.label} spotlight={true} className="p-4 bg-[color:var(--surface-low)] border border-[color:var(--border)]">
+          <Card key={stat.label} spotlight={true} className="card-pad bg-[color:var(--surface-low)]">
             <div className="flex items-center justify-between">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--muted)] font-semibold">{stat.label}</p>
-              <stat.icon className="h-4 w-4 text-[color:var(--accent)]" />
+              <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--muted)] font-semibold">{stat.label}</p>
+              <stat.icon className="h-5 w-5 text-[color:var(--accent)]" />
             </div>
-            <p className="mt-3 text-2xl font-bold font-heading text-[color:var(--text)]">{stat.value}</p>
+            <p className="mt-3 text-3xl font-bold font-heading text-[color:var(--text)] sm:text-4xl">{stat.value}</p>
           </Card>
         ))}
       </div>
 
-      <div className="mt-8 mb-4">
+      <div className="mb-6">
         <h2 className="text-lg font-bold font-heading text-[color:var(--text)]">Your Modules</h2>
-        <p className="text-xs text-[color:var(--muted)] mt-0.5">Jump back into your interactive lecture spaces.</p>
+        <p className="text-sm text-[color:var(--muted)] mt-0.5">Jump back into your interactive lecture spaces.</p>
       </div>
 
       {/* 3. Grid Columns with flexible stacks for medium screen */}
@@ -145,7 +145,7 @@ export function AcademicOverview({
                 spotlight={true}
                 interactive={true}
                 onClick={() => onOpenModule(module.id)}
-                className="p-5 text-left bg-[color:var(--surface-low)]"
+                className="card-pad text-left bg-[color:var(--surface-low)]"
               >
                 <div className="mb-4 flex items-start justify-between gap-4">
                   <div className={cn('rounded-xl p-2.5', getBadgeColors(module.color))}>
@@ -155,7 +155,7 @@ export function AcademicOverview({
                     {module.code}
                   </span>
                 </div>
-                <h3 className="text-base font-bold font-heading text-[color:var(--text)] line-clamp-1 group-hover:text-[color:var(--accent)] transition-colors">
+                <h3 className="text-base font-bold font-heading text-[color:var(--text)] line-clamp-1 group-hover:text-[color:var(--accent)] transition-all duration-150 ease">
                   {module.title}
                 </h3>
                 <div className="mt-4 pt-3 border-t border-[color:var(--border)] flex items-center justify-between text-[11px] text-[color:var(--muted)]">
@@ -172,7 +172,7 @@ export function AcademicOverview({
           </div>
 
           {/* Quick Task Creation primitive container */}
-          <Card spotlight={false} className="p-5 bg-[color:var(--surface-low)]">
+          <Card spotlight={false} className="card-pad bg-[color:var(--surface-low)]">
             <TaskList
               tasks={academicTasks}
               onToggleTask={onToggleTask}
@@ -192,7 +192,7 @@ export function AcademicOverview({
             <Calendar className="h-4.5 w-4.5 text-[color:var(--accent)]" /> 
             Academic Agenda
           </div>
-          <Card spotlight={false} className="p-5 bg-[color:var(--surface-low)]">
+          <Card spotlight={false} className="card-pad bg-[color:var(--surface-low)]">
             <TaskList
               tasks={academicTasks}
               onToggleTask={onToggleTask}
@@ -245,7 +245,7 @@ export function AcademicOverview({
                   type="button"
                   onClick={() => setNewColor(color)}
                   className={cn(
-                    'h-9 rounded-full px-4 text-xs font-semibold transition-all border',
+                    'h-9 rounded-full px-4 text-xs font-semibold transition-all duration-150 ease border',
                     newColor === color
                       ? 'bg-[color:var(--accent)] border-[color:var(--accent)] text-[color:var(--on-accent)] shadow-sm'
                       : 'bg-[color:var(--surface-low)] border-[color:var(--border)] text-[color:var(--muted)] hover:text-[color:var(--text)]'

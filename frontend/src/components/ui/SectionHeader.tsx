@@ -42,7 +42,7 @@ export function SectionHeader({
         )}
         <h1
           className={cn(
-            'font-semibold tracking-tight text-[color:var(--text)]',
+            'font-bold tracking-tight text-[color:var(--text)]',
             comfortable ? 'text-4xl sm:text-[2.75rem]' : 'text-3xl'
           )}
         >
