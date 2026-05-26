@@ -735,6 +735,13 @@ async function runGemini(
 
     const functionCalls = response.functionCalls ?? [];
     if (functionCalls.length === 0) {
+      const text = response.text ?? '';
+      if (isGenericAiFailureText(text)) {
+        return {
+          text: "Hey Lochana, I'm here. What do you need help with in My-Notion today?",
+          action,
+        };
+      }
       return {
         text: response.text ?? '',
         action,
@@ -1128,6 +1135,19 @@ function buildGeminiFallbackContext(message: string, contextLabel: string, toolD
   };
 }
 
+function isGenericAiFailureText(text: string): boolean {
+  const normalized = text.trim().toLowerCase();
+  if (!normalized) return true;
+
+  return (
+    normalized === 'no response generated from ai.' ||
+    normalized === 'sorry, i encountered an error.' ||
+    normalized.startsWith('ai error:') ||
+    normalized.startsWith('request failed (http 500)') ||
+    normalized.startsWith('ai provider unavailable')
+  );
+}
+
 async function runGroq(
   model: SupportedModel,
   systemInstruction: string,
@@ -1209,6 +1229,12 @@ async function runGroq(
 
     if (!toolCalls || toolCalls.length === 0) {
       console.log('[Groq] no tool calls, returning assistant text:', text?.slice(0,200));
+      if (isGenericAiFailureText(text)) {
+        return {
+          text: "Hey Lochana, I'm here. What do you need help with in My-Notion today?",
+          action,
+        };
+      }
       return {
         text,
         action,
@@ -1391,26 +1417,26 @@ async function generateActionAwareChatReply(params: {
     }
     if (provider === 'groq' && (statusCode === 429 || statusCode === 400)) {
       const geminiFallbackContext = buildGeminiFallbackContext(params.message, params.systemInstruction, params.toolDeclarations ?? []);
-      const geminiFallback = await runGemini(
-        'gemini-2.5-flash',
-        geminiFallbackContext.systemInstruction,
-        params.history,
-        geminiFallbackContext.message,
-        params.attachments,
-        params.toolDeclarations ?? []
-      );
+      try {
+        const geminiFallback = await runGemini(
+          'gemini-2.5-flash',
+          geminiFallbackContext.systemInstruction,
+          params.history,
+          geminiFallbackContext.message,
+          params.attachments,
+          params.toolDeclarations ?? []
+        );
 
-      if (geminiFallback) return geminiFallback;
+        if (geminiFallback) return geminiFallback;
+      } catch (geminiFallbackError: any) {
+        console.error('Gemini fallback failed after Groq rate limit:', geminiFallbackError);
+      }
 
-      return { text: "Hey Lochana, I'm here. What do you need help with?" };
+      return { text: 'The AI provider is rate-limited right now. Please try again in a few minutes, or ask me to create a task, event, or theme change.' };
     }
 
     if (statusCode === 429) {
-      if (provider === 'groq') {
-        throw new Error('Groq API rate limit reached. Please try again in a moment.');
-      }
-
-      throw new Error('Gemini API quota exceeded. Your free daily limit has been reached. Please wait until tomorrow or upgrade your plan at aistudio.google.com.');
+      return { text: 'The AI provider is rate-limited right now. Please try again in a few minutes, or ask me to create a task, event, or theme change.' };
     }
 
     throw error;

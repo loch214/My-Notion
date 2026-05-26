@@ -117,7 +117,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage, refreshWorks
   }, []);
 
   return (
-    <div className="fixed inset-0 z-[90] flex justify-end p-0 md:p-4 max-md:items-start">
+    <div className="fixed inset-0 z-[90] flex justify-end p-0 md:p-2 max-md:items-start">
       {/* Backdrop overlay */}
       <motion.div
         initial={{ opacity: 0 }}
@@ -137,7 +137,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage, refreshWorks
         className="workspace-chat-drawer relative z-[90] flex flex-col overflow-hidden border border-[color:var(--border)] bg-[color:var(--surface-med)]/96 text-[color:var(--text)] shadow-[0_20px_60px_rgba(0,0,0,0.5)] backdrop-blur-2xl"
       >
         {/* Header bar */}
-        <div className="flex items-center justify-between border-b border-[color:var(--border)] px-5 py-4 shrink-0 bg-[color:var(--surface-low)]/70 backdrop-blur-xl">
+        <div className="flex items-center justify-between border-b border-[color:var(--border)] px-4 py-3 shrink-0 bg-[color:var(--surface-low)]/70 backdrop-blur-xl">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-r from-[color:var(--accent)] to-[color:var(--accent-2)] text-[color:var(--on-accent)]">
               <Sparkles className="h-4.5 w-4.5" />
@@ -157,7 +157,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage, refreshWorks
         </div>
 
         {/* Model dropdown indicator */}
-        <div className="border-b border-[color:var(--border)] px-5 py-3 shrink-0 bg-[color:var(--surface-low)]/30">
+        <div className="border-b border-[color:var(--border)] px-4 py-2 shrink-0 bg-[color:var(--surface-low)]/30">
           <Dropdown
             options={modelOptions}
             selectedId={model}
@@ -167,7 +167,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage, refreshWorks
         </div>
 
         {/* Messages listing */}
-        <div className="flex-1 space-y-4 overflow-y-auto bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.03),_transparent_42%)] px-5 py-5 text-sm leading-relaxed" ref={scrollRef}>
+        <div className="flex-1 space-y-4 overflow-y-auto overflow-x-hidden bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.03),_transparent_42%)] px-4 py-4 text-sm leading-relaxed" ref={scrollRef}>
           {state.globalChatHistory.length === 0 && (
             <Card spotlight={true} className="card-pad bg-[color:var(--surface-low)]/80">
               <p className="text-sm font-bold text-[color:var(--text)] font-heading">Start standard prompt runs</p>
@@ -192,7 +192,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage, refreshWorks
           )}
 
           {state.globalChatHistory.map((message) => (
-            <div key={message.id} className={`flex gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}>
+            <div key={message.id} className={`flex min-w-0 gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}>
               <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full shadow-sm text-[9px] font-bold ${
                 message.role === 'user' 
                   ? 'bg-[color:var(--accent)] text-[color:var(--on-accent)]' 
@@ -200,7 +200,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage, refreshWorks
               }`}>
                 {message.role === 'user' ? 'YOU' : <Sparkles className="h-3.5 w-3.5" />}
               </div>
-              <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 shadow-sm border ${
+              <div className={`min-w-0 max-w-[88%] overflow-hidden rounded-2xl px-4 py-2.5 shadow-sm border ${
                 message.role === 'user' 
                   ? 'bg-[color:var(--surface-low)] border-[color:var(--border)] text-[color:var(--text)]' 
                   : 'bg-[color:var(--surface-high)]/30 border-[color:var(--border)] text-[color:var(--text)]'
@@ -215,7 +215,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage, refreshWorks
                     ))}
                   </div>
                 )}
-                <div className="prose prose-sm max-w-none dark:prose-invert text-sm">
+                <div className="prose prose-sm max-w-none break-words dark:prose-invert text-sm [&_p]:break-words [&_li]:break-words [&_pre]:max-w-full [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_code]:break-words">
                   <Markdown>{message.text}</Markdown>
                 </div>
               </div>
@@ -235,7 +235,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage, refreshWorks
         </div>
 
         {/* Input box footer */}
-        <div className="border-t border-[color:var(--border)] p-4 shrink-0 bg-[color:var(--surface-low)]/70 backdrop-blur-xl pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div className="border-t border-[color:var(--border)] px-4 py-3 shrink-0 bg-[color:var(--surface-low)]/70 backdrop-blur-xl pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           {attachments.length > 0 && (
             <div className="mb-3 flex flex-wrap gap-2 px-1">
               {attachments.map((att, i) => (
@@ -253,7 +253,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage, refreshWorks
             </div>
           )}
           
-          <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="relative flex gap-2 items-center">
+          <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex items-end gap-2">
             <input
               type="file"
               ref={fileInputRef}
@@ -280,22 +280,22 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage, refreshWorks
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-                  className="icon-btn shrink-0 bg-[color:var(--surface-med)] border border-[color:var(--border)] text-[color:var(--muted)] hover:text-[color:var(--text)] hover:bg-[color:var(--surface-high)]"
+              className="icon-btn shrink-0 bg-[color:var(--surface-med)] border border-[color:var(--border)] text-[color:var(--muted)] hover:text-[color:var(--text)] hover:bg-[color:var(--surface-high)]"
               title="Attach images or slides"
             >
               <Plus className="h-4.5 w-4.5" />
             </button>
-            <div className="relative flex-1">
+            <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_3rem] gap-2">
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ask about tasks, calendar, or modules..."
-                className="pr-12"
+                className="min-w-0"
               />
               <button
                 type="submit"
                 disabled={isLoading || (!input.trim() && attachments.length === 0)}
-                className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-lg bg-[color:var(--accent)] text-[color:var(--on-accent)] transition-all duration-150 ease hover:scale-[1.02] disabled:opacity-50 disabled:pointer-events-none"
+                className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[color:var(--accent)] text-[color:var(--on-accent)] transition-all duration-150 ease hover:scale-[1.02] disabled:pointer-events-none disabled:opacity-50"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
