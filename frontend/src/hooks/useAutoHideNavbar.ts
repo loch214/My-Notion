@@ -22,6 +22,10 @@ export function useAutoHideNavbar(
   const upAccumRef = useRef(0);
   const rafIdRef = useRef<number | null>(null);
 
+  const isAtBottom = (el: HTMLElement) => {
+    return el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+  };
+
   useEffect(() => {
     if (!enabled) {
       visibleRef.current = true;
@@ -80,6 +84,12 @@ export function useAutoHideNavbar(
         return;
       }
 
+      if (isAtBottom(el)) {
+        downAccumRef.current = 0;
+        upAccumRef.current = 0;
+        return;
+      }
+
       if (delta > 0) {
         downAccumRef.current += delta;
         upAccumRef.current = 0;
@@ -114,7 +124,7 @@ export function useAutoHideNavbar(
       if (e.deltaY > 0) {
         downAccumRef.current += e.deltaY;
         upAccumRef.current = 0;
-        if (downAccumRef.current >= HIDE_AFTER_PX && scrollRoot.scrollTop > 1) {
+        if (downAccumRef.current >= HIDE_AFTER_PX && scrollRoot.scrollTop > 1 && !isAtBottom(scrollRoot)) {
           applyVisible(false);
         }
       } else {

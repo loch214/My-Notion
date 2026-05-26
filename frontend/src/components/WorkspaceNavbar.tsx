@@ -26,7 +26,7 @@ interface WorkspaceNavbarProps {
   upcomingCount: number;
   isNotificationsOpen: boolean;
   onToggleNotifications: () => void;
-  notifications: Array<{ id: string; title: string; subtitle: string; onSelect: () => void }>;
+  notifications: Array<{ id: string; title: string; subtitle: string; onSelect: () => void; onMarkRead: () => void }>;
   onOpenMobileSidebar: () => void;
   onGoLanding: () => void;
   onOpenAi: () => void;
@@ -136,16 +136,16 @@ export function WorkspaceNavbar({
                     className="flex w-full items-center justify-between gap-4 rounded-xl px-3.5 py-2.5 text-left hover:bg-white/5"
                   >
                     <div className="min-w-0">
-                      <span className="text-xs font-semibold text-[color:var(--text)]">{result.title}</span>
-                      <p className="truncate text-[11px] text-[color:var(--muted)]">{result.subtitle}</p>
+                      <span className="text-sm font-semibold text-[color:var(--text)]">{result.title}</span>
+                      <p className="truncate text-sm text-[color:var(--muted)]">{result.subtitle}</p>
                     </div>
-                    <span className="shrink-0 text-[10px] font-semibold text-[color:var(--accent)]">
+                    <span className="shrink-0 text-sm font-semibold text-[color:var(--accent)]">
                       {result.actionLabel}
                     </span>
                   </button>
                 ))
               ) : (
-                <div className="px-4 py-8 text-center text-xs text-[color:var(--muted)]">No matches found.</div>
+                <div className="px-4 py-8 text-center text-sm text-[color:var(--muted)]">No matches found.</div>
               )}
             </div>
           </motion.div>,
@@ -265,25 +265,35 @@ export function WorkspaceNavbar({
                   className="overflow-hidden rounded-2xl border border-white/10 bg-[color:var(--surface-high)]/95 shadow-2xl backdrop-blur-xl"
                 >
                   <div className="border-b border-[color:var(--border)] px-4 py-2.5">
-                    <p className="text-[10px] uppercase tracking-[0.24em] text-[color:var(--muted)]">Notifications</p>
+                    <p className="text-xs uppercase tracking-[0.22em] text-[color:var(--muted)]">Notifications</p>
                   </div>
                   <div className="max-h-[20rem] overflow-y-auto p-1.5">
                     {notifications.length > 0 ? (
                       notifications.map((item) => (
-                        <button
+                        <div
                           key={item.id}
-                          type="button"
-                          onClick={item.onSelect}
-                          className="flex w-full rounded-xl px-3 py-2.5 text-left hover:bg-white/5"
+                          className="flex w-full items-start justify-between gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-white/5"
                         >
-                          <div className="min-w-0">
-                            <p className="truncate text-xs font-semibold">{item.title}</p>
-                            <p className="text-[11px] text-[color:var(--muted)]">{item.subtitle}</p>
-                          </div>
-                        </button>
+                          <button
+                            type="button"
+                            onClick={item.onSelect}
+                            className="min-w-0 flex-1 text-left"
+                          >
+                            <p className="truncate text-sm font-semibold text-[color:var(--text)]">{item.title}</p>
+                            <p className="mt-0.5 text-xs text-[color:var(--muted)]">{item.subtitle}</p>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={item.onMarkRead}
+                            className="shrink-0 rounded-full border border-[color:var(--border)] px-2.5 py-1 text-xs font-semibold text-[color:var(--muted)] transition-all duration-150 ease hover:bg-[color:var(--surface-low)] hover:text-[color:var(--text)]"
+                            aria-label={`Mark ${item.title} as read`}
+                          >
+                            Mark read
+                          </button>
+                        </div>
                       ))
                     ) : (
-                      <div className="px-4 py-8 text-center text-xs text-[color:var(--muted)]">No upcoming items.</div>
+                      <div className="px-4 py-8 text-center text-sm text-[color:var(--muted)]">No upcoming items.</div>
                     )}
                   </div>
                 </motion.div>,

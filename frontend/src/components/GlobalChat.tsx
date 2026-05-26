@@ -167,7 +167,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage, refreshWorks
         </div>
 
         {/* Messages listing */}
-        <div className="flex-1 space-y-4 overflow-y-auto bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.03),_transparent_42%)] px-5 py-5 text-xs leading-relaxed" ref={scrollRef}>
+        <div className="flex-1 space-y-4 overflow-y-auto bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.03),_transparent_42%)] px-5 py-5 text-sm leading-relaxed" ref={scrollRef}>
           {state.globalChatHistory.length === 0 && (
             <Card spotlight={true} className="card-pad bg-[color:var(--surface-low)]/80">
               <p className="text-sm font-bold text-[color:var(--text)] font-heading">Start standard prompt runs</p>
@@ -215,7 +215,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage, refreshWorks
                     ))}
                   </div>
                 )}
-                <div className="prose prose-sm max-w-none dark:prose-invert text-xs">
+                <div className="prose prose-sm max-w-none dark:prose-invert text-sm">
                   <Markdown>{message.text}</Markdown>
                 </div>
               </div>
@@ -227,7 +227,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage, refreshWorks
               <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[color:var(--surface-low)] text-[color:var(--accent)] border border-[color:var(--border)]">
                 <Sparkles className="h-3.5 w-3.5" />
               </div>
-              <div className="flex items-center rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-high)]/20 px-3.5 py-2 text-xs text-[color:var(--muted)]">
+              <div className="flex items-center rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-high)]/20 px-3.5 py-2 text-sm text-[color:var(--muted)]">
                 <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin text-[color:var(--accent)]" /> Assistant is thinking...
               </div>
             </div>
@@ -241,7 +241,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage, refreshWorks
               {attachments.map((att, i) => (
                 <div key={i} className="group relative flex items-center gap-2 rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-low)] px-2.5 py-1.5 text-xs">
                   {att.type.startsWith('image/') ? <ImageIcon className="h-3.5 w-3.5 text-[color:var(--accent)]" /> : <Paperclip className="h-3.5 w-3.5 text-[color:var(--accent)]" />}
-                  <span className="max-w-[120px] truncate font-medium text-[11px]">{att.name}</span>
+                  <span className="max-w-[120px] truncate font-medium text-xs">{att.name}</span>
                   <button 
                     onClick={() => setAttachments(prev => prev.filter((_, index) => index !== i))}
                     className="ml-1 rounded-full p-0.5 text-[color:var(--muted)] transition-all duration-150 ease hover:bg-[color:var(--surface-med)] hover:text-[color:var(--text)]"

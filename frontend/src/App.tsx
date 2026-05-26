@@ -55,6 +55,16 @@ function parseAppStage(value: string | null): 'landing' | 'workspace' {
   return value === 'workspace' ? 'workspace' : 'landing';
 }
 
+function loadReadNotificationIds(): string[] {
+  try {
+    const raw = localStorage.getItem('my_notion_read_notifications');
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter((value) => typeof value === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
 type SearchResultKind = 'tab' | 'module' | 'task' | 'event';
 
 interface SearchResult {
@@ -117,6 +127,7 @@ export default function App() {
   const [isNavbarVisible, setIsNavbarVisible] = useState(true);
   const [recentPage, setRecentPage] = useState(() => loadRecentPage());
   const [mainScrollEl, setMainScrollEl] = useState<HTMLDivElement | null>(null);
+  const [readNotificationIds, setReadNotificationIds] = useState<string[]>(() => loadReadNotificationIds());
   
   const searchRef = useRef<HTMLDivElement | null>(null);
 
@@ -230,8 +241,10 @@ export default function App() {
         action: () => openWorkspaceTab('calendar'),
       }));
 
-    return [...dueTasks, ...upcomingEvents].slice(0, 5);
-  }, [state.events, state.tasks]);
+    return [...dueTasks, ...upcomingEvents]
+      .filter((item) => !readNotificationIds.includes(item.id))
+      .slice(0, 5);
+  }, [readNotificationIds, state.events, state.tasks]);
 
   const searchResults = useMemo<SearchResult[]>(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -424,6 +437,13 @@ export default function App() {
         onSelect: () => {
           item.action();
           setIsNotificationsOpen(false);
+        },
+        onMarkRead: () => {
+          setReadNotificationIds((current) => {
+            const next = current.includes(item.id) ? current : [...current, item.id];
+            localStorage.setItem('my_notion_read_notifications', JSON.stringify(next));
+            return next;
+          });
         },
       })),
     [upcomingNotifications]

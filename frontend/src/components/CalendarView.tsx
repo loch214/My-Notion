@@ -182,7 +182,7 @@ export default function CalendarView({
         <Card spotlight={false} className="card-pad bg-[color:var(--surface-low)] border border-[color:var(--border)] min-w-0 w-full shrink-0 xl:flex-[1.3] xl:basis-0">
           
           {/* Weekday indicators */}
-          <div className="grid grid-cols-7 gap-1 pb-3 text-[10px] font-bold uppercase tracking-wider text-[color:var(--muted)] text-center border-b border-[color:var(--border)] mb-2">
+          <div className="grid grid-cols-7 gap-1 pb-3 text-xs font-bold uppercase tracking-wider text-[color:var(--muted)] text-center border-b border-[color:var(--border)] mb-2">
             {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((label) => (
               <div key={label} className="py-1">
                 {label}
@@ -231,13 +231,13 @@ export default function CalendarView({
                           ev.stopPropagation();
                           openDetails(event);
                         }}
-                        className="w-full rounded-md bg-[color:var(--surface-high)]/60 px-1.5 py-0.5 text-[9px] text-[color:var(--text)] truncate font-medium hover:bg-[color:var(--surface-high)] border border-[color:var(--border)] transition-all duration-150 ease cursor-pointer"
+                        className="w-full rounded-md bg-[color:var(--surface-high)]/60 px-1.5 py-0.5 text-xs text-[color:var(--text)] truncate font-medium hover:bg-[color:var(--surface-high)] border border-[color:var(--border)] transition-all duration-150 ease cursor-pointer"
                       >
                         {format(parseISO(event.startTime), 'HH:mm')} {event.title}
                       </div>
                     ))}
                     {dayEvents.length > 2 && (
-                      <div className="text-[9px] text-[color:var(--muted)] pl-1">
+                      <div className="text-xs text-[color:var(--muted)] pl-1">
                         +{dayEvents.length - 2} more
                       </div>
                     )}
@@ -265,8 +265,8 @@ export default function CalendarView({
                     className="w-full flex items-center justify-between gap-3 rounded-xl bg-[color:var(--surface-med)] border border-[color:var(--border)] px-3.5 py-2.5 text-left transition-all duration-150 ease hover:-translate-y-0.5 hover:border-[color:var(--border-focus)]/35"
                   >
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-xs font-semibold text-[color:var(--text)]">{event.title}</div>
-                      <div className="text-[10px] text-[color:var(--muted)] mt-0.5 flex items-center gap-1">
+                      <div className="truncate text-sm font-semibold text-[color:var(--text)]">{event.title}</div>
+                      <div className="mt-0.5 flex items-center gap-1 text-xs text-[color:var(--muted)]">
                         <Clock className="h-3 w-3" />
                         {format(parseISO(event.startTime), 'MMM d')} · {format(parseISO(event.startTime), 'HH:mm')}
                       </div>
@@ -302,14 +302,14 @@ export default function CalendarView({
                 className="w-full flex items-center justify-between gap-4 rounded-xl bg-[color:var(--surface-low)] border border-[color:var(--border)] px-4 py-3 text-left transition-all duration-150 ease hover:-translate-y-0.5 cursor-pointer"
               >
                 <div className="min-w-0">
-                  <div className="truncate font-semibold text-xs text-[color:var(--text)]">{event.title}</div>
-                  <div className="text-[10px] text-[color:var(--muted)] mt-0.5">
+                  <div className="truncate font-semibold text-sm text-[color:var(--text)]">{event.title}</div>
+                  <div className="mt-0.5 text-xs text-[color:var(--muted)]">
                     {format(parseISO(event.startTime), 'HH:mm')} - {format(parseISO(event.endTime), 'HH:mm')}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <span className={cn('h-2 w-2 rounded-full', colorClasses[event.color])} />
-                  <span className="text-[10px] font-semibold text-[color:var(--accent)] uppercase tracking-wider">Details</span>
+                  <span className="text-xs font-semibold text-[color:var(--accent)] uppercase tracking-wider">Details</span>
                 </div>
               </div>
             ))
@@ -346,13 +346,13 @@ export default function CalendarView({
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <span className={cn('h-2.5 w-2.5 rounded-full shrink-0', colorClasses[modalEvent.color])} />
-              <div className="text-xs text-[color:var(--text)] font-semibold font-mono">
+              <div className="text-sm text-[color:var(--text)] font-semibold font-mono">
                 {format(parseISO(modalEvent.startTime), 'MMM d, yyyy')} · {format(parseISO(modalEvent.startTime), 'HH:mm')} - {format(parseISO(modalEvent.endTime), 'HH:mm')}
               </div>
             </div>
 
             {modalEvent.description && (
-              <div className="rounded-2xl bg-[color:var(--surface-low)] border border-[color:var(--border)] p-4 text-xs leading-relaxed text-[color:var(--muted)]">
+              <div className="rounded-2xl bg-[color:var(--surface-low)] border border-[color:var(--border)] p-4 text-sm leading-relaxed text-[color:var(--muted)]">
                 {modalEvent.description}
               </div>
             )}
