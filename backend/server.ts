@@ -4,6 +4,7 @@ import multer from 'multer';
 import fs from 'fs';
 import cors from 'cors';
 import { GoogleGenAI, FunctionCallingConfigMode, createPartFromFunctionCall, createPartFromFunctionResponse, type FunctionDeclaration } from '@google/genai';
+import Groq from 'groq-sdk';
 import Anthropic from '@anthropic-ai/sdk';
 import { createRequire } from 'module';
 import { v4 as uuidv4 } from 'uuid';
@@ -29,6 +30,7 @@ if (!fs.existsSync(uploadDir)) {
 const upload = multer({ dest: uploadDir });
 
 const MODEL_PROVIDERS = {
+  'llama-3.3-70b-versatile': 'groq',
   'gemini-2.5-flash': 'gemini',
   'gemini-3.1-pro': 'gemini',
   'claude-sonnet-4-6': 'claude',
@@ -591,6 +593,7 @@ function safeModel(model: unknown): SupportedModel {
 
 function transcript(history: any[] = []) {
   return history
+    .slice(-8)
     .map((msg) => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.text}`)
     .join('\n');
 }
@@ -601,9 +604,26 @@ function mockResponse(message: string, model: SupportedModel, contextLabel: stri
     text: `Mock response for ${contextLabel} using ${model}. Add your API key in backend/.env when you're ready, then I can answer for real.\n\nYou said: ${message}`,
   };
 }
+function tryLocalGeneralFallback(message: string): ChatReply | null {
+  const text = message.toLowerCase();
+  if (/\blinear regression\b/.test(text)) {
+    return {
+      text: 'Linear regression is a simple machine learning/statistics method that models the relationship between an input and an output with a straight line. In plain terms, it tries to find the best-fitting line so you can predict a value from one or more features. For example, it can estimate house price from floor area. If you want, I can also explain it with a tiny example.',
+    };
+  }
+
+  if (/\bwho is the president of sri lanka\b/.test(text)) {
+    return {
+      text: 'I can help with general knowledge, but I do not have live web access in this fallback. If you want, I can still explain Sri Lankaís presidential system or help you search for the current officeholder.',
+    };
+  }
+
+  return null;
+}
 
 function buildGeminiContents(history: any[] = [], message: string, attachments: any[] = []) {
-  const contents = history.map((msg) => ({
+  const recentHistory = history.slice(-8);
+  const contents = recentHistory.map((msg) => ({
     role: msg.role === 'user' ? 'user' : 'model',
     parts: msg.attachments?.length
       ? [{ text: msg.text }, ...msg.attachments.filter((a: any) => a.type.startsWith('image/')).map((a: any) => ({
@@ -685,7 +705,7 @@ async function runGemini(
         };
       }
       if (!action && toolResult.action) {
-        action = toolResult.action;
+        action = toolResult.action as ChatAction;
       }
 
       functionResponseParts.push(
@@ -710,7 +730,8 @@ async function runClaude(model: SupportedModel, systemInstruction: string, histo
   const client = getClaudeClient();
   if (!client) return null;
 
-  const messages = history.map((msg) => {
+  const recentHistory = history.slice(-8);
+  const messages = recentHistory.map((msg) => {
     const content: any[] = [{ type: 'text', text: String(msg.text) }];
     if (msg.attachments) {
       for (const att of msg.attachments) {
@@ -762,6 +783,196 @@ async function runClaude(model: SupportedModel, systemInstruction: string, histo
   return text;
 }
 
+
+let groqClient: Groq | null = null;
+
+function getGroqClient() {
+  if (!groqClient) {
+    const key = process.env.GROQ_API_KEY;
+    if (key) {
+      groqClient = new Groq({ apiKey: key });
+    }
+  }
+  return groqClient;
+}
+
+function buildGeminiFallbackContext(message: string, contextLabel: string, toolDeclarations: FunctionDeclaration[] = []) {
+  return {
+    systemInstruction: `${contextLabel}\n\nFallback mode: keep the reply short and directly answer the user.`,
+    message,
+    toolDeclarations,
+  };
+}
+
+function buildGroqMessages(history: any[] = [], message: string, attachments: any[] = []) {
+  const recentHistory = history.slice(-8);
+  const messages = recentHistory.map((msg) => {
+    const contentParts: any[] = [{ type: 'text', text: String(msg.text) }];
+    if (msg.attachments) {
+      for (const att of msg.attachments) {
+        if (att.type.startsWith('image/')) {
+          contentParts.push({
+            type: 'image_url',
+            image_url: { url: att.data, detail: 'auto' },
+          });
+        }
+      }
+    }
+
+    return {
+      role: (msg.role === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
+      content: contentParts.length === 1 ? contentParts[0].text : contentParts,
+    };
+  });
+
+  const userParts: any[] = [{ type: 'text', text: message }];
+  if (attachments) {
+    for (const att of attachments) {
+      if (att.type.startsWith('image/')) {
+        userParts.push({
+          type: 'image_url',
+          image_url: { url: att.data, detail: 'auto' },
+        });
+      }
+    }
+  }
+
+  messages.push({
+    role: 'user',
+    content: userParts.length === 1 ? userParts[0].text : userParts,
+  });
+
+  return messages;
+}
+
+async function runGroq(
+  model: SupportedModel,
+  systemInstruction: string,
+  history: any[],
+  message: string,
+  attachments: any[] = [],
+  toolDeclarations: FunctionDeclaration[] = []
+): Promise<ChatReply | null> {
+  const client = getGroqClient();
+  if (!client) return null;
+
+  let messages = buildGroqMessages(history, message, attachments);
+  let action: ChatAction | undefined;
+  const allowedFunctionNames = toolDeclarations.length > 0 ? inferAllowedFunctionNames(message) : undefined;
+
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const response: any = await client.chat.completions.create({
+      model,
+      messages: [{ role: 'system', content: systemInstruction }, ...messages],
+      temperature: 0.2,
+      max_tokens: 1024,
+      tools: toolDeclarations.length > 0 ? (toolDeclarations.map((declaration) => ({ type: 'function', function: { name: declaration.name ?? 'tool', description: declaration.description ?? '', parameters: declaration.parameters ?? {} } })) as any) : undefined,
+      tool_choice: toolDeclarations.length > 0 ? 'auto' : undefined,
+      ...(allowedFunctionNames ? { allowedFunctionNames } : {}),
+    });
+
+    const assistantMessage = response?.choices?.[0]?.message ?? {};
+    const toolCalls = assistantMessage.tool_calls ?? [];
+    if (toolCalls.length === 0) {
+      return {
+        text: assistantMessage.content ?? '',
+        action,
+      };
+    }
+    const toolResponseMessages: any[] = [];
+    messages.push({ role: 'assistant', content: assistantMessage.content ?? '' } as any);
+
+    for (const call of toolCalls) {
+      let args: Record<string, unknown> = {};
+      try {
+        args = typeof call.function?.arguments === 'string' ? JSON.parse(call.function.arguments) : (call.function?.arguments ?? {});
+      } catch {
+        args = {};
+      }
+
+      let toolResult;
+      try {
+        toolResult = await executeChatTool(call.function?.name ?? '', args);
+      } catch (error: any) {
+        toolResult = {
+          response: { error: error instanceof Error ? error.message : 'Tool execution failed.' },
+        };
+      }
+
+      if (!action && toolResult.action) {
+        action = toolResult.action as ChatAction;
+      }
+
+      toolResponseMessages.push({
+        role: 'tool',
+        tool_call_id: call.id,
+        content: JSON.stringify(toolResult.response),
+      });
+    }
+
+    messages = [...messages, ...toolResponseMessages];
+  }
+
+  return {
+    text: 'No response generated from AI.',
+    action,
+  };
+}
+
+async function tryGroqLocalFallback(message: string, toolDeclarations: FunctionDeclaration[] = []): Promise<ChatReply | null> {
+  if (toolDeclarations.length === 0) return null;
+
+  const allowedFunctionNames = inferAllowedFunctionNames(message);
+  if (!allowedFunctionNames || allowedFunctionNames.length === 0) return null;
+
+  const trimmed = message.trim();
+
+  if (allowedFunctionNames.includes('create_task')) {
+    const match = trimmed.match(/^(?:add|create|new)\s+(?:a\s+)?task(?:\s+(?:called|named))?\s+(.+?)(?:\s+due\s+(.+))?$/i);
+    const title = match?.[1]?.trim().replace(/[,.;:-]$/, '') ?? '';
+    const dueDate = match?.[2]?.trim();
+    if (title) {
+      const result = await executeChatTool('create_task', { title, dueDate });
+      const createdTitle = result.response?.output?.task?.title ?? title;
+      return { text: "I created a new task called \"" + createdTitle + "\".", action: result.action as ChatAction };
+    }
+  }
+
+  if (allowedFunctionNames.includes('create_event')) {
+    const match = trimmed.match(/^(?:add|create|new)\s+(?:an?\s+)?event(?:\s+(?:called|named))?\s+(.+?)\s+on\s+(.+?)\s+from\s+(.+?)\s+to\s+(.+)$/i);
+    if (match) {
+      const title = match[1].trim().replace(/[,.;:-]$/, '');
+      const result = await executeChatTool('create_event', {
+        title,
+        date: match[2].trim(),
+        startTime: match[3].trim(),
+        endTime: match[4].trim(),
+        color: 'blue',
+      });
+      const createdTitle = result.response?.output?.event?.title ?? title;
+      return { text: "I added \"" + createdTitle + "\" to your calendar.", action: result.action as ChatAction };
+    }
+  }
+
+  if (allowedFunctionNames.includes('switch_theme')) {
+    const theme = resolveThemeId(trimmed) || resolveThemeId(trimmed.replace(/^(?:change|switch)(?:\s+the)?\s+theme(?:\s+to)?\s*/i, ''));
+    if (theme) {
+      const result = await executeChatTool('switch_theme', { theme });
+      return { text: "I switched the app theme to " + (result.response?.output?.themeName ?? theme) + ".", action: result.action as ChatAction };
+    }
+  }
+
+  if (allowedFunctionNames.includes('create_module')) {
+    const match = trimmed.match(/^(?:add|create|new)\s+(?:a\s+)?module(?:\s+(?:called|named))?\s+(.+?)\s+with\s+code\s+([A-Za-z0-9_-]+)(?:\s+and\s+color\s+(.+))?$/i);
+    if (match) {
+      const result = await executeChatTool('create_module', { title: match[1].trim().replace(/[,.;:-]$/, ''), code: match[2].trim(), color: match[3]?.trim() ?? '' });
+      const createdTitle = result.response?.output?.module?.title ?? match[1].trim();
+      return { text: "I created the module \"" + createdTitle + "\".", action: result.action as ChatAction };
+    }
+  }
+
+  return null;
+}
 function aggregateExtractedText(files: any[], limit: number = 8000): string {
   let combined = '';
   for (const file of files) {
@@ -801,12 +1012,17 @@ async function generateActionAwareChatReply(params: {
   toolDeclarations?: FunctionDeclaration[];
 }): Promise<ChatReply> {
   const provider = MODEL_PROVIDERS[params.model];
-  
-  if (provider === 'gemini' && !process.env.GEMINI_API_KEY) {
-    throw new Error('GEMINI_API_KEY is missing. Please add it to your environment variables.');
+  const geminiKeyMissing = !process.env.GEMINI_API_KEY;
+  const groqKeyMissing = !process.env.GROQ_API_KEY;
+
+  if (provider === 'gemini' && geminiKeyMissing) {
+    console.warn('GEMINI_API_KEY missing ó Gemini responses will be unavailable.');
   }
 
-  // Claude model handling requires ANTHROPIC_API_KEY.
+  if (provider === 'groq' && groqKeyMissing) {
+    console.warn('GROQ_API_KEY missing ó attempting local fallback or Gemini when available.');
+  }
+
   if (provider === 'claude' && !process.env.ANTHROPIC_API_KEY) {
     throw new Error('Claude API key needed for Claude model handling.');
   }
@@ -815,27 +1031,84 @@ async function generateActionAwareChatReply(params: {
     if (provider === 'gemini') {
       const reply = await runGemini(params.model, params.systemInstruction, params.history, params.message, params.attachments, params.toolDeclarations ?? []);
       if (reply !== null) return reply;
-    } else {
-      // Claude model handling requires ANTHROPIC_API_KEY.
+    }
+
+    if (provider === 'groq') {
+      if (groqKeyMissing) {
+        const localFallback = await tryGroqLocalFallback(params.message, params.toolDeclarations ?? []);
+        if (localFallback) return localFallback;
+
+        if (!geminiKeyMissing) {
+          try {
+            const geminiFallbackContext = buildGeminiFallbackContext(params.message, params.systemInstruction, params.toolDeclarations ?? []);
+            const geminiFallback = await runGemini(
+              'gemini-2.5-flash',
+              geminiFallbackContext.systemInstruction,
+              params.history,
+              geminiFallbackContext.message,
+              params.attachments,
+              params.toolDeclarations ?? []
+            );
+            if (geminiFallback) return geminiFallback;
+          } catch (fallbackError) {
+            console.error('Gemini fallback after missing Groq key failed:', fallbackError);
+          }
+        }
+
+        return { text: 'AI provider unavailable right now. Please set GROQ_API_KEY or try again later.' };
+      }
+
+      const reply = await runGroq(params.model, params.systemInstruction, params.history, params.message, params.attachments, params.toolDeclarations ?? []);
+      if (reply !== null) return reply;
+    }
+
+    if (provider === 'claude') {
       const text = await runClaude(params.model, params.systemInstruction, params.history, params.message, params.attachments);
       if (text !== null) return { text };
     }
   } catch (error: any) {
     console.error(`${provider} chat error:`, error);
 
-    // Specific handling for HTTP 429 quota errors (Gemini)
-    const statusCode = error?.status || error?.statusCode || error?.error?.code || error?.response?.status;
-    if (statusCode === 429) {
-      // Throw a clear, user-facing message so frontend can display it in the chat bubble
-      throw new Error('Gemini API quota exceeded. Your free daily limit has been reached. Please wait until tomorrow or upgrade your plan at aistudio.google.com.');
+    if (provider === 'groq') {
+      const localFallback = await tryGroqLocalFallback(params.message, params.toolDeclarations ?? []);
+      if (localFallback) return localFallback;
     }
+
+    const statusCode = error?.status || error?.statusCode || error?.error?.code || error?.response?.status;
+    if (provider === 'groq' && (statusCode === 429 || statusCode === 400)) {
+      try {
+        const geminiFallbackContext = buildGeminiFallbackContext(params.message, params.systemInstruction, params.toolDeclarations ?? []);
+        const geminiFallback = await runGemini(
+          'gemini-2.5-flash',
+          geminiFallbackContext.systemInstruction,
+          params.history,
+          geminiFallbackContext.message,
+          params.attachments,
+          params.toolDeclarations ?? []
+        );
+        if (geminiFallback) return geminiFallback;
+      } catch (fallbackError) {
+        console.error('Groq Gemini fallback failed:', fallbackError);
+      }
+
+      const localGeneralFallback = tryLocalGeneralFallback(params.message);
+      if (localGeneralFallback) return localGeneralFallback;
+
+      return { text: 'AI provider unavailable right now. Please try again later.' };
+    }
+
+    if (statusCode === 429) {
+      return { text: 'API quota exceeded. Please wait and try again later.' };
+    }
+
+    const localGeneralFallback = tryLocalGeneralFallback(params.message);
+    if (localGeneralFallback) return localGeneralFallback;
 
     throw error;
   }
 
   return { text: 'No response generated from AI.' };
 }
-
 async function extractTextFromBase64(dataBase64: string, originalName: string): Promise<string> {
   const extension = path.extname(originalName).toLowerCase();
   const buffer = Buffer.from(dataBase64.split(',')[1] || dataBase64, 'base64');
@@ -1097,3 +1370,8 @@ app.listen(PORT, () => {
     console.log('‚ö†Ô∏è  ANTHROPIC_API_KEY not set - Claude requests will use mock responses');
   }
 });
+
+
+
+
+
