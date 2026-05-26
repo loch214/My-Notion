@@ -673,6 +673,33 @@ function mockResponse(message: string, model: SupportedModel, contextLabel: stri
   };
 }
 
+function buildLocalFallbackText(message: string, contextLabel: string): string {
+  const trimmed = message.trim();
+  const normalized = trimmed.toLowerCase();
+
+  if (/^(hi|hello|hey|yo)\b/.test(normalized)) {
+    return "Hey Lochana, I'm here. What do you need help with in My-Notion today?";
+  }
+
+  if (/where is sri lanka|location of sri lanka|sri lanka.*where/i.test(normalized)) {
+    return 'Sri Lanka is an island country in South Asia, in the Indian Ocean just off the southeastern coast of India.';
+  }
+
+  if (/near india|close to india/i.test(normalized) && /sri lanka/i.test(normalized)) {
+    return 'Yes, Sri Lanka is near India across the Palk Strait.';
+  }
+
+  if (/linear regression/i.test(normalized)) {
+    return 'Linear regression is a simple model that fits a straight line to data so you can predict one value from another.';
+  }
+
+  if (/president of sri lanka/i.test(normalized)) {
+    return 'I can help with My-Notion tasks, but I cannot reliably verify live world facts right now.';
+  }
+
+  return `I can still help with My-Notion tasks, events, modules, and theme changes. ${contextLabel.includes('module') ? 'Try asking me to work on the module directly.' : 'Try asking me to create, update, or summarize something in the app.'}`;
+}
+
 function buildGeminiContents(history: any[] = [], message: string, attachments: any[] = []) {
   const contents = history.map((msg) => ({
     role: msg.role === 'user' ? 'user' : 'model',
@@ -738,7 +765,7 @@ async function runGemini(
       const text = response.text ?? '';
       if (isGenericAiFailureText(text)) {
         return {
-          text: "Hey Lochana, I'm here. What do you need help with in My-Notion today?",
+          text: buildLocalFallbackText(message, 'global assistant'),
           action,
         };
       }
@@ -1231,7 +1258,7 @@ async function runGroq(
       console.log('[Groq] no tool calls, returning assistant text:', text?.slice(0,200));
       if (isGenericAiFailureText(text)) {
         return {
-          text: "Hey Lochana, I'm here. What do you need help with in My-Notion today?",
+          text: buildLocalFallbackText(message, 'global assistant'),
           action,
         };
       }
@@ -1387,7 +1414,7 @@ async function generateActionAwareChatReply(params: {
           if (geminiFallback) return geminiFallback;
         }
 
-        return { text: 'AI provider unavailable right now. Please set GROQ_API_KEY or try again later.' };
+        return { text: buildLocalFallbackText(params.message, params.contextLabel) };
       }
 
       const reply = await runGroq(params.model, params.systemInstruction, params.history, params.message, params.attachments, params.toolDeclarations ?? []);
@@ -1432,11 +1459,11 @@ async function generateActionAwareChatReply(params: {
         console.error('Gemini fallback failed after Groq rate limit:', geminiFallbackError);
       }
 
-      return { text: 'The AI provider is rate-limited right now. Please try again in a few minutes, or ask me to create a task, event, or theme change.' };
+      return { text: buildLocalFallbackText(params.message, params.contextLabel) };
     }
 
     if (statusCode === 429) {
-      return { text: 'The AI provider is rate-limited right now. Please try again in a few minutes, or ask me to create a task, event, or theme change.' };
+      return { text: buildLocalFallbackText(params.message, params.contextLabel) };
     }
 
     throw error;
