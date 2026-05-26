@@ -11,12 +11,39 @@ const require = createRequire(import.meta.url);
 const { PdfReader } = require('pdfreader');
 import mammoth from 'mammoth';
 import 'dotenv/config';
+import mongoose from 'mongoose';
 import connectDB from './db.js';
 import dataRoutes from './routes/data.js';
 import { Workspace } from './models.js';
 
 const app = express();
-        action = toolResult.action as ChatAction;
+const PORT = process.env.PORT || 3001;
+
+type WorkspaceDocumentLike = {
+  id: string;
+  modules: any[];
+  tasks: any[];
+  events: any[];
+  globalChat: { id: string; messages: any[] };
+  save: () => Promise<WorkspaceDocumentLike>;
+};
+
+let fallbackWorkspace: WorkspaceDocumentLike | null = null;
+
+function createFallbackWorkspace(): WorkspaceDocumentLike {
+  if (fallbackWorkspace) return fallbackWorkspace;
+
+  fallbackWorkspace = {
+    id: 'default-user-workspace',
+    modules: [],
+    tasks: [],
+    events: [],
+    globalChat: { id: uuidv4(), messages: [] },
+    save: async () => fallbackWorkspace as WorkspaceDocumentLike,
+  };
+
+  return fallbackWorkspace;
+}
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -358,6 +385,10 @@ const CHAT_TOOL_DECLARATIONS: FunctionDeclaration[] = [
 ];
 
 function getOrCreateWorkspace() {
+  if (mongoose.connection.readyState !== 1) {
+    return createFallbackWorkspace();
+  }
+
   return Workspace.findOne({ id: 'default-user-workspace' }).then(async (workspace) => {
     if (workspace) return workspace;
     const created = new Workspace({
@@ -369,7 +400,7 @@ function getOrCreateWorkspace() {
     });
     await created.save();
     return created;
-  });
+  }).catch(() => createFallbackWorkspace());
 }
 
 function normalizeText(value: unknown) {
@@ -1115,7 +1146,7 @@ async function runGroq(
   let groqFinalText: string | null = null;
   const allowedFunctionNames = toolDeclarations.length > 0 ? inferAllowedFunctionNames(message) : undefined;
   const groqTools = allowedFunctionNames && allowedFunctionNames.length > 0
-    ? toolDeclarations.filter((declaration) => allowedFunctionNames.includes(declaration.name))
+    ? toolDeclarations.filter((declaration) => allowedFunctionNames.includes(declaration.name ?? ''))
     : [];
 
   console.log('[Groq] runGroq start', { model, allowedFunctionNames, message: message.slice(0, 200) });
@@ -1425,7 +1456,7 @@ app.post('/api/chat/global', async (req, res) => {
     const selectedModel = safeModel(model);
     const provider = MODEL_PROVIDERS[selectedModel];
     
-    const workspace = await Workspace.findOne({ id: 'default-user-workspace' });
+    const workspace = await getOrCreateWorkspace();
     let allExtractedText = '';
     if (workspace && workspace.modules) {
       const allFiles = workspace.modules.flatMap((m: any) => 
@@ -1466,7 +1497,11 @@ app.post('/api/chat/global', async (req, res) => {
     res.json({
       role: 'model',
       text: reply.text,
-      ...(reply.action ? { action: reply.action.action, theme: reply.action.theme } : {}),
+      ...(reply.action && reply.action.action === 'switch_theme'
+        ? { action: reply.action.action, theme: reply.action.theme }
+        : reply.action
+          ? { action: reply.action.action }
+          : {}),
     });
   } catch (error: any) {
     console.error('Global Chat Error:', error);
@@ -1501,7 +1536,7 @@ app.post('/api/chat/module', async (req, res) => {
     let workspace: any = null;
 
     if (moduleId) {
-      workspace = await Workspace.findOne({ id: 'default-user-workspace' });
+      workspace = await getOrCreateWorkspace();
       dbModule = workspace?.modules.find((m: any) => m.id === moduleId);
       if (dbModule && dbModule.files) {
         extractedText = aggregateExtractedText(dbModule.files);
@@ -1565,7 +1600,9 @@ app.post('/api/chat/module', async (req, res) => {
     const response: any = { role: 'model', text: reply.text };
     if (reply.action) {
       response.action = reply.action.action;
-      response.theme = reply.action.theme;
+      if (reply.action.action === 'switch_theme') {
+        response.theme = reply.action.theme;
+      }
     }
     if (title) response.title = title;
     if (newFilesSaved > 0) response.files = dbModule?.files;
@@ -1641,12 +1678,15 @@ app.use('/api/data', dataRoutes);
 
 connectDB();
 app.listen(PORT, () => {
-  console.log(`\n✅ Backend server running on http://localhost:${PORT}`);
-  console.log(`📝 Make sure frontend is running on http://localhost:5173`);
+  console.log(`\nBackend server running on http://localhost:${PORT}`);
+  console.log('Make sure frontend is running on http://localhost:5173');
+  if (!process.env.ANTHROPIC_API_KEY) {
+    console.log('ANTHROPIC_API_KEY not set - Claude requests will use mock responses');
+  }
   if (!process.env.GEMINI_API_KEY) {
-    console.log('⚠️  GEMINI_API_KEY not set - Gemini requests will use mock responses');
+    console.log('GEMINI_API_KEY not set - Gemini requests will use mock responses');
   }
   if (!process.env.GROQ_API_KEY) {
-    console.log('⚠️  GROQ_API_KEY not set - Groq requests will use mock responses');
+    console.log('GROQ_API_KEY not set - Groq requests will use mock responses');
   }
 });

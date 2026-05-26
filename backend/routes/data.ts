@@ -1,25 +1,60 @@
 import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
+import mongoose from 'mongoose';
 import { Workspace, Module, Task, Event } from '../models.js';
 
 const router = express.Router();
 
 const WORKSPACE_ID = 'default-user-workspace';
 
+type WorkspaceDocumentLike = {
+  id: string;
+  modules: any[];
+  tasks: any[];
+  events: any[];
+  globalChat: { id: string; messages: any[] };
+  save: () => Promise<WorkspaceDocumentLike>;
+};
+
+let fallbackWorkspace: WorkspaceDocumentLike | null = null;
+
+function createFallbackWorkspace(): WorkspaceDocumentLike {
+  if (fallbackWorkspace) return fallbackWorkspace;
+
+  fallbackWorkspace = {
+    id: WORKSPACE_ID,
+    modules: [],
+    tasks: [],
+    events: [],
+    globalChat: { id: uuidv4(), messages: [] },
+    save: async () => fallbackWorkspace as WorkspaceDocumentLike,
+  };
+
+  return fallbackWorkspace;
+}
+
 // Helper to get or create workspace
 async function getOrCreateWorkspace() {
-  let workspace = await Workspace.findOne({ id: WORKSPACE_ID });
-  if (!workspace) {
-    workspace = new Workspace({
-      id: WORKSPACE_ID,
-      modules: [],
-      tasks: [],
-      events: [],
-      globalChat: { id: uuidv4(), messages: [] },
-    });
-    await workspace.save();
+  if (mongoose.connection.readyState !== 1) {
+    return createFallbackWorkspace();
   }
-  return workspace;
+
+  try {
+    let workspace = await Workspace.findOne({ id: WORKSPACE_ID });
+    if (!workspace) {
+      workspace = new Workspace({
+        id: WORKSPACE_ID,
+        modules: [],
+        tasks: [],
+        events: [],
+        globalChat: { id: uuidv4(), messages: [] },
+      });
+      await workspace.save();
+    }
+    return workspace;
+  } catch {
+    return createFallbackWorkspace();
+  }
 }
 
 // ===== MODULES =====
