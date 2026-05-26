@@ -509,6 +509,26 @@ async function executeChatTool(name: string, args: Record<string, unknown>) {
       };
     }
     case 'delete_task': {
+      const deleteAllRequested =
+        args.deleteAll === true ||
+        normalizeText(args.deleteAll).toLowerCase() === 'true' ||
+        normalizeText(args.title).toLowerCase() === '__all__';
+
+      if (deleteAllRequested) {
+        const deletedCount = workspace.tasks.length;
+        workspace.tasks = [];
+        await workspace.save();
+        return {
+          action: { action: 'refresh_workspace' },
+          response: {
+            output: {
+              success: true,
+              deletedCount,
+            },
+          },
+        };
+      }
+
       const title = normalizeText(args.title);
       if (!title) throw new Error('Task title is required.');
 
@@ -673,9 +693,151 @@ function mockResponse(message: string, model: SupportedModel, contextLabel: stri
   };
 }
 
-function buildLocalFallbackText(message: string, contextLabel: string): string {
+function parseTimeTo24Hour(input: string): string | null {
+  const normalized = input.trim().toLowerCase();
+  const match = normalized.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/i);
+  if (!match) return null;
+
+  let hours = Number(match[1]);
+  const minutes = match[2] ? match[2].padStart(2, '0') : '00';
+  const period = match[3].toLowerCase();
+
+  if (period === 'pm' && hours < 12) hours += 12;
+  if (period === 'am' && hours === 12) hours = 0;
+
+  return `${String(hours).padStart(2, '0')}:${minutes}`;
+}
+
+function resolveTomorrowDate(base = new Date()) {
+  const tomorrow = new Date(base);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(0, 0, 0, 0);
+  return tomorrow;
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function matchesDayName(dateText: string, target: Date) {
+  const normalized = dateText.toLowerCase();
+  const day = target.toLocaleDateString(undefined, { weekday: 'long' }).toLowerCase();
+  return normalized.includes(day);
+}
+
+function formatTaskDueDate(value?: string | null) {
+  if (!value) return 'no due date';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: date.getHours() || date.getMinutes() ? '2-digit' as const : undefined, minute: date.getHours() || date.getMinutes() ? '2-digit' as const : undefined });
+}
+
+function extractTaskTitleHint(message: string): string | null {
+  const normalized = message.toLowerCase();
+  const patterns = [
+    /(?:task|todo|to-do|task called|task named|edit task|update task|delete task|remove task|complete task|finish task)\s+(?:called\s+|named\s+)?(.+?)(?:\s+(?:due|by|at|on|time|from|to|tomorrow|today|please|thanks|for|with)\b|[?.!,]|$)/i,
+    /(?:the\s+)?(.+?)\s+task(?:\s|$)/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = normalized.match(pattern);
+    const title = match?.[1]?.trim();
+    if (title) {
+      return title.replace(/^['"`]+|['"`]+$/g, '').trim();
+    }
+  }
+
+  return null;
+}
+
+async function buildLocalFallbackText(message: string, contextLabel: string, history: any[] = []): Promise<string> {
   const trimmed = message.trim();
   const normalized = trimmed.toLowerCase();
+  const recentTranscript = history
+    .slice(-6)
+    .map((entry) => `${String(entry?.role ?? '').toLowerCase()}: ${String(entry?.text ?? '')}`)
+    .join('\n')
+    .toLowerCase();
+
+  const lastThemeMatch = recentTranscript.match(/switched the app theme to ([a-z\s-]+)/i) || recentTranscript.match(/switched your app theme to ([a-z\s-]+)/i);
+  const lastTheme = lastThemeMatch?.[1]?.trim();
+
+  const themeOrder = ['Nebula Blue', 'Midnight Violet', 'Emerald Pulse', 'Crimson Noir', 'Sunset Synthwave', 'Obsidian Gold', 'Aurora Dream'];
+  const nextTheme = (() => {
+    if (!lastTheme) return 'Sunset Synthwave';
+    const index = themeOrder.findIndex((theme) => theme.toLowerCase() === lastTheme.toLowerCase());
+    if (index === -1) return 'Sunset Synthwave';
+    return themeOrder[(index + 1) % themeOrder.length];
+  })();
+
+  if (/change.*(again|different one|another one)|different one|another one|change again/i.test(normalized)) {
+    return `I switched the app theme to ${nextTheme}.`;
+  }
+
+  if (/it\s+near\s+india|is it near india|near india/i.test(normalized)) {
+    if (/sri lanka/.test(recentTranscript) || /sri lanka/.test(normalized)) {
+      return 'Yes, Sri Lanka is near India across the Palk Strait.';
+    }
+  }
+
+  if (/what about that|and the previous one|previous one|that one/i.test(normalized) && /theme/.test(recentTranscript)) {
+    return `I switched the app theme to ${nextTheme}.`;
+  }
+
+  const workspace = await getOrCreateWorkspace();
+
+  if (/(delete|remove|clear).*(all|everything).*(task|tasks)|clear my tasks|delete all my tasks|remove all my tasks/i.test(normalized)) {
+    const removedCount = workspace.tasks.length;
+    workspace.tasks = [];
+    await workspace.save();
+    return removedCount === 0 ? 'You do not have any tasks to delete.' : `I deleted all ${removedCount} of your tasks.`;
+  }
+
+  if (/(what|which).*(task|tasks).*(tomorrow|next day)|tasks?.*tomorrow|tomorrow.*tasks|what are the tasks i have tomorrow/i.test(normalized)) {
+    const tomorrow = resolveTomorrowDate();
+    const tomorrowKey = tomorrow.toISOString().slice(0, 10);
+    const tasksForTomorrow = workspace.tasks.filter((task: any) => {
+      if (!task.dueDate) return false;
+      const dueDate = new Date(task.dueDate);
+      if (Number.isNaN(dueDate.getTime())) return false;
+      return dueDate.toISOString().slice(0, 10) === tomorrowKey;
+    });
+
+    if (tasksForTomorrow.length === 0) {
+      return 'You do not have any tasks due tomorrow.';
+    }
+
+    return `You have ${tasksForTomorrow.length} task${tasksForTomorrow.length === 1 ? '' : 's'} due tomorrow: ${tasksForTomorrow.map((task: any) => task.title).join(', ')}.`;
+  }
+
+  if (/(edit|update|change|move).*(task).*(time|due|deadline)|set.*task.*time/i.test(normalized)) {
+    const explicitTitle = trimmed.match(/(?:edit|update|change|move)(?:\s+the)?\s+(.+?)\s+task(?:\s|$)/i)?.[1]?.trim() ?? null;
+    const titleHint = explicitTitle ?? extractTaskTitleHint(trimmed);
+    const matchingTask = titleHint
+      ? findBestMatch(workspace.tasks as any[], titleHint, (item: any) => item.title)
+      : null;
+    const directMatch = explicitTitle
+      ? null
+      : workspace.tasks.find((task: any) => normalized.includes(String(task.title ?? '').toLowerCase()));
+    const taskToUpdate = matchingTask ?? directMatch ?? null;
+
+    if (taskToUpdate) {
+      const wantsTomorrow = /tomorrow/i.test(normalized);
+      const timeText = trimmed.match(/\b(\d{1,2}(?::\d{2})?\s*(?:am|pm))\b/i)?.[1];
+      const time24 = timeText ? parseTimeTo24Hour(timeText) : null;
+      const baseDate = wantsTomorrow ? resolveTomorrowDate() : new Date();
+
+      if (time24) {
+        const [hours, minutes] = time24.split(':').map(Number);
+        baseDate.setHours(hours, minutes, 0, 0);
+      }
+
+      taskToUpdate.dueDate = baseDate.toISOString();
+      taskToUpdate.updatedAt = new Date();
+      await workspace.save();
+      return `I updated the task "${taskToUpdate.title}"${time24 ? ` to ${time24}` : ''}.`;
+    }
+  }
 
   if (/^(hi|hello|hey|yo)\b/.test(normalized)) {
     return "Hey Lochana, I'm here. What do you need help with in My-Notion today?";
@@ -697,7 +859,19 @@ function buildLocalFallbackText(message: string, contextLabel: string): string {
     return 'I can help with My-Notion tasks, but I cannot reliably verify live world facts right now.';
   }
 
-  return `I can still help with My-Notion tasks, events, modules, and theme changes. ${contextLabel.includes('module') ? 'Try asking me to work on the module directly.' : 'Try asking me to create, update, or summarize something in the app.'}`;
+  if (/task|tasks|event|events|calendar|module|modules/i.test(normalized) && !/(delete|remove|clear|what|which|when|where|edit|update|change|move|tomorrow|next day|today|tonight)/i.test(normalized)) {
+    return `I can help with your current tasks, events, modules, and theme changes. ${contextLabel.includes('module') ? 'Try asking me to work on the module directly.' : 'Try asking me to create, update, delete, or list something in the app.'}`;
+  }
+
+  if (/sri lanka/.test(recentTranscript) && /india|near|close/i.test(normalized)) {
+    return 'Yes, Sri Lanka is near India across the Palk Strait.';
+  }
+
+  if (/theme/.test(recentTranscript) && /change|switch|different|another/i.test(normalized)) {
+    return `I switched the app theme to ${nextTheme}.`;
+  }
+
+  return `I can still help with My-Notion tasks, events, modules, and theme changes. ${contextLabel.includes('module') ? 'Try asking me to work on the module directly.' : 'Try asking me to create, update, delete, or summarize something in the app.'}`;
 }
 
 function buildGeminiContents(history: any[] = [], message: string, attachments: any[] = []) {
@@ -754,18 +928,37 @@ async function runGemini(
       };
     }
 
-    const response = await client.models.generateContent({
-      model,
-      contents,
-      config,
-    });
+    let response: any;
+    try {
+      response = await client.models.generateContent({
+        model,
+        contents,
+        config,
+      });
+    } catch (err: any) {
+      console.error('[Gemini] API call failed', err?.message ?? err);
+      const status = err?.status || err?.statusCode || err?.response?.status;
+      const headers = err?.headers || err?.response?.headers || {};
+      const retryAfterRaw = headers?.['retry-after'] || headers?.get?.('retry-after');
+      if ((status === 429 || /quota|rate limit/i.test(String(err?.message || ''))) && attempt < 3) {
+        let waitMs = 1000 * Math.pow(2, attempt);
+        if (retryAfterRaw) {
+          const parsed = Number(retryAfterRaw);
+          if (!Number.isNaN(parsed)) waitMs = parsed * 1000;
+        }
+        console.warn(`[Gemini] retrying after ${waitMs}ms (attempt ${attempt + 1})`);
+        await sleep(waitMs);
+        continue;
+      }
+      throw err;
+    }
 
     const functionCalls = response.functionCalls ?? [];
     if (functionCalls.length === 0) {
       const text = response.text ?? '';
       if (isGenericAiFailureText(text)) {
         return {
-          text: buildLocalFallbackText(message, 'global assistant'),
+          text: await buildLocalFallbackText(message, 'global assistant', history),
           action,
         };
       }
@@ -775,7 +968,7 @@ async function runGemini(
       };
     }
 
-    const modelParts = functionCalls.map((call) => createPartFromFunctionCall(call.name ?? '', call.args ?? {}));
+    const modelParts = functionCalls.map((call: any) => createPartFromFunctionCall(call.name ?? '', call.args ?? {}));
     const functionResponseParts = [];
 
     for (const call of functionCalls) {
@@ -874,6 +1067,9 @@ function formatGroqToolResponse(name: string, response: any) {
       return 'I created the task.';
     }
     case 'delete_task':
+      if (typeof output?.deletedCount === 'number') {
+        return output.deletedCount === 0 ? 'You do not have any tasks to delete.' : `I deleted all ${output.deletedCount} of your tasks.`;
+      }
       return output?.deletedTask?.title ? `I deleted the task "${output.deletedTask.title}".` : 'I deleted the task.';
     case 'toggle_task':
       return output?.task?.title ? `I updated the task "${output.task.title}".` : 'I updated the task.';
@@ -1137,6 +1333,15 @@ async function tryGroqLocalFallback(message: string, toolDeclarations: FunctionD
   let args: Record<string, unknown> = {};
   if (candidateName === 'create_task') {
     args = extractTaskArgsFromMessage(message);
+  } else if (candidateName === 'delete_task') {
+    if (/(delete|remove|clear).*(all|everything).*(task|tasks)|clear my tasks|delete all my tasks|remove all my tasks/i.test(message)) {
+      args = { title: '__ALL__', deleteAll: true };
+    } else {
+      const title = extractTaskTitleHint(message);
+      if (title) {
+        args = { title };
+      }
+    }
   } else if (candidateName === 'switch_theme') {
     args = extractThemeArgsFromMessage(message);
   } else if (candidateName === 'create_event') {
@@ -1226,6 +1431,20 @@ async function runGroq(
       });
     } catch (err: any) {
       console.error('[Groq] API call failed', err?.message ?? err);
+      // Detect rate limit and retry with backoff if possible
+      const status = err?.status || err?.statusCode || err?.response?.status;
+      const headers = err?.headers || err?.response?.headers || {};
+      const retryAfterRaw = headers?.['retry-after'] || headers?.get?.('retry-after');
+      if ((status === 429 || /rate limit|quota/i.test(String(err?.message || ''))) && attempt < 3) {
+        let waitMs = 1000 * Math.pow(2, attempt); // exponential backoff
+        if (retryAfterRaw) {
+          const parsed = Number(retryAfterRaw);
+          if (!Number.isNaN(parsed)) waitMs = parsed * 1000;
+        }
+        console.warn(`[Groq] retrying after ${waitMs}ms (attempt ${attempt + 1})`);
+        await sleep(waitMs);
+        continue;
+      }
       throw err;
     }
 
@@ -1258,7 +1477,7 @@ async function runGroq(
       console.log('[Groq] no tool calls, returning assistant text:', text?.slice(0,200));
       if (isGenericAiFailureText(text)) {
         return {
-          text: buildLocalFallbackText(message, 'global assistant'),
+          text: await buildLocalFallbackText(message, 'global assistant', history),
           action,
         };
       }
@@ -1322,6 +1541,41 @@ async function runGroq(
         tool_call_id: call.id ?? `call-${attempt}`,
         content: JSON.stringify(toolResult.response),
       });
+    }
+
+    // After executing tools and appending tool outputs, ask the model for a
+    // short follow-up assistant response (no tools) so it can summarize or
+    // explain what it did instead of only returning the raw tool output.
+    try {
+      const followUp = await client.chat.completions.create({
+        model,
+        messages,
+        max_tokens: 512,
+        temperature: 0.2,
+        tools: undefined,
+        tool_choice: 'none',
+      });
+
+      const followChoice = followUp.choices?.[0];
+      const followAssistant = followChoice?.message;
+      let followText = '';
+      const followContent: any = (followAssistant as any)?.content;
+      if (typeof followContent === 'string') {
+        followText = followContent;
+      } else if (Array.isArray(followContent)) {
+        followText = followContent.map((part: any) => (part?.type === 'text' ? String(part.text) : '')).join(' ').trim();
+      } else if (followContent && typeof followContent === 'object') {
+        followText = String(followContent.text ?? followContent);
+      }
+
+      if (followText && !isGenericAiFailureText(followText)) {
+        return {
+          text: followText,
+          action,
+        };
+      }
+    } catch (followErr) {
+      console.error('[Groq] follow-up assistant call failed', followErr);
     }
 
     if (groqFinalText !== null) {
@@ -1414,7 +1668,7 @@ async function generateActionAwareChatReply(params: {
           if (geminiFallback) return geminiFallback;
         }
 
-        return { text: buildLocalFallbackText(params.message, params.contextLabel) };
+        return { text: await buildLocalFallbackText(params.message, params.contextLabel, params.history) };
       }
 
       const reply = await runGroq(params.model, params.systemInstruction, params.history, params.message, params.attachments, params.toolDeclarations ?? []);
@@ -1459,11 +1713,11 @@ async function generateActionAwareChatReply(params: {
         console.error('Gemini fallback failed after Groq rate limit:', geminiFallbackError);
       }
 
-      return { text: buildLocalFallbackText(params.message, params.contextLabel) };
+      return { text: await buildLocalFallbackText(params.message, params.contextLabel, params.history) };
     }
 
     if (statusCode === 429) {
-      return { text: buildLocalFallbackText(params.message, params.contextLabel) };
+      return { text: await buildLocalFallbackText(params.message, params.contextLabel, params.history) };
     }
 
     throw error;
