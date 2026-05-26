@@ -5,7 +5,6 @@ import fs from 'fs';
 import cors from 'cors';
 import { GoogleGenAI, FunctionCallingConfigMode, createPartFromFunctionCall, createPartFromFunctionResponse, type FunctionDeclaration } from '@google/genai';
 import Groq from 'groq-sdk';
-import Anthropic from '@anthropic-ai/sdk';
 import { createRequire } from 'module';
 import { v4 as uuidv4 } from 'uuid';
 const require = createRequire(import.meta.url);
@@ -17,7 +16,7 @@ import dataRoutes from './routes/data.js';
 import { Workspace } from './models.js';
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+        action = toolResult.action as ChatAction;
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -33,7 +32,6 @@ const MODEL_PROVIDERS = {
   'llama-3.3-70b-versatile': 'groq',
   'gemini-2.5-flash': 'gemini',
   'gemini-3.1-pro': 'gemini',
-  'claude-sonnet-4-6': 'claude',
 } as const;
 
 // System prompts for global and module chat (kept as constants for clarity)
@@ -50,6 +48,7 @@ YOUR ROLE IN GLOBAL CHAT:
 - You are a smart personal assistant who knows everything happening in Lochana's workspace
 - You have access to: all module names and file counts, all tasks (personal and academic) with due dates, all calendar events, and general app context
 - Answer questions about tasks, deadlines, upcoming events, module status, and general life organization
+- You can also answer normal general questions (date/time facts, common knowledge, everyday queries) naturally.
 - If asked something academic or study-related, you can help but remind Lochana to use the Module Chat for deeper lecture-based study since that chat has access to the actual uploaded files
 
 ABOUT LOCHANA (User Profile):
@@ -99,11 +98,10 @@ MISTAKE HANDLING:
 - If Lochana makes a mistake: do NOT give the full correct answer immediately
 - Explain the mistake clearly and give hints so Lochana can fix it themselves
 
-PROJECT / COMPLEX TASK MODE (STRICT):
-- For projects, building systems, or any complex/multi-step task: DO NOT immediately start solving or generating output
-- ALWAYS use pull prompting first — ask all necessary questions to fully understand requirements, constraints, tech stack, and expected output
-- Only start after enough information is gathered
-- Exception: if it is a small/simple question → answer directly without pull prompting
+PROJECT / COMPLEX TASK MODE:
+- For app actions (tasks/events/modules/theme), execute immediately using tools with sensible defaults.
+- Ask follow-up questions only if the request is impossible to execute safely (for example, deleting an item with no identifiable title).
+- For broader external projects (outside the app), you can ask a few clarifying questions before giving a full solution.
 
 RESTRICTIONS — DO NOT:
 - Give full answers or code without letting Lochana try first
@@ -194,7 +192,7 @@ RESTRICTIONS — DO NOT:
 
 type SupportedModel = keyof typeof MODEL_PROVIDERS;
 
-type ChatAction = { action: 'switch_theme'; theme: string };
+type ChatAction = { action: 'switch_theme'; theme: string } | { action: 'refresh_workspace' };
 
 type ChatReply = {
   text: string;
@@ -220,6 +218,30 @@ const AVAILABLE_THEMES = [
   { id: 'obsidian-gold', name: 'Obsidian Gold' },
   { id: 'aurora-dream', name: 'Aurora Dream' },
 ] as const;
+
+const THEME_ALIASES: Record<string, string> = {
+  'sunset glow': 'sunset-synthwave',
+  'sapphire dream': 'aurora-dream',
+  'ocean breeze': 'nebula-blue',
+  sunset: 'sunset-synthwave',
+  sapphire: 'aurora-dream',
+  ocean: 'nebula-blue',
+};
+
+const MONTH_INDEX: Record<string, number> = {
+  january: 0,
+  february: 1,
+  march: 2,
+  april: 3,
+  may: 4,
+  june: 5,
+  july: 6,
+  august: 7,
+  september: 8,
+  october: 9,
+  november: 10,
+  december: 11,
+};
 
 const CHAT_TOOL_DECLARATIONS: FunctionDeclaration[] = [
   {
@@ -380,12 +402,23 @@ function resolveThemeId(theme: unknown) {
   const rawTheme = normalizeText(theme);
   if (!rawTheme) return null;
 
-  const canonical = AVAILABLE_THEME_IDS.find((themeId) => themeId === rawTheme.toLowerCase());
+  const normalizedTheme = rawTheme.toLowerCase().replace(/[_\s]+/g, '-');
+
+  const canonical = AVAILABLE_THEME_IDS.find((themeId) => themeId === normalizedTheme);
   if (canonical) return canonical;
+
+  const aliasTheme = THEME_ALIASES[rawTheme.toLowerCase()];
+  if (aliasTheme) return aliasTheme;
 
   const themeName = rawTheme.toLowerCase();
   const matchedTheme = AVAILABLE_THEMES.find((entry) => entry.name.toLowerCase() === themeName);
-  return matchedTheme?.id ?? null;
+  if (matchedTheme) return matchedTheme.id;
+
+  const fuzzyTheme = AVAILABLE_THEMES.find((entry) => {
+    const name = entry.name.toLowerCase();
+    return themeName.includes(name) || name.includes(themeName);
+  });
+  return fuzzyTheme?.id ?? null;
 }
 
 function inferAllowedFunctionNames(message: string) {
@@ -395,10 +428,14 @@ function inferAllowedFunctionNames(message: string) {
   if (/(create|add|new).*(task)|task.*(create|add|new)/i.test(text)) allowed.add('create_task');
   if (/(delete|remove|discard).*(task)|task.*(delete|remove|discard)/i.test(text)) allowed.add('delete_task');
   if (/(toggle|complete|done|undone|check off).*(task)|task.*(toggle|complete|done|undone|check off)/i.test(text)) allowed.add('toggle_task');
-  if (/(create|add|new).*(event|calendar|birthday|meeting)|event.*(create|add|new)/i.test(text)) allowed.add('create_event');
+  if (/(create|add|new|schedule|plan).*(event|calendar|calender|birthday|borthday|meeting|appointment)|event.*(create|add|new|schedule|plan)|\b(birthday|borthday)\b|\badd\b.*\bto\b.*\b(calendar|calender)\b/i.test(text)) {
+    allowed.add('create_event');
+  }
   if (/(delete|remove|discard).*(event)|event.*(delete|remove|discard)/i.test(text)) allowed.add('delete_event');
   if (/(create|add|new).*(module)|module.*(create|add|new)/i.test(text)) allowed.add('create_module');
-  if (/(theme|color|palette|switch|change look|change theme)/i.test(text)) allowed.add('switch_theme');
+  if (/(theme|color|palette|switch|change look|change theme)/i.test(text) || /\b(different|another)\s+one\b/i.test(text)) {
+    allowed.add('switch_theme');
+  }
   if (/\b(get|show|list|see).*(task|tasks)\b/i.test(text)) allowed.add('get_tasks');
   if (/\b(get|show|list|see).*(event|events|calendar)\b/i.test(text)) allowed.add('get_events');
 
@@ -431,6 +468,7 @@ async function executeChatTool(name: string, args: Record<string, unknown>) {
       workspace.tasks.push(task as any);
       await workspace.save();
       return {
+        action: { action: 'refresh_workspace' },
         response: {
           output: {
             success: true,
@@ -448,7 +486,7 @@ async function executeChatTool(name: string, args: Record<string, unknown>) {
 
       (workspace.tasks as any) = workspace.tasks.filter((item: any) => item.id !== task.id);
       await workspace.save();
-      return { response: { output: { success: true, deletedTask: task } } };
+      return { action: { action: 'refresh_workspace' }, response: { output: { success: true, deletedTask: task } } };
     }
     case 'toggle_task': {
       const title = normalizeText(args.title);
@@ -460,7 +498,7 @@ async function executeChatTool(name: string, args: Record<string, unknown>) {
       task.done = !task.done;
       task.updatedAt = new Date();
       await workspace.save();
-      return { response: { output: { success: true, task } } };
+      return { action: { action: 'refresh_workspace' }, response: { output: { success: true, task } } };
     }
     case 'create_event': {
       const title = normalizeText(args.title);
@@ -483,7 +521,7 @@ async function executeChatTool(name: string, args: Record<string, unknown>) {
 
       workspace.events.push(event as any);
       await workspace.save();
-      return { response: { output: { success: true, event } } };
+      return { action: { action: 'refresh_workspace' }, response: { output: { success: true, event } } };
     }
     case 'delete_event': {
       const title = normalizeText(args.title);
@@ -494,7 +532,7 @@ async function executeChatTool(name: string, args: Record<string, unknown>) {
 
       workspace.events = workspace.events.filter((item: any) => item.id !== event.id) as any;
       await workspace.save();
-      return { response: { output: { success: true, deletedEvent: event } } };
+      return { action: { action: 'refresh_workspace' }, response: { output: { success: true, deletedEvent: event } } };
     }
     case 'create_module': {
       const title = normalizeText(args.title);
@@ -516,7 +554,7 @@ async function executeChatTool(name: string, args: Record<string, unknown>) {
 
       workspace.modules.push(module as any);
       await workspace.save();
-      return { response: { output: { success: true, module } } };
+      return { action: { action: 'refresh_workspace' }, response: { output: { success: true, module } } };
     }
     case 'switch_theme': {
       const theme = resolveThemeId(args.theme);
@@ -524,7 +562,7 @@ async function executeChatTool(name: string, args: Record<string, unknown>) {
 
       const matchedTheme = AVAILABLE_THEMES.find((entry) => entry.id === theme);
       return {
-        action: { action: 'switch_theme', theme },
+        action: { action: 'switch_theme', theme } as ChatAction,
         response: {
           output: {
             success: true,
@@ -562,7 +600,7 @@ async function executeChatTool(name: string, args: Record<string, unknown>) {
 }
 
 let geminiClient: GoogleGenAI | null = null;
-let claudeClient: Anthropic | null = null;
+let groqClient: Groq | null = null;
 
 function getGeminiClient() {
   if (!geminiClient) {
@@ -574,26 +612,25 @@ function getGeminiClient() {
   return geminiClient;
 }
 
-function getClaudeClient() {
-  if (!claudeClient) {
-    const key = process.env.ANTHROPIC_API_KEY;
+function getGroqClient() {
+  if (!groqClient) {
+    const key = process.env.GROQ_API_KEY;
     if (key) {
-      claudeClient = new Anthropic({ apiKey: key });
+      groqClient = new Groq({ apiKey: key });
     }
   }
-  return claudeClient;
+  return groqClient;
 }
 
 function safeModel(model: unknown): SupportedModel {
   if (typeof model === 'string' && model in MODEL_PROVIDERS) {
     return model as SupportedModel;
   }
-  return 'gemini-2.5-flash';
+  return 'llama-3.3-70b-versatile';
 }
 
 function transcript(history: any[] = []) {
   return history
-    .slice(-8)
     .map((msg) => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.text}`)
     .join('\n');
 }
@@ -604,26 +641,9 @@ function mockResponse(message: string, model: SupportedModel, contextLabel: stri
     text: `Mock response for ${contextLabel} using ${model}. Add your API key in backend/.env when you're ready, then I can answer for real.\n\nYou said: ${message}`,
   };
 }
-function tryLocalGeneralFallback(message: string): ChatReply | null {
-  const text = message.toLowerCase();
-  if (/\blinear regression\b/.test(text)) {
-    return {
-      text: 'Linear regression is a simple machine learning/statistics method that models the relationship between an input and an output with a straight line. In plain terms, it tries to find the best-fitting line so you can predict a value from one or more features. For example, it can estimate house price from floor area. If you want, I can also explain it with a tiny example.',
-    };
-  }
-
-  if (/\bwho is the president of sri lanka\b/.test(text)) {
-    return {
-      text: 'I can help with general knowledge, but I do not have live web access in this fallback. If you want, I can still explain Sri Lanka�s presidential system or help you search for the current officeholder.',
-    };
-  }
-
-  return null;
-}
 
 function buildGeminiContents(history: any[] = [], message: string, attachments: any[] = []) {
-  const recentHistory = history.slice(-8);
-  const contents = recentHistory.map((msg) => ({
+  const contents = history.map((msg) => ({
     role: msg.role === 'user' ? 'user' : 'model',
     parts: msg.attachments?.length
       ? [{ text: msg.text }, ...msg.attachments.filter((a: any) => a.type.startsWith('image/')).map((a: any) => ({
@@ -726,94 +746,18 @@ async function runGemini(
   };
 }
 
-async function runClaude(model: SupportedModel, systemInstruction: string, history: any[], message: string, attachments: any[] = []) {
-  const client = getClaudeClient();
-  if (!client) return null;
-
-  const recentHistory = history.slice(-8);
-  const messages = recentHistory.map((msg) => {
-    const content: any[] = [{ type: 'text', text: String(msg.text) }];
-    if (msg.attachments) {
-      for (const att of msg.attachments) {
-        if (att.type.startsWith('image/')) {
-          content.push({
-            type: 'image',
-            source: {
-              type: 'base64',
-              media_type: att.type,
-              data: att.data.split(',')[1] || att.data,
-            },
-          });
-        }
-      }
-    }
-    return {
-      role: (msg.role === 'user' ? 'user' : 'assistant') as 'user' | 'assistant',
-      content: content,
-    };
-  });
-
-  const userContent: any[] = [{ type: 'text', text: message }];
-  if (attachments) {
-    for (const att of attachments) {
-      if (att.type.startsWith('image/')) {
-        userContent.push({
-          type: 'image',
-          source: {
-            type: 'base64',
-            media_type: att.type,
-            data: att.data.split(',')[1] || att.data,
-          },
-        });
-      }
-    }
-  }
-
-  const response = await client.messages.create({
-    model,
-    max_tokens: 1024,
-    system: systemInstruction,
-    messages: [...messages, { role: 'user', content: userContent }],
-  });
-
-  const text = Array.isArray(response.content)
-    ? response.content.map((block: any) => (typeof block.text === 'string' ? block.text : '')).join('')
-    : '';
-
-  return text;
-}
-
-
-let groqClient: Groq | null = null;
-
-function getGroqClient() {
-  if (!groqClient) {
-    const key = process.env.GROQ_API_KEY;
-    if (key) {
-      groqClient = new Groq({ apiKey: key });
-    }
-  }
-  return groqClient;
-}
-
-function buildGeminiFallbackContext(message: string, contextLabel: string, toolDeclarations: FunctionDeclaration[] = []) {
-  return {
-    systemInstruction: `${contextLabel}\n\nFallback mode: keep the reply short and directly answer the user.`,
-    message,
-    toolDeclarations,
-  };
-}
-
-function buildGroqMessages(history: any[] = [], message: string, attachments: any[] = []) {
-  const recentHistory = history.slice(-8);
-  const messages = recentHistory.map((msg) => {
+function buildGroqMessages(history: any[] = [], message: string, attachments: any[] = []): any[] {
+  const messages = history.map((msg) => {
     const contentParts: any[] = [{ type: 'text', text: String(msg.text) }];
     if (msg.attachments) {
       for (const att of msg.attachments) {
         if (att.type.startsWith('image/')) {
           contentParts.push({
             type: 'image_url',
-            image_url: { url: att.data, detail: 'auto' },
+            image_url: {
+              url: att.data,
+              detail: 'auto',
+            },
           });
         }
       }
@@ -831,7 +775,10 @@ function buildGroqMessages(history: any[] = [], message: string, attachments: an
       if (att.type.startsWith('image/')) {
         userParts.push({
           type: 'image_url',
-          image_url: { url: att.data, detail: 'auto' },
+          image_url: {
+            url: att.data,
+            detail: 'auto',
+          },
         });
       }
     }
@@ -845,6 +792,311 @@ function buildGroqMessages(history: any[] = [], message: string, attachments: an
   return messages;
 }
 
+function formatGroqToolResponse(name: string, response: any) {
+  const output = response?.output;
+
+  if (response?.error) {
+    return `I hit an error while running ${name}: ${response.error}`;
+  }
+
+  switch (name) {
+    case 'create_task': {
+      const task = output?.task;
+      if (task?.title) {
+        const dueDate = task.dueDate ? ` due on ${new Date(task.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}` : '';
+        return `I created a new task called "${task.title}"${dueDate}.`;
+      }
+      return 'I created the task.';
+    }
+    case 'delete_task':
+      return output?.deletedTask?.title ? `I deleted the task "${output.deletedTask.title}".` : 'I deleted the task.';
+    case 'toggle_task':
+      return output?.task?.title ? `I updated the task "${output.task.title}".` : 'I updated the task.';
+    case 'create_event': {
+      const event = output?.event;
+      if (event?.title) {
+        return `I added "${event.title}" to your calendar.`;
+      }
+      return 'I added the event to your calendar.';
+    }
+    case 'delete_event':
+      return output?.deletedEvent?.title ? `I deleted the calendar event "${output.deletedEvent.title}".` : 'I deleted the calendar event.';
+    case 'create_module': {
+      const module = output?.module;
+      if (module?.title && module?.code) {
+        return `I created the module "${module.title}" (${module.code}).`;
+      }
+      return 'I created the module.';
+    }
+    case 'switch_theme':
+      return output?.themeName ? `I switched the app theme to ${output.themeName}.` : 'I switched the app theme.';
+    case 'get_tasks':
+      return Array.isArray(output?.tasks) ? `Here are your ${output.tasks.length} tasks.` : 'Here are your tasks.';
+    case 'get_events':
+      return Array.isArray(output?.events) ? `Here are your ${output.events.length} calendar events.` : 'Here are your calendar events.';
+    default:
+      return 'Done.';
+  }
+}
+
+function extractTaskArgsFromMessage(message: string) {
+  const trimmed = message.trim();
+  let title = trimmed;
+
+  const patterns = [
+    /^(?:add|create|new)\s+(?:a\s+)?task\s+(?:called|named)\s+(.+)$/i,
+    /^(?:add|create|new)\s+(?:a\s+)?task\s+(.+)$/i,
+    /^(?:task)\s+(?:called|named)\s+(.+)$/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = trimmed.match(pattern);
+    if (match?.[1]) {
+      title = match[1].trim();
+      break;
+    }
+  }
+
+  title = title.replace(/^called\s+/i, '').replace(/^named\s+/i, '').trim();
+
+  const dueMatch = title.match(/\bdue(?:\s+on)?\s+(.+)$/i);
+  const dueText = dueMatch?.[1]?.trim();
+  if (dueMatch?.index !== undefined) {
+    title = title.slice(0, dueMatch.index).trim().replace(/[,.:-]$/, '').trim();
+  }
+
+  const parsedDate = dueText ? new Date(dueText) : null;
+  const dueDate = parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate.toISOString().slice(0, 10) : undefined;
+
+  return {
+    title,
+    dueDate,
+  };
+}
+
+function extractThemeArgsFromMessage(message: string) {
+  const theme = resolveThemeId(message);
+  if (theme) return { theme };
+
+  const text = message.toLowerCase();
+  if (/(theme|color|palette|switch|change look|change theme)/i.test(text) || /\b(different|another)\s+one\b/i.test(text)) {
+    const fallbackTheme = AVAILABLE_THEME_IDS[Math.floor(Math.random() * AVAILABLE_THEME_IDS.length)];
+    return { theme: fallbackTheme };
+  }
+
+  return {};
+}
+
+function extractModuleArgsFromMessage(message: string) {
+  const trimmed = message.trim();
+  const match = trimmed.match(/^(?:add|create|new)\s+(?:a\s+)?module\s+(?:called|named)?\s+(.+)$/i);
+  const rest = match?.[1]?.trim() ?? trimmed;
+  const codeMatch = rest.match(/\b(?:code|id)\s+([A-Za-z0-9_-]+)\b/i);
+  const title = rest.replace(/\b(?:code|id)\s+[A-Za-z0-9_-]+\b/i, '').replace(/\s+with\s+color\s+.+$/i, '').trim().replace(/[,.;:-]$/, '').trim();
+  return {
+    title,
+    code: codeMatch?.[1]?.trim() ?? '',
+    color: '',
+  };
+}
+
+function normalizeTimeString(value: string) {
+  const trimmed = value.trim().toLowerCase();
+  if (trimmed === 'midnight') return '00:00';
+  if (trimmed === 'noon') return '12:00';
+
+  const ampm = trimmed.match(/^(\d{1,2})(?::?(\d{2}))?\s*(am|pm)$/i);
+  if (ampm) {
+    let hours = Number(ampm[1]);
+    const minutes = ampm[2] ?? '00';
+    const meridiem = ampm[3].toLowerCase();
+    if (meridiem === 'pm' && hours !== 12) hours += 12;
+    if (meridiem === 'am' && hours === 12) hours = 0;
+    return `${String(hours).padStart(2, '0')}:${minutes}`;
+  }
+
+  const twentyFour = trimmed.match(/^(\d{1,2}):(\d{2})$/);
+  if (twentyFour) {
+    return `${String(Number(twentyFour[1])).padStart(2, '0')}:${twentyFour[2]}`;
+  }
+
+  return '09:00';
+}
+
+function parseDateFromText(dateText: string) {
+  const trimmed = dateText.trim().toLowerCase();
+  if (!trimmed) return null;
+
+  const directDate = new Date(trimmed);
+  if (!Number.isNaN(directDate.getTime())) {
+    return directDate.toISOString().slice(0, 10);
+  }
+
+  const now = new Date();
+  const dayThisMonthMatch = trimmed.match(/\b(\d{1,2})(?:\s*(?:st|nd|rd|th))?\s*(?:of\s*)?(?:this\s*month)\b/i);
+  if (dayThisMonthMatch) {
+    const day = Number(dayThisMonthMatch[1]);
+    if (day >= 1 && day <= 31) {
+      const date = new Date(now.getFullYear(), now.getMonth(), day);
+      return date.toISOString().slice(0, 10);
+    }
+  }
+
+  const monthDayMatch = trimmed.match(/\b(\d{1,2})(?:\s*(?:st|nd|rd|th))?\s*(?:of\s*)?(january|february|march|april|may|june|july|august|september|october|november|december)\b/i);
+  if (monthDayMatch) {
+    const day = Number(monthDayMatch[1]);
+    const monthName = monthDayMatch[2].toLowerCase();
+    const monthIndex = MONTH_INDEX[monthName];
+    if (monthIndex !== undefined && day >= 1 && day <= 31) {
+      let year = now.getFullYear();
+      const candidate = new Date(year, monthIndex, day);
+      if (candidate.getTime() < now.getTime()) {
+        year += 1;
+      }
+      return new Date(year, monthIndex, day).toISOString().slice(0, 10);
+    }
+  }
+
+  return null;
+}
+
+function inferEventTitleFromMessage(message: string) {
+  const trimmed = message.trim();
+
+  const calledMatch = trimmed.match(/(?:event|birthday|borthday|meeting|appointment)\s+(?:called|named)\s+(.+?)(?:\s+on\s+|\s+from\s+|\s+to\s+|$)/i);
+  if (calledMatch?.[1]) return calledMatch[1].trim().replace(/[,.]$/, '');
+
+  const birthdayMatch = trimmed.match(/([A-Za-z][A-Za-z\s']{1,40})'?s\s+(?:birthday|borthday)/i);
+  if (birthdayMatch?.[1]) {
+    return `${birthdayMatch[1].trim()} birthday`;
+  }
+
+  const genericMatch = trimmed.match(/(?:add|create|new|schedule|plan)\s+(?:an?\s+)?(?:event|meeting|appointment)\s+(.+?)(?:\s+on\s+|\s+from\s+|\s+to\s+|$)/i);
+  if (genericMatch?.[1]) {
+    return genericMatch[1].trim().replace(/[,.]$/, '');
+  }
+
+  if (/\b(birthday|borthday)\b/i.test(trimmed)) return 'Birthday';
+  return 'New event';
+}
+
+function extractEventArgsFromMessage(message: string) {
+  const trimmed = message.trim();
+
+  const directMatch = trimmed.match(
+    /^(?:add|create|new)\s+(?:an?\s+)?event\s+(?:called|named)?\s*(.+?)\s+on\s+(.+?)\s+from\s+(.+?)\s+to\s+(.+)$/i
+  );
+
+  if (directMatch) {
+    const title = directMatch[1].trim().replace(/[,.;:-]$/, '');
+    const parsedDate = parseDateFromText(directMatch[2]);
+    return {
+      title,
+      date: parsedDate ?? directMatch[2].trim(),
+      startTime: normalizeTimeString(directMatch[3]),
+      endTime: normalizeTimeString(directMatch[4]),
+      color: 'blue',
+    };
+  }
+
+  const altMatch = trimmed.match(
+    /^(?:add|create|new)\s+(?:an?\s+)?event\s+(?:called|named)?\s*(.+?)\s+on\s+(.+)$/i
+  );
+
+  if (altMatch) {
+    const title = altMatch[1].trim().replace(/[,.;:-]$/, '');
+    const parsedDate = parseDateFromText(altMatch[2]);
+    return {
+      title,
+      date: parsedDate ?? altMatch[2].trim(),
+      startTime: '09:00',
+      endTime: '10:00',
+      color: 'blue',
+    };
+  }
+
+  const noTimeDateMatch = trimmed.match(/\bon\s+(.+?)(?:,|\.|$)/i);
+  const noTimeRequested = /\b(no\s*time|all\s*day|any\s*time|no\s+time\s+needed)\b/i.test(trimmed);
+  if (noTimeRequested && noTimeDateMatch?.[1]) {
+    const parsedDate = parseDateFromText(noTimeDateMatch[1]);
+    if (parsedDate) {
+      return {
+        title: inferEventTitleFromMessage(trimmed),
+        date: parsedDate,
+        startTime: '00:00',
+        endTime: '23:59',
+        color: 'blue',
+      };
+    }
+  }
+
+  const genericDateMatch = trimmed.match(/\b(?:on\s+)(\d{1,2}(?:\s*(?:st|nd|rd|th))?\s*(?:of\s*)?(?:this\s*month|january|february|march|april|may|june|july|august|september|october|november|december))/i);
+  if (genericDateMatch) {
+    const parsedDate = parseDateFromText(genericDateMatch[1]);
+    if (parsedDate) {
+      return {
+        title: inferEventTitleFromMessage(trimmed),
+        date: parsedDate,
+        startTime: '09:00',
+        endTime: '10:00',
+        color: 'blue',
+      };
+    }
+  }
+
+  const looseDateMatch = trimmed.match(/(\d{1,2}(?:\s*(?:st|nd|rd|th))?\s*(?:of\s*)?(?:this\s*month|january|february|march|april|may|june|july|august|september|october|november|december))/i);
+  if (looseDateMatch) {
+    const parsedDate = parseDateFromText(looseDateMatch[1]);
+    if (parsedDate) {
+      return {
+        title: inferEventTitleFromMessage(trimmed),
+        date: parsedDate,
+        startTime: noTimeRequested ? '00:00' : '09:00',
+        endTime: noTimeRequested ? '23:59' : '10:00',
+        color: 'blue',
+      };
+    }
+  }
+
+  return {};
+}
+
+async function tryGroqLocalFallback(message: string, toolDeclarations: FunctionDeclaration[] = []): Promise<ChatReply | null> {
+  const allowedFunctionNames = inferAllowedFunctionNames(message);
+  if (!allowedFunctionNames || allowedFunctionNames.length === 0) return null;
+
+  const available = new Set(toolDeclarations.map((declaration) => declaration.name));
+  const candidateName = allowedFunctionNames.find((name) => available.has(name));
+  if (!candidateName) return null;
+
+  let args: Record<string, unknown> = {};
+  if (candidateName === 'create_task') {
+    args = extractTaskArgsFromMessage(message);
+  } else if (candidateName === 'switch_theme') {
+    args = extractThemeArgsFromMessage(message);
+  } else if (candidateName === 'create_event') {
+    args = extractEventArgsFromMessage(message);
+  } else if (candidateName === 'create_module') {
+    args = extractModuleArgsFromMessage(message);
+  }
+
+  const toolResult = await executeChatTool(candidateName, args);
+  const text = formatGroqToolResponse(candidateName, toolResult.response);
+  return {
+    text,
+    action: toolResult.action as ChatAction | undefined,
+  };
+}
+
+function buildGeminiFallbackContext(message: string, contextLabel: string, toolDeclarations: FunctionDeclaration[] = []) {
+  const fallbackInstruction = `${contextLabel}\n\nIf the user asks for a concrete app action, use the provided tools. If it is a normal chat message, answer naturally and briefly.`;
+  return {
+    systemInstruction: fallbackInstruction,
+    message,
+    toolDeclarations,
+  };
+}
+
 async function runGroq(
   model: SupportedModel,
   systemInstruction: string,
@@ -855,47 +1107,116 @@ async function runGroq(
 ): Promise<ChatReply | null> {
   const client = getGroqClient();
   if (!client) return null;
-
-  let messages = buildGroqMessages(history, message, attachments);
+  let messages: any[] = [
+    { role: 'system', content: systemInstruction },
+    ...buildGroqMessages(history, message, attachments),
+  ];
   let action: ChatAction | undefined;
+  let groqFinalText: string | null = null;
   const allowedFunctionNames = toolDeclarations.length > 0 ? inferAllowedFunctionNames(message) : undefined;
+  const groqTools = allowedFunctionNames && allowedFunctionNames.length > 0
+    ? toolDeclarations.filter((declaration) => allowedFunctionNames.includes(declaration.name))
+    : [];
+
+  console.log('[Groq] runGroq start', { model, allowedFunctionNames, message: message.slice(0, 200) });
 
   for (let attempt = 0; attempt < 4; attempt += 1) {
-    const response: any = await client.chat.completions.create({
-      model,
-      messages: [{ role: 'system', content: systemInstruction }, ...messages],
-      temperature: 0.2,
-      max_tokens: 1024,
-      tools: toolDeclarations.length > 0 ? (toolDeclarations.map((declaration) => ({ type: 'function', function: { name: declaration.name ?? 'tool', description: declaration.description ?? '', parameters: declaration.parameters ?? {} } })) as any) : undefined,
-      tool_choice: toolDeclarations.length > 0 ? 'auto' : undefined,
-      ...(allowedFunctionNames ? { allowedFunctionNames } : {}),
-    });
+    const tools = groqTools.length > 0
+      ? groqTools.map((declaration) => ({
+          type: 'function',
+          function: {
+            name: declaration.name ?? '',
+            description: declaration.description,
+            parameters: declaration.parametersJsonSchema as any,
+          },
+        }))
+      : undefined;
 
-    const assistantMessage = response?.choices?.[0]?.message ?? {};
-    const toolCalls = assistantMessage.tool_calls ?? [];
-    if (toolCalls.length === 0) {
+    let response: any;
+    try {
+      response = await client.chat.completions.create({
+        model,
+        messages,
+        tools,
+        tool_choice: tools
+          ? allowedFunctionNames?.length === 1
+            ? { type: 'function', function: { name: allowedFunctionNames[0] } }
+            : 'auto'
+          : 'none',
+        max_tokens: 1024,
+        temperature: 0.7,
+      });
+    } catch (err: any) {
+      console.error('[Groq] API call failed', err?.message ?? err);
+      throw err;
+    }
+
+    try {
+      console.log('[Groq] raw response choices length:', Array.isArray(response?.choices) ? response.choices.length : 0);
+    } catch (e) {
+      console.error('[Groq] failed to inspect response choices', e);
+    }
+
+    const choice = response.choices?.[0];
+    const assistantMessage = choice?.message;
+    const toolCalls = assistantMessage?.tool_calls ?? [];
+
+    // Normalize assistant message content to string
+    let text = '';
+    try {
+      if (typeof assistantMessage?.content === 'string') {
+        text = assistantMessage.content;
+      } else if (Array.isArray(assistantMessage?.content)) {
+        text = assistantMessage.content.map((part: any) => (part?.type === 'text' ? String(part.text) : '')).join(' ').trim();
+      } else if (assistantMessage?.content && typeof assistantMessage.content === 'object') {
+        text = String(assistantMessage.content.text ?? assistantMessage.content);
+      }
+    } catch (e) {
+      console.error('[Groq] error extracting assistant text', e);
+      text = '';
+    }
+
+    if (!toolCalls || toolCalls.length === 0) {
+      console.log('[Groq] no tool calls, returning assistant text:', text?.slice(0,200));
       return {
-        text: assistantMessage.content ?? '',
+        text,
         action,
       };
     }
-    const toolResponseMessages: any[] = [];
-    messages.push({ role: 'assistant', content: assistantMessage.content ?? '' } as any);
+
+    messages = [
+      ...messages,
+      {
+        role: 'assistant',
+        content: assistantMessage?.content ?? null,
+        tool_calls: toolCalls,
+      },
+    ];
 
     for (const call of toolCalls) {
-      let args: Record<string, unknown> = {};
+      let toolResult: any;
       try {
-        args = typeof call.function?.arguments === 'string' ? JSON.parse(call.function.arguments) : (call.function?.arguments ?? {});
-      } catch {
-        args = {};
-      }
+        // parse arguments safely whether string or object
+        let parsedArguments: Record<string, unknown> = {};
+        try {
+          const rawArguments = call.function?.arguments;
+          if (!rawArguments) parsedArguments = {};
+          else if (typeof rawArguments === 'string') parsedArguments = rawArguments ? JSON.parse(rawArguments) : {};
+          else if (typeof rawArguments === 'object') parsedArguments = rawArguments as Record<string, unknown>;
+        } catch (argParseErr) {
+          console.error('[Groq] failed to parse function arguments', argParseErr);
+          parsedArguments = {};
+        }
 
-      let toolResult;
-      try {
-        toolResult = await executeChatTool(call.function?.name ?? '', args);
+        console.log('[Groq] executing tool', call.function?.name, parsedArguments);
+        toolResult = await executeChatTool(call.function?.name ?? '', parsedArguments as Record<string, unknown>);
+        console.log('[Groq] tool result for', call.function?.name, JSON.stringify(toolResult?.response ?? toolResult).slice(0,400));
       } catch (error: any) {
+        console.error('[Groq] tool execution failed', error?.message ?? error);
         toolResult = {
-          response: { error: error instanceof Error ? error.message : 'Tool execution failed.' },
+          response: {
+            error: error instanceof Error ? error.message : 'Tool execution failed.',
+          },
         };
       }
 
@@ -903,14 +1224,28 @@ async function runGroq(
         action = toolResult.action as ChatAction;
       }
 
-      toolResponseMessages.push({
+      if (groqFinalText === null) {
+        try {
+          groqFinalText = formatGroqToolResponse(call.function?.name ?? '', toolResult.response);
+        } catch (e) {
+          console.error('[Groq] failed to format tool response', e);
+          groqFinalText = 'Done.';
+        }
+      }
+
+      messages.push({
         role: 'tool',
-        tool_call_id: call.id,
+        tool_call_id: call.id ?? `call-${attempt}`,
         content: JSON.stringify(toolResult.response),
       });
     }
 
-    messages = [...messages, ...toolResponseMessages];
+    if (groqFinalText !== null) {
+      return {
+        text: groqFinalText,
+        action,
+      };
+    }
   }
 
   return {
@@ -919,60 +1254,6 @@ async function runGroq(
   };
 }
 
-async function tryGroqLocalFallback(message: string, toolDeclarations: FunctionDeclaration[] = []): Promise<ChatReply | null> {
-  if (toolDeclarations.length === 0) return null;
-
-  const allowedFunctionNames = inferAllowedFunctionNames(message);
-  if (!allowedFunctionNames || allowedFunctionNames.length === 0) return null;
-
-  const trimmed = message.trim();
-
-  if (allowedFunctionNames.includes('create_task')) {
-    const match = trimmed.match(/^(?:add|create|new)\s+(?:a\s+)?task(?:\s+(?:called|named))?\s+(.+?)(?:\s+due\s+(.+))?$/i);
-    const title = match?.[1]?.trim().replace(/[,.;:-]$/, '') ?? '';
-    const dueDate = match?.[2]?.trim();
-    if (title) {
-      const result = await executeChatTool('create_task', { title, dueDate });
-      const createdTitle = result.response?.output?.task?.title ?? title;
-      return { text: "I created a new task called \"" + createdTitle + "\".", action: result.action as ChatAction };
-    }
-  }
-
-  if (allowedFunctionNames.includes('create_event')) {
-    const match = trimmed.match(/^(?:add|create|new)\s+(?:an?\s+)?event(?:\s+(?:called|named))?\s+(.+?)\s+on\s+(.+?)\s+from\s+(.+?)\s+to\s+(.+)$/i);
-    if (match) {
-      const title = match[1].trim().replace(/[,.;:-]$/, '');
-      const result = await executeChatTool('create_event', {
-        title,
-        date: match[2].trim(),
-        startTime: match[3].trim(),
-        endTime: match[4].trim(),
-        color: 'blue',
-      });
-      const createdTitle = result.response?.output?.event?.title ?? title;
-      return { text: "I added \"" + createdTitle + "\" to your calendar.", action: result.action as ChatAction };
-    }
-  }
-
-  if (allowedFunctionNames.includes('switch_theme')) {
-    const theme = resolveThemeId(trimmed) || resolveThemeId(trimmed.replace(/^(?:change|switch)(?:\s+the)?\s+theme(?:\s+to)?\s*/i, ''));
-    if (theme) {
-      const result = await executeChatTool('switch_theme', { theme });
-      return { text: "I switched the app theme to " + (result.response?.output?.themeName ?? theme) + ".", action: result.action as ChatAction };
-    }
-  }
-
-  if (allowedFunctionNames.includes('create_module')) {
-    const match = trimmed.match(/^(?:add|create|new)\s+(?:a\s+)?module(?:\s+(?:called|named))?\s+(.+?)\s+with\s+code\s+([A-Za-z0-9_-]+)(?:\s+and\s+color\s+(.+))?$/i);
-    if (match) {
-      const result = await executeChatTool('create_module', { title: match[1].trim().replace(/[,.;:-]$/, ''), code: match[2].trim(), color: match[3]?.trim() ?? '' });
-      const createdTitle = result.response?.output?.module?.title ?? match[1].trim();
-      return { text: "I created the module \"" + createdTitle + "\".", action: result.action as ChatAction };
-    }
-  }
-
-  return null;
-}
 function aggregateExtractedText(files: any[], limit: number = 8000): string {
   let combined = '';
   for (const file of files) {
@@ -1016,15 +1297,11 @@ async function generateActionAwareChatReply(params: {
   const groqKeyMissing = !process.env.GROQ_API_KEY;
 
   if (provider === 'gemini' && geminiKeyMissing) {
-    console.warn('GEMINI_API_KEY missing � Gemini responses will be unavailable.');
+    console.warn('GEMINI_API_KEY missing — Gemini responses will be unavailable.');
   }
 
   if (provider === 'groq' && groqKeyMissing) {
-    console.warn('GROQ_API_KEY missing � attempting local fallback or Gemini when available.');
-  }
-
-  if (provider === 'claude' && !process.env.ANTHROPIC_API_KEY) {
-    throw new Error('Claude API key needed for Claude model handling.');
+    console.warn('GROQ_API_KEY missing — attempting local fallback or Gemini when available.');
   }
 
   try {
@@ -1035,24 +1312,22 @@ async function generateActionAwareChatReply(params: {
 
     if (provider === 'groq') {
       if (groqKeyMissing) {
+        // Try local fallback first (deterministic tool execution)
         const localFallback = await tryGroqLocalFallback(params.message, params.toolDeclarations ?? []);
         if (localFallback) return localFallback;
 
+        // If Gemini is available, attempt it as a remote fallback
         if (!geminiKeyMissing) {
-          try {
-            const geminiFallbackContext = buildGeminiFallbackContext(params.message, params.systemInstruction, params.toolDeclarations ?? []);
-            const geminiFallback = await runGemini(
-              'gemini-2.5-flash',
-              geminiFallbackContext.systemInstruction,
-              params.history,
-              geminiFallbackContext.message,
-              params.attachments,
-              params.toolDeclarations ?? []
-            );
-            if (geminiFallback) return geminiFallback;
-          } catch (fallbackError) {
-            console.error('Gemini fallback after missing Groq key failed:', fallbackError);
-          }
+          const geminiFallbackContext = buildGeminiFallbackContext(params.message, params.systemInstruction, params.toolDeclarations ?? []);
+          const geminiFallback = await runGemini(
+            'gemini-2.5-flash',
+            geminiFallbackContext.systemInstruction,
+            params.history,
+            geminiFallbackContext.message,
+            params.attachments,
+            params.toolDeclarations ?? []
+          );
+          if (geminiFallback) return geminiFallback;
         }
 
         return { text: 'AI provider unavailable right now. Please set GROQ_API_KEY or try again later.' };
@@ -1061,54 +1336,58 @@ async function generateActionAwareChatReply(params: {
       const reply = await runGroq(params.model, params.systemInstruction, params.history, params.message, params.attachments, params.toolDeclarations ?? []);
       if (reply !== null) return reply;
     }
-
-    if (provider === 'claude') {
-      const text = await runClaude(params.model, params.systemInstruction, params.history, params.message, params.attachments);
-      if (text !== null) return { text };
-    }
   } catch (error: any) {
     console.error(`${provider} chat error:`, error);
 
     if (provider === 'groq') {
       const localFallback = await tryGroqLocalFallback(params.message, params.toolDeclarations ?? []);
-      if (localFallback) return localFallback;
+      if (localFallback) {
+        return localFallback;
+      }
     }
 
+    // Specific handling for HTTP 429 quota errors (Gemini and Groq)
     const statusCode = error?.status || error?.statusCode || error?.error?.code || error?.response?.status;
-    if (provider === 'groq' && (statusCode === 429 || statusCode === 400)) {
-      try {
-        const geminiFallbackContext = buildGeminiFallbackContext(params.message, params.systemInstruction, params.toolDeclarations ?? []);
-        const geminiFallback = await runGemini(
-          'gemini-2.5-flash',
-          geminiFallbackContext.systemInstruction,
-          params.history,
-          geminiFallbackContext.message,
-          params.attachments,
-          params.toolDeclarations ?? []
-        );
-        if (geminiFallback) return geminiFallback;
-      } catch (fallbackError) {
-        console.error('Groq Gemini fallback failed:', fallbackError);
+    const errorText = String(error?.message ?? error?.error ?? error);
+    if (statusCode === 429 || /quota/i.test(errorText)) {
+      if (provider === 'groq' && groqKeyMissing) {
+        // Groq not configured and Gemini likely throttled — inform user clearly
+        return { text: 'AI provider unavailable: Groq is not configured and Gemini quota is exhausted. Please set GROQ_API_KEY or try again later.' };
       }
+      if (provider === 'gemini') {
+        return { text: 'Gemini API quota exceeded. Please wait or configure an alternate provider.' };
+      }
+    }
+    if (provider === 'groq' && (statusCode === 429 || statusCode === 400)) {
+      const geminiFallbackContext = buildGeminiFallbackContext(params.message, params.systemInstruction, params.toolDeclarations ?? []);
+      const geminiFallback = await runGemini(
+        'gemini-2.5-flash',
+        geminiFallbackContext.systemInstruction,
+        params.history,
+        geminiFallbackContext.message,
+        params.attachments,
+        params.toolDeclarations ?? []
+      );
 
-      const localGeneralFallback = tryLocalGeneralFallback(params.message);
-      if (localGeneralFallback) return localGeneralFallback;
+      if (geminiFallback) return geminiFallback;
 
-      return { text: 'AI provider unavailable right now. Please try again later.' };
+      return { text: "Hey Lochana, I'm here. What do you need help with?" };
     }
 
     if (statusCode === 429) {
-      return { text: 'API quota exceeded. Please wait and try again later.' };
-    }
+      if (provider === 'groq') {
+        throw new Error('Groq API rate limit reached. Please try again in a moment.');
+      }
 
-    const localGeneralFallback = tryLocalGeneralFallback(params.message);
-    if (localGeneralFallback) return localGeneralFallback;
+      throw new Error('Gemini API quota exceeded. Your free daily limit has been reached. Please wait until tomorrow or upgrade your plan at aistudio.google.com.');
+    }
 
     throw error;
   }
 
   return { text: 'No response generated from AI.' };
 }
+
 async function extractTextFromBase64(dataBase64: string, originalName: string): Promise<string> {
   const extension = path.extname(originalName).toLowerCase();
   const buffer = Buffer.from(dataBase64.split(',')[1] || dataBase64, 'base64');
@@ -1171,7 +1450,8 @@ app.post('/api/chat/global', async (req, res) => {
 
     console.log(`[RAG-Global] Injected context length: ${allExtractedText.length}, Attachment context: ${attachmentContext.length}`);
 
-    const systemInstruction = GLOBAL_CHAT_SYSTEM_PROMPT + `\n\nApp context:\n${JSON.stringify(context, null, 2)}\n\nExtracted text from student materials:\n${allExtractedText}\n\nConversation transcript:\n${transcript(history)}`;
+    const now = new Date();
+    const systemInstruction = GLOBAL_CHAT_SYSTEM_PROMPT + `\n\nCurrent date/time (server): ${now.toISOString()}\n\nApp context:\n${JSON.stringify(context, null, 2)}\n\nExtracted text from student materials:\n${allExtractedText}\n\nConversation transcript:\n${transcript(history)}`;
 
     const reply = await generateActionAwareChatReply({
       model: selectedModel,
@@ -1366,12 +1646,7 @@ app.listen(PORT, () => {
   if (!process.env.GEMINI_API_KEY) {
     console.log('⚠️  GEMINI_API_KEY not set - Gemini requests will use mock responses');
   }
-  if (!process.env.ANTHROPIC_API_KEY) {
-    console.log('⚠️  ANTHROPIC_API_KEY not set - Claude requests will use mock responses');
+  if (!process.env.GROQ_API_KEY) {
+    console.log('⚠️  GROQ_API_KEY not set - Groq requests will use mock responses');
   }
 });
-
-
-
-
-
