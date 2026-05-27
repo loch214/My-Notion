@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronRight, Loader2, Sparkles, X, ChevronDown, Plus, Paperclip, Image as ImageIcon } from 'lucide-react';
+import { ChevronRight, Loader2, Sparkles, X, ChevronDown, ChevronLeft, Plus, Paperclip, Image as ImageIcon } from 'lucide-react';
 import { motion } from 'motion/react';
 import { AppState, ChatMessage } from '../types';
 import { v4 as uuidv4 } from 'uuid';
@@ -26,6 +26,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage, refreshWorks
   const [isLoading, setIsLoading] = React.useState(false);
   const [model, setModel] = React.useState<AIModelId>(DEFAULT_AI_MODEL);
   const [attachments, setAttachments] = React.useState<{ name: string; type: string; data: string }[]>([]);
+  const [isCollapsed, setIsCollapsed] = React.useState(false);
   const { setTheme } = useTheme();
   
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -116,6 +117,19 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage, refreshWorks
     return () => window.removeEventListener('resize', checkViewport);
   }, []);
 
+  if (isCollapsed && !isMobile) {
+    return (
+      <button
+        type="button"
+        onClick={() => setIsCollapsed(false)}
+        aria-label="Expand global chat"
+        className="fixed right-[var(--workspace-edge-inset)] top-1/2 z-[110] flex h-14 w-14 -translate-y-1/2 items-center justify-center rounded-full border border-[color:var(--border)] bg-[color:var(--surface-med)] text-[color:var(--text)] shadow-[0_16px_45px_rgba(0,0,0,0.35)] backdrop-blur-xl transition-transform duration-150 ease hover:scale-[1.03]"
+      >
+        <ChevronLeft className="h-5 w-5" />
+      </button>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-[90] flex justify-end p-0 md:p-2 max-md:items-start">
       {/* Backdrop overlay */}
@@ -125,7 +139,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage, refreshWorks
         exit={{ opacity: 0 }}
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         onClick={onClose}
-        className="fixed inset-0 bg-black/60 backdrop-blur-[2px]"
+        className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-[2px]"
       />
 
       {/* Slide Drawer Content */}
@@ -137,23 +151,33 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage, refreshWorks
         className="workspace-chat-drawer relative z-[90] flex flex-col overflow-hidden border border-[color:var(--border)] bg-[color:var(--surface-med)]/96 text-[color:var(--text)] shadow-[0_20px_60px_rgba(0,0,0,0.5)] backdrop-blur-2xl"
       >
         {/* Header bar */}
-        <div className="flex items-center justify-between border-b border-[color:var(--border)] px-4 py-3 shrink-0 bg-[color:var(--surface-low)]/70 backdrop-blur-xl">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between gap-3 border-b border-[color:var(--border)] px-4 py-3 shrink-0 bg-[color:var(--surface-low)]/70 backdrop-blur-xl">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-r from-[color:var(--accent)] to-[color:var(--accent-2)] text-[color:var(--on-accent)]">
               <Sparkles className="h-4.5 w-4.5" />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-[10px] uppercase tracking-[0.24em] text-[color:var(--muted)] font-medium">Global assistant</p>
-              <h2 className="text-base font-bold font-heading text-[color:var(--text)]">AI anywhere in My-Notion</h2>
+              <h2 className="truncate text-base font-bold font-heading text-[color:var(--text)]">AI anywhere in My-Notion</h2>
             </div>
           </div>
-          <button 
-            onClick={onClose} 
-            className="icon-btn text-[color:var(--muted)] hover:bg-[color:var(--surface-low)] hover:text-[color:var(--text)]" 
-            aria-label="Close global chat"
-          >
-            <X className="h-5 w-5" />
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setIsCollapsed(true)}
+              className="icon-btn text-[color:var(--muted)] hover:bg-[color:var(--surface-low)] hover:text-[color:var(--text)]"
+              aria-label="Minimize global chat"
+            >
+              <ChevronDown className="h-5 w-5" />
+            </button>
+            <button 
+              onClick={onClose} 
+              className="icon-btn text-[color:var(--muted)] hover:bg-[color:var(--surface-low)] hover:text-[color:var(--text)]" 
+              aria-label="Close global chat"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
         {/* Model dropdown indicator */}

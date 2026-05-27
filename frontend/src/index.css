@@ -356,7 +356,7 @@ h1, h2, h3, h4, h5, h6 {
   right: var(--workspace-edge-inset);
   top: calc(var(--workspace-edge-inset) * 0.75);
   bottom: var(--workspace-edge-inset);
-  width: min(640px, calc(100vw - (var(--workspace-edge-inset) * 1.5)));
+  width: min(560px, calc(100vw - (var(--workspace-edge-inset) * 2)));
   height: calc(100dvh - (var(--workspace-edge-inset) * 1.25));
   border-radius: 2rem;
 }
