@@ -58,8 +58,8 @@ export function PersonalDashboard({
       
       {/* 1. Header */}
       <SectionHeader
-        title="Tasks, events, and daily focus"
-        subtitle="Manage your direct priorities, checklist todos, and daily agenda without leaving the unified workspace."
+        title="Personal"
+        subtitle="Your tasks and agenda in one simple view."
         category="Personal Space"
       />
 

@@ -33,6 +33,8 @@ import { useAutoHideNavbar } from './hooks/useAutoHideNavbar';
 import { loadRecentPage, saveRecentPage } from './lib/recentPage';
 import { buildWorkspaceNotifications, type WorkspaceNotificationItem, type WorkspaceTab } from './lib/notifications';
 
+const READ_NOTIFICATION_STORAGE_KEY = 'my_notion_read_notifications';
+
 const WORKSPACE_NAV_ITEMS = [
   { id: 'home' as const, label: 'Home', icon: Home },
   { id: 'academic' as const, label: 'Academic', icon: Library },
@@ -64,12 +66,17 @@ function parseAppStage(value: string | null): 'landing' | 'workspace' {
 
 function loadReadNotificationIds(): string[] {
   try {
-    const raw = localStorage.getItem('my_notion_read_notifications');
+    const raw = localStorage.getItem(READ_NOTIFICATION_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
     return Array.isArray(parsed) ? parsed.filter((value) => typeof value === 'string') : [];
   } catch {
     return [];
   }
+}
+
+function saveReadNotificationIds(next: string[]) {
+  localStorage.setItem(READ_NOTIFICATION_STORAGE_KEY, JSON.stringify(next));
+  window.dispatchEvent(new CustomEvent(READ_NOTIFICATION_STORAGE_KEY, { detail: next }));
 }
 
 type SearchResultKind = 'tab' | 'module' | 'task' | 'event';
@@ -129,6 +136,7 @@ export default function App() {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
   const [isNavbarVisible, setIsNavbarVisible] = useState(true);
   const [recentPage, setRecentPage] = useState(() => loadRecentPage());
@@ -170,6 +178,31 @@ export default function App() {
   // Save UI Preferences inside localStorage
   useEffect(() => {
     localStorage.removeItem('my_notion_stage');
+  }, []);
+
+  useEffect(() => {
+    const syncReadNotificationIds = () => {
+      setReadNotificationIds(loadReadNotificationIds());
+    };
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === READ_NOTIFICATION_STORAGE_KEY) {
+        syncReadNotificationIds();
+      }
+    };
+
+    const handleCustomUpdate = (event: Event) => {
+      if (event.type === READ_NOTIFICATION_STORAGE_KEY) {
+        syncReadNotificationIds();
+      }
+    };
+
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener(READ_NOTIFICATION_STORAGE_KEY, handleCustomUpdate as EventListener);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener(READ_NOTIFICATION_STORAGE_KEY, handleCustomUpdate as EventListener);
+    };
   }, []);
 
   useEffect(() => {
@@ -456,14 +489,14 @@ export default function App() {
   const markNotificationRead = useCallback((notificationId: string) => {
     setReadNotificationIds((current) => {
       const next = current.includes(notificationId) ? current : [...current, notificationId];
-      localStorage.setItem('my_notion_read_notifications', JSON.stringify(next));
+      saveReadNotificationIds(next);
       return next;
     });
   }, []);
 
   const markAllNotificationsRead = useCallback(() => {
     const next = Array.from(new Set([...readNotificationIds, ...notificationItems.map((item) => item.id)]));
-    localStorage.setItem('my_notion_read_notifications', JSON.stringify(next));
+    saveReadNotificationIds(next);
     setReadNotificationIds(next);
   }, [notificationItems, readNotificationIds]);
 
@@ -476,7 +509,8 @@ export default function App() {
   );
 
   const handleOpenNotifications = useCallback(() => {
-    openWorkspaceTab('notifications');
+    setIsNotificationsOpen((current) => !current);
+    setIsSearchOpen(false);
   }, []);
 
   const landingModuleCodes = useMemo(
@@ -504,6 +538,11 @@ export default function App() {
       searchRef,
       upcomingCount: unreadNotificationCount,
       onOpenNotifications: handleOpenNotifications,
+      notificationItems,
+      onOpenNotificationItem: openNotificationItem,
+      onMarkAllNotificationsRead: markAllNotificationsRead,
+      isNotificationsOpen,
+      onNotificationsOpen: setIsNotificationsOpen,
       onOpenMobileSidebar: () => setIsMobileSidebarOpen(true),
       onGoLanding: () => setAppStage('landing'),
       onOpenAi: () => setIsAiPanelOpen(true),
@@ -516,6 +555,10 @@ export default function App() {
       handleNavbarSearchResult,
       unreadNotificationCount,
       handleOpenNotifications,
+      notificationItems,
+      openNotificationItem,
+      markAllNotificationsRead,
+      isNotificationsOpen,
     ]
   );
 
@@ -620,7 +663,7 @@ export default function App() {
         <div
           className={cn(
             'relative hidden min-h-0 shrink-0 self-stretch md:flex md:flex-col transition-[width] duration-300 ease',
-            isSidebarOpen ? 'w-64' : 'w-20'
+            isSidebarOpen ? 'w-[clamp(12rem,16vw,15.5rem)]' : 'w-[clamp(4.5rem,4.5vw,5rem)]'
           )}
         >
           <aside
@@ -698,20 +741,20 @@ export default function App() {
             />
           ) : (
           <PageContainer animate={false}>
-            {activeTab === 'academic' && !activeModuleId && (
-              <div>
-                <AcademicOverview
-                  modules={state.modules}
-                  tasks={state.tasks}
-                  onOpenModule={setActiveModuleId}
-                  onAddModule={addModule}
-                  onToggleTask={toggleTask}
-                  onAddTask={addTask}
-                  onEditTask={updateTask}
-                  onRemoveTask={removeTask}
-                />
-              </div>
-            )}
+              {activeTab === 'academic' && !activeModuleId && (
+                <div>
+                  <AcademicOverview
+                    modules={state.modules}
+                    tasks={state.tasks}
+                    onOpenModule={setActiveModuleId}
+                    onAddModule={addModule}
+                    onToggleTask={toggleTask}
+                    onAddTask={addTask}
+                    onEditTask={updateTask}
+                    onRemoveTask={removeTask}
+                  />
+                </div>
+              )}
 
             {activeTab === 'academic' && activeModuleId && activeModule && (
               <div>

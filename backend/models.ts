@@ -55,8 +55,9 @@ const eventSchema = new mongoose.Schema({
   title: { type: String, required: true },
   startTime: { type: String, required: true },
   endTime: { type: String, required: true },
-  color: { type: String, enum: ['blue', 'amber', 'purple'], default: 'blue' },
+  color: { type: String, enum: ['blue', 'amber', 'purple', 'emerald', 'rose'], default: 'blue' },
   description: { type: String },
+  reminderMinutes: { type: Number },
   createdAt: { type: Date, default: Date.now },
 });
 

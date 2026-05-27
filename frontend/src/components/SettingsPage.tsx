@@ -85,7 +85,7 @@ export function SettingsPage() {
       <SectionHeader
         category="Workspace"
         title="Settings"
-        subtitle="Customize your workspace appearance. Changes apply instantly across the app."
+        subtitle="Pick a theme and keep moving."
       />
 
       <div className="space-y-6">
@@ -95,9 +95,7 @@ export function SettingsPage() {
               Appearance
             </p>
             <h2 className="mt-1 font-heading text-xl font-semibold text-[color:var(--text)]">Themes</h2>
-            <p className="mt-1 text-sm text-[color:var(--muted)]">
-              Premium atmospheric palettes. Your choice is saved automatically.
-            </p>
+            <p className="mt-1 text-sm text-[color:var(--muted)]">Theme changes apply instantly.</p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -116,10 +114,7 @@ export function SettingsPage() {
           <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[color:var(--muted)]">
             About themes
           </p>
-          <p className="mt-2 text-sm leading-relaxed text-[color:var(--muted)]">
-            Themes update global color tokens only — layout, spacing, and interactions stay the same. Module
-            badges and charts keep their semantic colors for clarity.
-          </p>
+          <p className="mt-2 text-sm leading-relaxed text-[color:var(--muted)]">Themes update color only. Layout and interactions stay the same.</p>
         </Card>
       </div>
     </div>

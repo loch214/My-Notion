@@ -7,7 +7,7 @@ const profileLinks = [
   {
     id: 'github',
     title: 'GitHub',
-    subtitle: 'Code and history for this project.',
+    subtitle: 'Project code.',
     href: 'https://github.com/loch214',
     icon: Github,
     cta: 'Open repo',
@@ -15,51 +15,39 @@ const profileLinks = [
   {
     id: 'portfolio',
     title: 'Portfolio',
-    subtitle: 'My other projects and design work.',
+    subtitle: 'Other work.',
     href: 'https://lochd-my-portfolio.vercel.app/',
     icon: Globe,
     cta: 'Visit site',
   },
 ] as const;
 
-const projectTraits = [
-  'One place for modules, tasks, and your schedule.',
-  'An AI assistant that helps summarize and plan.',
-  'Themes to make the workspace feel yours without noise.',
-] as const;
+const projectTraits = ['Modules, tasks, and schedule in one place.', 'An AI assistant for quick help.', 'Themes that stay out of the way.'] as const;
 
-const nextIdeas = [
-  'Weekly recap cards.',
-  'Deadline early-warning.',
-  'Keyboard-first quick launcher.',
-] as const;
+const nextIdeas = ['Weekly recap cards.', 'Deadline warnings.', 'Keyboard-first launcher.'] as const;
 
 export function AboutPage() {
   return (
     <div className="text-[color:var(--text)]">
-      <SectionHeader category="Workspace" title="About" subtitle="What the app is and how AI helps." />
+      <SectionHeader category="Workspace" title="About" subtitle="What this app does and where to find the code." />
 
       <div className="space-y-6">
         <Card spotlight={false} className="card-pad overflow-hidden bg-[color:var(--surface-low)]">
           <div className="relative z-10 grid gap-4 lg:grid-cols-[1.7fr_1fr]">
             <div>
               <h2 className="mt-1 font-heading text-2xl font-semibold leading-tight text-[color:var(--text)]">What this app does</h2>
-              <p className="mt-3 max-w-[64ch] text-sm leading-relaxed text-[color:var(--muted)]">
-                My-Notion keeps modules, tasks, calendar, and a helpful AI together so you can focus on doing work,
-                not switching between tools.
-              </p>
-
-              <h3 className="mt-4 text-sm font-semibold text-[color:var(--text)]">How AI helps</h3>
+              <p className="mt-3 max-w-[64ch] text-sm leading-relaxed text-[color:var(--muted)]">My-Notion keeps modules, tasks, calendar, and AI together.</p>
+              <h3 className="mt-4 text-sm font-semibold text-[color:var(--text)]">AI helps with</h3>
               <ul className="mt-2 space-y-2 text-sm text-[color:var(--muted)]">
-                <li>Summarize readings or notes.</li>
-                <li>Make quick study plans or weekly priorities.</li>
-                <li>Answer short questions about your modules and files.</li>
+                <li>Summaries.</li>
+                <li>Study plans.</li>
+                <li>Quick answers.</li>
               </ul>
             </div>
 
             <div className="p-0">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[color:var(--muted)]">Why use it</p>
-              <p className="mt-2 text-sm text-[color:var(--muted)]">Less app-switching. More focus.</p>
+              <p className="mt-2 text-sm text-[color:var(--muted)]">Less switching. More focus.</p>
               <ul className="mt-3 space-y-2 text-sm text-[color:var(--muted)]">
                 {projectTraits.map((trait) => (
                   <li key={trait} className="flex items-start gap-2">

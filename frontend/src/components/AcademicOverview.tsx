@@ -83,11 +83,10 @@ export function AcademicOverview({
 
   return (
     <div className="text-[color:var(--text)]">
-      
-      {/* 1. Header controls */}
       <SectionHeader
-        title="Modules, files, and AI study rooms"
-        subtitle="Create an academic module, then attach lecture slides or notes and study with your choose of grounded AI models."
+        className="mb-4"
+        title="Academic"
+        subtitle="Modules first, tasks always within reach."
         category="Academic Space"
         actions={
           <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:flex-nowrap">
@@ -111,34 +110,32 @@ export function AcademicOverview({
         }
       />
 
-      {/* 2. Top Stats Section */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-6">
-        {[
-          { label: 'Total modules', value: modules.length, icon: BookOpen },
-          { label: 'Uploaded files', value: totalFiles, icon: FileText },
-          { label: 'Study chats', value: totalChats, icon: MessageSquare },
-        ].map((stat) => (
-          <Card key={stat.label} spotlight={true} className="card-pad bg-[color:var(--surface-low)]">
-            <div className="flex items-center justify-between">
-              <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--muted)] font-semibold">{stat.label}</p>
-              <stat.icon className="h-5 w-5 text-[color:var(--accent)]" />
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(19rem,0.82fr)] xl:items-start">
+        <div className="space-y-4 min-w-0">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {[
+              { label: 'Modules', value: modules.length, icon: BookOpen },
+              { label: 'Files', value: totalFiles, icon: FileText },
+              { label: 'Chats', value: totalChats, icon: MessageSquare },
+            ].map((stat) => (
+              <Card key={stat.label} spotlight={true} className="card-pad bg-[color:var(--surface-low)]">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] uppercase tracking-[0.24em] text-[color:var(--muted)] font-semibold">{stat.label}</p>
+                  <stat.icon className="h-4.5 w-4.5 text-[color:var(--accent)]" />
+                </div>
+                <p className="mt-2 text-2xl font-bold font-heading text-[color:var(--text)] sm:text-[2rem]">{stat.value}</p>
+              </Card>
+            ))}
+          </div>
+
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-bold font-heading text-[color:var(--text)]">Modules</h2>
+              <p className="text-sm text-[color:var(--muted)] mt-0.5">Three across on large screens.</p>
             </div>
-            <p className="mt-3 text-3xl font-bold font-heading text-[color:var(--text)] sm:text-4xl">{stat.value}</p>
-          </Card>
-        ))}
-      </div>
+          </div>
 
-      <div className="mb-6">
-        <h2 className="text-lg font-bold font-heading text-[color:var(--text)]">Your Modules</h2>
-        <p className="text-sm text-[color:var(--muted)] mt-0.5">Jump back into your interactive lecture spaces.</p>
-      </div>
-
-      {/* 3. Grid Columns with flexible stacks for medium screen */}
-      <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
-        
-        {/* Left Column: Modules Grid & Add Task */}
-        <div className="space-y-6 min-w-0 flex-1 xl:flex-[1.3] xl:basis-0">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-3">
             {sortedModules.map((module) => (
               <Card
                 key={module.id}
@@ -147,7 +144,7 @@ export function AcademicOverview({
                 onClick={() => onOpenModule(module.id)}
                 className="card-pad text-left bg-[color:var(--surface-low)]"
               >
-                <div className="mb-4 flex items-start justify-between gap-4">
+                <div className="mb-3 flex items-start justify-between gap-4">
                   <div className={cn('rounded-xl p-2.5', getBadgeColors(module.color))}>
                     <BookOpen className="h-5 w-5" />
                   </div>
@@ -159,20 +156,25 @@ export function AcademicOverview({
                   {module.title}
                 </h3>
                 <div className="mt-4 pt-3 border-t border-[color:var(--border)] flex items-center justify-between text-[11px] text-[color:var(--muted)]">
-                  <span className="inline-flex items-center gap-1.5"><FileText className="h-3.5 w-3.5" /> {module.files.length} files</span>
-                  <span className="inline-flex items-center gap-1.5"><MessageSquare className="h-3.5 w-3.5" /> {Math.floor((module.chatHistory || []).length / 2)} chats</span>
+                  <span className="inline-flex items-center gap-1.5"><FileText className="h-3.5 w-3.5" /> {module.files.length}</span>
+                  <span className="inline-flex items-center gap-1.5"><MessageSquare className="h-3.5 w-3.5" /> {Math.floor((module.chatHistory || []).length / 2)}</span>
                 </div>
               </Card>
             ))}
             {sortedModules.length === 0 && (
-              <div className="col-span-full py-12 text-center text-xs text-[color:var(--muted)] rounded-2xl border border-dashed border-[color:var(--border)]">
-                No active modules. Create your first module above.
+              <div className="col-span-full rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-med)]/35 py-12 text-center text-xs text-[color:var(--muted)]">
+                No active modules yet.
               </div>
             )}
           </div>
+        </div>
 
-          {/* Quick Task Creation primitive container */}
+        <div className="space-y-4 min-w-0 xl:sticky xl:top-4">
           <Card spotlight={false} className="card-pad bg-[color:var(--surface-low)]">
+            <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.22em] text-[color:var(--muted)]">
+              <Plus className="h-3.5 w-3.5 text-[color:var(--accent)]" />
+              Quick task
+            </div>
             <TaskList
               tasks={academicTasks}
               onToggleTask={onToggleTask}
@@ -181,15 +183,12 @@ export function AcademicOverview({
               onRemoveTask={onRemoveTask}
               showAddControls={true}
               showTaskGroups={false}
-              title="Quick Add Academic Task"
+              title="Add task"
             />
           </Card>
-        </div>
 
-        {/* Right Column: Academic Agenda */}
-        <div className="space-y-4 min-w-0 flex-1 xl:flex-[0.9] xl:basis-0">
           <div className="flex items-center gap-2 text-base font-bold font-heading text-[color:var(--text)] pl-1">
-            <Calendar className="h-4.5 w-4.5 text-[color:var(--accent)]" /> 
+            <Calendar className="h-4.5 w-4.5 text-[color:var(--accent)]" />
             Academic Agenda
           </div>
           <Card spotlight={false} className="card-pad bg-[color:var(--surface-low)]">
@@ -201,11 +200,10 @@ export function AcademicOverview({
               onRemoveTask={onRemoveTask}
               showAddControls={false}
               showTaskGroups={true}
-              title="Academic Todo"
+              title="Academic Tasks"
             />
           </Card>
         </div>
-
       </div>
 
       {/* 4. Add module Modal primitive */}

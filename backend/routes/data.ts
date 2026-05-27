@@ -211,7 +211,7 @@ router.get('/events', async (req, res) => {
 
 router.post('/events', async (req, res) => {
   try {
-    const { title, startTime, endTime, color, description } = req.body;
+    const { title, startTime, endTime, color, description, reminderMinutes } = req.body;
     const workspace = await getOrCreateWorkspace();
 
     const event = {
@@ -221,6 +221,7 @@ router.post('/events', async (req, res) => {
       endTime,
       color: color || 'blue',
       description,
+      reminderMinutes: reminderMinutes ?? null,
     };
 
     workspace.events.push(event as any);

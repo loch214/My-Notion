@@ -155,15 +155,14 @@ export default function CalendarView({
   const closeModal = () => setModal({ type: 'none' });
 
   return (
-    <div className="text-[color:var(--text)]">
-      
-      {/* 1. Header controls */}
+    <div className="flex min-h-0 flex-col text-[color:var(--text)]">
       <SectionHeader
-        title="Your academic schedule"
-        subtitle="Manage lecture timings, assignment due dates, group study runs, and calendar events."
+        className="mb-2"
+        title="Calendar"
+        subtitle="Add events and reminders."
         category="Schedule"
         actions={
-          <div className="flex flex-wrap items-center gap-4 w-full sm:w-auto sm:flex-nowrap">
+          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto sm:flex-nowrap">
             <div className="flex items-center gap-1 rounded-2xl bg-[color:var(--surface-low)] border border-[color:var(--border)] p-1 shrink-0">
               <Button 
                 variant="ghost" 
@@ -197,23 +196,18 @@ export default function CalendarView({
         }
       />
 
-      {/* 2. Responsive Layout Columns */}
-      <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
-        
-        {/* Left Column: Interactive Calendar grid */}
-        <Card spotlight={false} className="card-pad bg-[color:var(--surface-low)] border border-[color:var(--border)] min-w-0 w-full shrink-0 xl:flex-[1.3] xl:basis-0">
-          
-          {/* Weekday indicators */}
-          <div className="grid grid-cols-7 gap-1 pb-3 text-xs font-bold uppercase tracking-wider text-[color:var(--muted)] text-center border-b border-[color:var(--border)] mb-2">
+      <div className="grid min-h-0 gap-4 xl:flex-1 xl:grid-cols-[minmax(0,1.55fr)_minmax(18rem,0.72fr)] xl:items-start">
+        <Card spotlight={false} className="card-pad min-w-0 w-full shrink-0 bg-[color:var(--surface-low)] border border-[color:var(--border)] xl:h-full xl:min-h-[calc(100dvh-12.5rem)]">
+          <div className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)]">
+            <div className="grid grid-cols-7 gap-1 pb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[color:var(--muted)] text-center border-b border-[color:var(--border)] mb-1.5">
             {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((label) => (
               <div key={label} className="py-1">
                 {label}
               </div>
             ))}
-          </div>
+            </div>
 
-          {/* Month cells grid */}
-          <div className="grid grid-cols-7 gap-1">
+            <div className="grid grid-cols-7 gap-1 min-h-0">
             {calendarDays.map((date) => {
               const key = format(date, 'yyyy-MM-dd');
               const dayEvents = eventsByDay[key] || [];
@@ -226,7 +220,7 @@ export default function CalendarView({
                   type="button"
                   onClick={() => openDay(date)}
                   className={cn(
-                    'min-h-[85px] max-h-[120px] rounded-xl border p-2 text-left transition-all duration-150 ease flex flex-col justify-between hover:bg-[color:var(--surface-high)]/35 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)]/15',
+                    'min-h-[84px] rounded-xl border p-2.5 text-left transition-all duration-150 ease flex flex-col justify-between hover:bg-[color:var(--surface-high)]/35 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)]/15 xl:min-h-[88px]',
                     isCurrentMonth ? 'bg-[color:var(--surface-med)]/30 border-[color:var(--border)]' : 'bg-transparent border-transparent opacity-30 pointer-events-none',
                     isToday ? 'border-[color:var(--accent)]/45 bg-[color:var(--accent)]/5' : ''
                   )}
@@ -267,11 +261,11 @@ export default function CalendarView({
                 </button>
               );
             })}
+            </div>
           </div>
         </Card>
 
-        {/* Right Column: Upcoming Agenda sidebar */}
-        <div className="space-y-4 min-w-0 w-full shrink-0 xl:flex-[0.9] xl:basis-0">
+        <div className="space-y-4 min-w-0 w-full shrink-0 xl:flex-[0.72] xl:basis-0 xl:sticky xl:top-3">
           <div className="flex items-center gap-2 text-base font-bold font-heading text-[color:var(--text)] pl-1 shrink-0">
             <CalendarIcon className="h-4.5 w-4.5 text-[color:var(--accent)]" /> 
             Upcoming Schedule
@@ -312,7 +306,7 @@ export default function CalendarView({
         isOpen={modal.type === 'day'}
         onClose={closeModal}
         title={modalDate ? `Events on ${format(modalDate, 'MMM d, yyyy')}` : 'Day Events'}
-        subtitle="Agenda overview"
+        subtitle="Day view"
         maxWidthClassName="max-w-md"
       >
         <div className="space-y-3">
@@ -336,7 +330,7 @@ export default function CalendarView({
               </div>
             ))
           ) : (
-            <div className="py-8 text-center text-xs text-[color:var(--muted)] rounded-xl border border-dashed border-[color:var(--border)]">
+            <div className="py-8 text-center text-xs text-[color:var(--muted)] rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-med)]/35">
               No calendar events scheduled on this day.
             </div>
           )}
@@ -361,7 +355,7 @@ export default function CalendarView({
         isOpen={modal.type === 'details'}
         onClose={closeModal}
         title={modalEvent ? modalEvent.title : 'Event details'}
-        subtitle="Schedule info"
+        subtitle="Event info"
         maxWidthClassName="max-w-md"
       >
         {modalEvent && (
@@ -420,7 +414,7 @@ export default function CalendarView({
         isOpen={modal.type === 'form'}
         onClose={closeModal}
         title={modalEvent ? 'Edit schedule event' : 'Add new event'}
-        subtitle={modalDate ? format(modalDate, 'MMM d, yyyy') : 'Schedule builder'}
+        subtitle={modalDate ? format(modalDate, 'MMM d, yyyy') : 'New event'}
         maxWidthClassName="max-w-sm"
       >
         {modalDate && (

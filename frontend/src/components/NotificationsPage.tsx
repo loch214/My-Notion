@@ -48,20 +48,9 @@ export function NotificationsPage({ items, onOpenItem, onMarkRead, onMarkAllRead
     <div className="text-[color:var(--text)]">
       <SectionHeader
         title="Notifications"
-        subtitle="Task deadlines and event reminders appear here when they are due or coming up."
+        subtitle="Tasks and event reminders in one place."
         category="Alerts"
-        actions={
-          <div className="flex items-center gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={onMarkAllRead}
-              disabled={unreadCount === 0}
-            >
-              Mark all read
-            </Button>
-          </div>
-        }
+        actions={null}
       />
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -88,14 +77,15 @@ export function NotificationsPage({ items, onOpenItem, onMarkRead, onMarkAllRead
               <div className="py-10 text-center">
                 <Bell className="mx-auto h-10 w-10 text-[color:var(--muted)]" />
                 <p className="mt-4 text-lg font-semibold text-[color:var(--text)]">No reminders yet</p>
-                <p className="mt-1 text-sm text-[color:var(--muted)]">Add due dates to tasks or reminders to calendar events to populate this page.</p>
+                <p className="mt-1 text-sm text-[color:var(--muted)]">Add a task due date or an event reminder.</p>
               </div>
             </Card>
           ) : (
-            groupedItems.map((group) => {
-              const Icon = sectionIcon(group.severity);
-              return (
-                <Card key={group.severity} spotlight={false} className="card-pad bg-[color:var(--surface-low)]">
+            <div className="max-h-[35rem] space-y-4 overflow-y-auto pr-1 no-scrollbar">
+              {groupedItems.map((group) => {
+                const Icon = sectionIcon(group.severity);
+                return (
+                  <Card key={group.severity} spotlight={false} className="card-pad bg-[color:var(--surface-low)]">
                   <div className="mb-4 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
                       <Icon className="h-4.5 w-4.5 text-[color:var(--accent)]" />
@@ -147,42 +137,51 @@ export function NotificationsPage({ items, onOpenItem, onMarkRead, onMarkAllRead
                           >
                             Open
                           </Button>
-                          {!item.isRead && (
-                            <button
-                              type="button"
-                              onClick={() => onMarkRead(item.id)}
-                              className="text-xs font-semibold text-[color:var(--muted)] hover:text-[color:var(--text)]"
-                            >
-                              Mark read
-                            </button>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!item.isRead) onMarkRead(item.id);
+                            }}
+                            disabled={item.isRead}
+                            className={cn(
+                              'rounded-full px-2.5 py-1 text-xs font-semibold transition-all duration-150 ease',
+                              item.isRead
+                                ? 'cursor-default border border-[color:var(--border)] bg-[color:var(--surface-med)] text-[color:var(--muted)]'
+                                : 'border border-[color:var(--border-focus)]/20 bg-[color:var(--accent)]/10 text-[color:var(--accent)] hover:bg-[color:var(--accent)]/15'
+                            )}
+                          >
+                            {item.isRead ? 'Read' : 'Mark read'}
+                          </button>
                         </div>
                       </div>
                     ))}
                   </div>
-                </Card>
-              );
-            })
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+
+          {items.length > 0 && (
+            <div className="flex justify-end pt-1">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={onMarkAllRead}
+                disabled={unreadCount === 0}
+                className="h-8 px-3 text-xs"
+              >
+                Clear all
+              </Button>
+            </div>
           )}
         </div>
 
         <div className="space-y-4 min-w-0 xl:flex-[0.9] xl:basis-0">
           <Card spotlight={false} className="card-pad bg-[color:var(--surface-low)]">
             <div className="flex items-center gap-2">
-              <Clock3 className="h-4.5 w-4.5 text-[color:var(--accent)]" />
-              <h2 className="text-base font-bold font-heading text-[color:var(--text)]">Reminder rules</h2>
-            </div>
-            <div className="mt-4 space-y-3 text-sm text-[color:var(--muted)]">
-              <p>Task reminders are driven by due dates, so anything with a due date becomes a notification when it is coming up or overdue.</p>
-              <p>Event reminders use the offset you choose when creating or editing the event, like 5 minutes before or 1 day before.</p>
-              <p>Marking a reminder as read clears it from the bell badge, but it stays in the page until the event or due date has passed.</p>
-            </div>
-          </Card>
-
-          <Card spotlight={false} className="card-pad bg-[color:var(--surface-low)]">
-            <div className="flex items-center gap-2">
               <Inbox className="h-4.5 w-4.5 text-[color:var(--accent)]" />
-              <h2 className="text-base font-bold font-heading text-[color:var(--text)]">Upcoming reminder window</h2>
+              <h2 className="text-base font-bold font-heading text-[color:var(--text)]">Recent reminders</h2>
             </div>
             <div className="mt-4 space-y-2 text-sm text-[color:var(--muted)]">
               {items.slice(0, 3).map((item) => (

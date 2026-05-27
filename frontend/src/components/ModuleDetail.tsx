@@ -328,9 +328,9 @@ export function ModuleDetail({
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-r from-[color:var(--accent)] to-[color:var(--accent-2)] text-[color:var(--on-accent)]">
                 {isUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
               </div>
-              <h3 className="text-base font-bold font-heading text-[color:var(--text)]">Upload lecture slides or research files</h3>
+              <h3 className="text-base font-bold font-heading text-[color:var(--text)]">Files</h3>
               <p className="mx-auto mt-1.5 max-w-md text-xs text-[color:var(--muted)] leading-relaxed">
-                Add standard lecture PDFs, DOCX slides, or syllabus text files. These files are used as context for the Study Assistant.
+                Add course files here.
               </p>
               <label className="btn-primary mt-5 cursor-pointer">
                 Select files
@@ -382,7 +382,7 @@ export function ModuleDetail({
                 ))}
               {module.files.length === 0 && (
                 <div className="col-span-full py-12 text-center text-xs text-[color:var(--muted)]">
-                  No files uploaded yet. Add lecture materials above to start RAG study.
+                  No files uploaded yet.
                 </div>
               )}
             </div>
@@ -471,7 +471,7 @@ export function ModuleDetail({
               {/* Mobile Sessions strip */}
               <div className="flex items-center justify-between border-b border-[color:var(--border)] p-3 lg:hidden shrink-0 bg-[color:var(--surface-med)]/30">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-[color:var(--muted)]">
-                  {activeSession?.title || 'Study Assistant'}
+                  {activeSession?.title || 'Study Chat'}
                 </span>
                 <button 
                   onClick={handleNewChat}
@@ -534,7 +534,7 @@ export function ModuleDetail({
                       <Sparkles className="h-3.5 w-3.5" />
                     </div>
                     <div className="flex items-center rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-high)]/20 px-3.5 py-2 text-xs text-[color:var(--muted)]">
-                      <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin text-[color:var(--accent)]" /> AI study assistant is typing...
+                      <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin text-[color:var(--accent)]" /> AI is typing...
                     </div>
                   </div>
                 )}
@@ -616,7 +616,7 @@ export function ModuleDetail({
                   </div>
                 </div>
                 <div className="mt-2 text-center text-[9px] uppercase tracking-[0.2em] text-[color:var(--muted)] opacity-60">
-                  Grounded strictly in your module slides and slides index
+                  Grounded in your module files.
                 </div>
               </div>
 
@@ -645,7 +645,7 @@ export function ModuleDetail({
         isOpen={isMobileSessionsOpen}
         onClose={() => setIsMobileSessionsOpen(false)}
         title={module.title}
-        subtitle="Study Chat Sessions"
+        subtitle="Sessions"
         maxWidthClassName="max-w-sm"
       >
         <div className="space-y-3">
@@ -658,7 +658,7 @@ export function ModuleDetail({
             className="w-full"
             leftIcon={<Plus className="h-4 w-4" />}
           >
-            New Chat Session
+            New Chat
           </Button>
           <div className="max-h-[50vh] overflow-y-auto space-y-1.5 -mr-1 pr-1">
             {sessions.map((session) => (
@@ -683,7 +683,7 @@ export function ModuleDetail({
             ))}
             {sessions.length === 0 && (
               <div className="py-8 text-center text-xs text-[color:var(--muted)]">
-                No past sessions. Create one above to start.
+                No past sessions yet.
               </div>
             )}
           </div>

@@ -299,7 +299,7 @@ export function TaskList({ tasks, onToggleTask, onAddTask, onEditTask, onRemoveT
             </div>
           </form>
         ) : tasks.length === 0 ? (
-          <div className="surface-soft rounded-3xl border border-dashed border-subtle px-4 py-6 text-center">
+          <div className="surface-soft rounded-3xl border border-subtle px-4 py-6 text-center">
             <p className="text-sm text-muted">No tasks yet. Start with your next task.</p>
             {showAddControls && (
               <button
