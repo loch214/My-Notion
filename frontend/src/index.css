@@ -385,6 +385,16 @@ h1, h2, h3, h4, h5, h6 {
   height: 0;
 }
 
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
 .card-pad {
   padding: 1.25rem;
 }

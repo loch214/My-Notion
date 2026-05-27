@@ -5,6 +5,7 @@ import {
   Home,
   Library,
   LayoutDashboard,
+  UserRound,
   Settings,
   Sparkles,
   X,
@@ -25,10 +26,11 @@ import { LandingPage } from './components/LandingPage';
 import { HomeDashboard } from './components/HomeDashboard';
 import { WorkspaceNavbar } from './components/WorkspaceNavbar';
 import { SettingsPage } from './components/SettingsPage';
+import { AboutPage } from './components/AboutPage';
 import { useAutoHideNavbar } from './hooks/useAutoHideNavbar';
 import { loadRecentPage, saveRecentPage } from './lib/recentPage';
 
-type WorkspaceTab = 'home' | 'academic' | 'personal' | 'calendar' | 'settings';
+type WorkspaceTab = 'home' | 'academic' | 'personal' | 'calendar' | 'settings' | 'profile';
 
 const WORKSPACE_NAV_ITEMS = [
   { id: 'home' as const, label: 'Home', icon: Home },
@@ -36,6 +38,7 @@ const WORKSPACE_NAV_ITEMS = [
   { id: 'personal' as const, label: 'Personal', icon: LayoutDashboard },
   { id: 'calendar' as const, label: 'Calendar', icon: Calendar },
   { id: 'settings' as const, label: 'Settings', icon: Settings },
+  { id: 'profile' as const, label: 'About', icon: UserRound },
 ];
 
 function parseWorkspaceTab(value: string | null): WorkspaceTab {
@@ -44,6 +47,7 @@ function parseWorkspaceTab(value: string | null): WorkspaceTab {
     value === 'personal' ||
     value === 'calendar' ||
     value === 'settings' ||
+    value === 'profile' ||
     value === 'home'
   ) {
     return value;
@@ -295,6 +299,15 @@ export default function App() {
         actionLabel: 'Open page',
         tab: 'settings',
       },
+      {
+        id: 'tab-profile',
+        kind: 'tab',
+        title: 'About',
+        subtitle: 'Project info and links',
+        keywords: ['about', 'github', 'portfolio'],
+        actionLabel: 'Open page',
+        tab: 'profile',
+      },
     ];
 
     const moduleResults: SearchResult[] = state.modules.map((module) => ({
@@ -396,11 +409,12 @@ export default function App() {
     if (activeTab === 'personal') return 'Personal Focus';
     if (activeTab === 'calendar') return 'Schedule';
     if (activeTab === 'settings') return 'Settings';
+    if (activeTab === 'profile') return 'About';
     return 'Dashboard';
   }, [activeTab, activeModule]);
 
   useEffect(() => {
-    if (appStage !== 'workspace' || activeTab === 'home' || activeTab === 'settings') return;
+    if (appStage !== 'workspace' || activeTab === 'home' || activeTab === 'settings' || activeTab === 'profile') return;
     saveRecentPage({
       label: activeBreadcrumb,
       tab: activeTab,
@@ -736,6 +750,12 @@ export default function App() {
             {activeTab === 'settings' && (
               <div>
                 <SettingsPage />
+              </div>
+            )}
+
+            {activeTab === 'profile' && (
+              <div>
+                <AboutPage />
               </div>
             )}
           </PageContainer>
