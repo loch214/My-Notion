@@ -120,26 +120,12 @@ export function WorkspaceNavbar({
   useEffect(() => {
     if (!isNotificationsOpen) return;
 
-    const handlePointerDown = (event: MouseEvent) => {
-      const target = event.target as Node;
-      const path = typeof event.composedPath === 'function' ? event.composedPath() : [];
-      const inButton = notificationsButtonRef.current?.contains(target) ?? false;
-      const inPopover = notificationsPopoverRef.current?.contains(target) ?? false;
-      const inPopoverPath = notificationsPopoverRef.current ? path.includes(notificationsPopoverRef.current) : false;
-      if (!inButton && !inPopover) {
-        if (inPopoverPath) return;
-        onNotificationsOpen(false);
-      }
-    };
-
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onNotificationsOpen(false);
     };
 
-    document.addEventListener('mousedown', handlePointerDown);
     document.addEventListener('keydown', handleKeyDown);
     return () => {
-      document.removeEventListener('mousedown', handlePointerDown);
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isNotificationsOpen, onNotificationsOpen]);
@@ -147,66 +133,93 @@ export function WorkspaceNavbar({
   const notificationsPopover =
     isNotificationsOpen && notificationsPopoverStyle
       ? createPortal(
-          <div ref={notificationsPopoverRef} style={notificationsPopoverStyle} className="fixed z-[220]">
-            <motion.div
-              onMouseDown={(event) => event.stopPropagation()}
-              onPointerDown={(event) => event.stopPropagation()}
-              initial={{ opacity: 0, scale: 0.98, y: 8 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ duration: 0.18 }}
-              className="overflow-hidden rounded-2xl border border-white/10 bg-[color:var(--surface-high)]/95 shadow-2xl backdrop-blur-xl"
-            >
-            <div className="flex items-center justify-between border-b border-[color:var(--border)] px-4 py-2.5">
-              <p className="text-[10px] uppercase tracking-[0.24em] text-[color:var(--muted)]">
-                Notifications · {notificationItems.length}
-              </p>
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onMarkAllNotificationsRead();
-                }}
+          <>
+            <div
+              className="fixed inset-0 z-[210] bg-transparent"
+              onMouseDown={() => onNotificationsOpen(false)}
+              aria-hidden
+            />
+            <div ref={notificationsPopoverRef} style={notificationsPopoverStyle} className="fixed z-[220]">
+              <motion.div
                 onMouseDown={(event) => event.stopPropagation()}
                 onPointerDown={(event) => event.stopPropagation()}
-                className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[color:var(--accent)] disabled:text-[color:var(--muted)]"
+                initial={{ opacity: 0, scale: 0.98, y: 8 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ duration: 0.18 }}
+                className="overflow-hidden rounded-2xl border border-white/10 bg-[color:var(--surface-high)]/95 shadow-2xl backdrop-blur-xl"
               >
-                Mark all read
-              </button>
-            </div>
-            <div className="max-h-[22rem] overflow-y-auto p-1.5">
-              {notificationItems.length > 0 ? (
-                notificationItems.slice(0, 5).map((item) => (
+                <div className="flex items-center justify-between border-b border-[color:var(--border)] px-4 py-2.5">
+                  <p className="text-[10px] uppercase tracking-[0.24em] text-[color:var(--muted)]">
+                    Notifications · {notificationItems.length}
+                  </p>
                   <button
-                    key={item.id}
                     type="button"
-                    onClick={() => {
-                      onOpenNotificationItem(item);
-                      onNotificationsOpen(false);
+                    onPointerDown={(event) => {
+                      event.stopPropagation();
+                      onMarkAllNotificationsRead();
                     }}
-                    className={cn(
-                      'flex w-full items-start justify-between gap-3 rounded-xl px-3.5 py-2.5 text-left hover:bg-white/5',
-                      item.isRead ? 'opacity-65' : ''
-                    )}
+                    onClick={(event) => event.stopPropagation()}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        onMarkAllNotificationsRead();
+                      }
+                    }}
+                    className="inline-flex h-8 min-w-[7.5rem] items-center justify-center rounded-full border border-[color:var(--border)] bg-[color:var(--surface-med)] px-3 text-[10px] font-medium uppercase tracking-[0.18em] text-[color:var(--text)] transition-all duration-150 ease hover:bg-[color:var(--surface-high)] active:scale-[0.98]"
                   >
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className={cn('inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.18em]', item.kind === 'event' ? 'bg-[color:var(--accent)]/15 text-[color:var(--accent)]' : 'bg-[color:var(--surface-med)] text-[color:var(--muted)]')}>
-                          {item.kind}
-                        </span>
-                        <span className="text-xs text-[color:var(--muted)]">{item.detail}</span>
-                      </div>
-                      <p className="mt-1 truncate text-sm font-semibold text-[color:var(--text)]">{item.title}</p>
-                      <p className="mt-0.5 truncate text-xs text-[color:var(--muted)]">{item.subtitle}</p>
-                    </div>
-                    <span className={cn('mt-1 h-2 w-2 shrink-0 rounded-full', item.kind === 'event' ? 'bg-[color:var(--accent)]' : 'bg-[color:var(--border-focus)]')} />
+                    Mark all read
                   </button>
-                ))
-              ) : (
-                <div className="px-4 py-8 text-center text-sm text-[color:var(--muted)]">No notifications right now.</div>
-              )}
+                </div>
+                <div className="max-h-[22rem] overflow-y-auto p-1.5">
+                  {notificationItems.length > 0 ? (
+                    notificationItems.slice(0, 5).map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => {
+                          onOpenNotificationItem(item);
+                          onNotificationsOpen(false);
+                        }}
+                        className={cn(
+                          'flex w-full items-start justify-between gap-3 rounded-xl border px-3.5 py-2.5 text-left transition-colors duration-150 ease',
+                          item.isRead
+                            ? 'border-[color:var(--border)] bg-[color:var(--surface-med)]/60 opacity-70 hover:bg-[color:var(--surface-med)]/80'
+                            : 'border-[color:var(--border-focus)]/20 bg-[color:var(--surface-med)] hover:bg-[color:var(--surface-med)]/80'
+                        )}
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={cn(
+                                'inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.18em]',
+                                item.isRead
+                                  ? 'bg-[color:var(--surface-high)] text-[color:var(--muted)]'
+                                  : 'bg-[color:var(--accent)]/15 text-[color:var(--accent)]'
+                              )}
+                            >
+                              {item.kind}
+                            </span>
+                            <span className="text-xs text-[color:var(--muted)]">{item.detail}</span>
+                          </div>
+                          <p className="mt-1 truncate text-sm font-semibold text-[color:var(--text)]">{item.title}</p>
+                          <p className="mt-0.5 truncate text-xs text-[color:var(--muted)]">{item.subtitle}</p>
+                        </div>
+                        <span
+                          className={cn(
+                            'mt-1 h-2 w-2 shrink-0 rounded-full',
+                            item.isRead ? 'bg-[color:var(--border-focus)]' : 'bg-[color:var(--accent)]'
+                          )}
+                        />
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-4 py-8 text-center text-sm text-[color:var(--muted)]">No notifications right now.</div>
+                  )}
+                </div>
+              </motion.div>
             </div>
-            </motion.div>
-          </div>,
+          </>,
           document.body
         )
       : null;

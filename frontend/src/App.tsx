@@ -502,8 +502,8 @@ export default function App() {
 
   const openNotificationItem = useCallback(
     (item: WorkspaceNotificationItem) => {
-      openWorkspaceTab(item.targetTab, item.moduleId ?? null);
       markNotificationRead(item.id);
+      openWorkspaceTab(item.targetTab, item.moduleId ?? null);
     },
     [markNotificationRead]
   );
