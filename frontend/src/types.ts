@@ -54,6 +54,7 @@ export interface Event {
   startTime: string;
   endTime: string;
   description?: string;
+  reminderMinutes?: number | null;
   color: 'blue' | 'amber' | 'purple' | 'emerald' | 'rose';
 }
 

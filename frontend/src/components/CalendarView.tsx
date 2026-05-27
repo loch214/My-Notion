@@ -21,7 +21,7 @@ import { cn } from '../lib/utils';
 // Import UI primitives
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
-import { Input, Textarea } from './ui/Input';
+import { Input, Select, Textarea } from './ui/Input';
 import { Modal } from './ui/Modal';
 import { SectionHeader } from './ui/SectionHeader';
 
@@ -55,6 +55,28 @@ function buildDateTime(date: Date, time: string) {
   return new Date(`${day}T${time}:00`).toISOString();
 }
 
+const REMINDER_PRESETS = [
+  { id: 'none', label: 'No reminder', minutes: null },
+  { id: 'start', label: 'At event start', minutes: 0 },
+  { id: '5m', label: '5 minutes before', minutes: 5 },
+  { id: '15m', label: '15 minutes before', minutes: 15 },
+  { id: '30m', label: '30 minutes before', minutes: 30 },
+  { id: '1h', label: '1 hour before', minutes: 60 },
+  { id: '1d', label: '1 day before', minutes: 1440 },
+  { id: 'custom', label: 'Custom minutes before', minutes: 'custom' as const },
+] as const;
+
+function reminderPresetId(value?: number | null) {
+  if (value === null) return 'none';
+  if (value === 0) return 'start';
+  if (value === 5) return '5m';
+  if (value === 15) return '15m';
+  if (value === 30) return '30m';
+  if (value === 60) return '1h';
+  if (value === 1440) return '1d';
+  return 'custom';
+}
+
 export default function CalendarView({
   events,
   onAddEvent,
@@ -62,7 +84,7 @@ export default function CalendarView({
   onUpdateEvent,
 }: {
   events: Event[];
-  onAddEvent: (title: string, startTime: string, endTime: string, color: Event['color'], description?: string) => void;
+  onAddEvent: (title: string, startTime: string, endTime: string, color: Event['color'], description?: string, reminderMinutes?: number | null) => void;
   onRemoveEvent: (id: string) => void;
   onUpdateEvent: (id: string, updates: Partial<Event>) => void;
 }) {
@@ -357,6 +379,17 @@ export default function CalendarView({
               </div>
             )}
 
+            <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-low)] p-4 text-sm text-[color:var(--muted)]">
+              <p className="text-xs font-semibold uppercase tracking-wider text-[color:var(--muted)]">Reminder</p>
+              <p className="mt-1 text-[color:var(--text)]">
+                {modalEvent.reminderMinutes === null
+                  ? 'No reminder set.'
+                  : modalEvent.reminderMinutes === 0
+                    ? 'Notify at the event start.'
+                    : `${modalEvent.reminderMinutes >= 60 ? `${Math.round(modalEvent.reminderMinutes / 60)} hour${modalEvent.reminderMinutes >= 120 ? 's' : ''}` : `${modalEvent.reminderMinutes} minute${modalEvent.reminderMinutes > 1 ? 's' : ''}`} before the event.`}
+              </p>
+            </div>
+
             <div className="flex gap-2 pt-4 border-t border-[color:var(--border)]">
               <Button
                 variant="primary"
@@ -395,11 +428,11 @@ export default function CalendarView({
             date={modalDate}
             initial={modalEvent || undefined}
             onCancel={closeModal}
-            onSave={(title, startTime, endTime, color, description, eventId) => {
+            onSave={(title, startTime, endTime, color, description, eventId, reminderMinutes) => {
               if (eventId) {
-                onUpdateEvent(eventId, { title, startTime, endTime, color, description });
+                onUpdateEvent(eventId, { title, startTime, endTime, color, description, reminderMinutes });
               } else {
-                onAddEvent(title, startTime, endTime, color, description);
+                onAddEvent(title, startTime, endTime, color, description, reminderMinutes);
               }
               closeModal();
             }}
@@ -419,7 +452,7 @@ function EventForm({
 }: {
   date: Date;
   onCancel: () => void;
-  onSave: (title: string, start: string, end: string, color: Event['color'], description?: string, id?: string) => void;
+  onSave: (title: string, start: string, end: string, color: Event['color'], description?: string, id?: string, reminderMinutes?: number | null) => void;
   initial?: Event;
 }) {
   const [title, setTitle] = useState(initial?.title ?? '');
@@ -427,11 +460,23 @@ function EventForm({
   const [endTime, setEndTime] = useState(toInputTime(initial?.endTime) || '10:00');
   const [color, setColor] = useState<Event['color']>(initial?.color ?? 'blue');
   const [description, setDescription] = useState(initial?.description ?? '');
+  const initialReminderMinutes = initial?.reminderMinutes === undefined ? 15 : initial.reminderMinutes;
+  const [reminderPreset, setReminderPreset] = useState(reminderPresetId(initialReminderMinutes));
+  const [customReminderMinutes, setCustomReminderMinutes] = useState(
+    initial?.reminderMinutes !== undefined && initial?.reminderMinutes !== null && ![0, 5, 15, 30, 60, 1440].includes(initial.reminderMinutes)
+      ? String(initial.reminderMinutes)
+      : '15'
+  );
 
   const save = () => {
     const start = buildDateTime(date, startTime);
     const end = buildDateTime(date, endTime);
-    onSave(title.trim(), start, end, color, description.trim() || undefined, initial?.id);
+    const reminderMinutes = reminderPreset === 'none'
+      ? null
+      : reminderPreset === 'custom'
+        ? Math.max(0, Number.parseInt(customReminderMinutes, 10) || 0)
+        : REMINDER_PRESETS.find((preset) => preset.id === reminderPreset && preset.minutes !== 'custom')?.minutes ?? 15;
+    onSave(title.trim(), start, end, color, description.trim() || undefined, initial?.id, reminderMinutes as number | null);
   };
 
   return (
@@ -480,6 +525,32 @@ function EventForm({
             />
           ))}
         </div>
+      </div>
+
+      <div>
+        <label className="block text-xs font-semibold text-[color:var(--muted)] uppercase tracking-wider mb-1.5">Reminder</label>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto]">
+          <Select value={reminderPreset} onChange={(e) => setReminderPreset(e.target.value)}>
+            {REMINDER_PRESETS.map((preset) => (
+              <option key={preset.id} value={preset.id}>
+                {preset.label}
+              </option>
+            ))}
+          </Select>
+          {reminderPreset === 'custom' && (
+            <Input
+              type="number"
+              min="0"
+              value={customReminderMinutes}
+              onChange={(e) => setCustomReminderMinutes(e.target.value)}
+              placeholder="Minutes"
+              className="sm:max-w-[10rem]"
+            />
+          )}
+        </div>
+        <p className="mt-2 text-xs text-[color:var(--muted)]">
+          This becomes the reminder notification that appears before the event starts.
+        </p>
       </div>
 
       <div>

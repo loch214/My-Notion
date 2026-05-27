@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Calendar,
+  Bell,
   ChevronLeft,
   Home,
   Library,
@@ -27,16 +28,17 @@ import { HomeDashboard } from './components/HomeDashboard';
 import { WorkspaceNavbar } from './components/WorkspaceNavbar';
 import { SettingsPage } from './components/SettingsPage';
 import { AboutPage } from './components/AboutPage';
+import { NotificationsPage } from './components/NotificationsPage';
 import { useAutoHideNavbar } from './hooks/useAutoHideNavbar';
 import { loadRecentPage, saveRecentPage } from './lib/recentPage';
-
-type WorkspaceTab = 'home' | 'academic' | 'personal' | 'calendar' | 'settings' | 'profile';
+import { buildWorkspaceNotifications, type WorkspaceNotificationItem, type WorkspaceTab } from './lib/notifications';
 
 const WORKSPACE_NAV_ITEMS = [
   { id: 'home' as const, label: 'Home', icon: Home },
   { id: 'academic' as const, label: 'Academic', icon: Library },
   { id: 'personal' as const, label: 'Personal', icon: LayoutDashboard },
   { id: 'calendar' as const, label: 'Calendar', icon: Calendar },
+  { id: 'notifications' as const, label: 'Notifications', icon: Bell },
   { id: 'settings' as const, label: 'Settings', icon: Settings },
   { id: 'profile' as const, label: 'About', icon: UserRound },
 ];
@@ -46,6 +48,7 @@ function parseWorkspaceTab(value: string | null): WorkspaceTab {
     value === 'academic' ||
     value === 'personal' ||
     value === 'calendar' ||
+    value === 'notifications' ||
     value === 'settings' ||
     value === 'profile' ||
     value === 'home'
@@ -126,7 +129,6 @@ export default function App() {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isAiPanelOpen, setIsAiPanelOpen] = useState(false);
   const [isNavbarVisible, setIsNavbarVisible] = useState(true);
   const [recentPage, setRecentPage] = useState(() => loadRecentPage());
@@ -138,10 +140,31 @@ export default function App() {
   const navScrollResetKey = `${activeTab}:${activeModuleId ?? ''}`;
   useAutoHideNavbar(appStage === 'workspace', mainScrollEl, setIsNavbarVisible, navScrollResetKey);
 
-  const notificationsRef = useRef<HTMLDivElement | null>(null);
-
   useEffect(() => {
     document.documentElement.classList.add('dark');
+  }, []);
+
+  // Keep a CSS variable up-to-date for responsive layouts and to help trigger
+  // lightweight reflows on resize (debounced).
+  useEffect(() => {
+    let t: number | null = null;
+    const setVars = () => {
+      document.documentElement.style.setProperty('--window-width', String(window.innerWidth));
+      document.documentElement.style.setProperty('--window-height', String(window.innerHeight));
+    };
+    const onResize = () => {
+      if (t) window.clearTimeout(t);
+      t = window.setTimeout(() => {
+        setVars();
+        t = null;
+      }, 120);
+    };
+    setVars();
+    window.addEventListener('resize', onResize);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      if (t) window.clearTimeout(t);
+    };
   }, []);
 
   // Save UI Preferences inside localStorage
@@ -216,39 +239,20 @@ export default function App() {
     openWorkspaceTab(tab);
   };
 
-  const upcomingNotifications = useMemo(() => {
-    const now = new Date();
-    const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const notificationItems = useMemo<WorkspaceNotificationItem[]>(
+    () => buildWorkspaceNotifications({
+      tasks: state.tasks,
+      events: state.events,
+      modules: state.modules,
+      readNotificationIds,
+    }),
+    [readNotificationIds, state.events, state.modules, state.tasks]
+  );
 
-    const dueTasks = state.tasks
-      .filter((task) => !task.done && task.dueDate)
-      .map((task) => ({ task, dueDate: new Date(task.dueDate as string), module: task.moduleId ? state.modules.find((entry) => entry.id === task.moduleId) : null }))
-      .filter(({ dueDate }) => !Number.isNaN(dueDate.getTime()) && dueDate >= now && dueDate <= sevenDaysFromNow)
-      .sort((left, right) => left.dueDate.getTime() - right.dueDate.getTime())
-      .slice(0, 4)
-      .map(({ task, dueDate, module }) => ({
-        id: `task-${task.id}`,
-        title: task.title,
-        subtitle: `Due ${dueDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`,
-        action: () => openWorkspaceTab(module ? 'academic' : 'personal', module ? module.id : null),
-      }));
-
-    const upcomingEvents = state.events
-      .map((event) => ({ event, startDate: new Date(event.startTime) }))
-      .filter(({ startDate }) => !Number.isNaN(startDate.getTime()) && startDate >= now && startDate <= sevenDaysFromNow)
-      .sort((left, right) => left.startDate.getTime() - right.startDate.getTime())
-      .slice(0, 4)
-      .map(({ event, startDate }) => ({
-        id: `event-${event.id}`,
-        title: event.title,
-        subtitle: `Starts ${startDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`,
-        action: () => openWorkspaceTab('calendar'),
-      }));
-
-    return [...dueTasks, ...upcomingEvents]
-      .filter((item) => !readNotificationIds.includes(item.id))
-      .slice(0, 5);
-  }, [readNotificationIds, state.events, state.tasks]);
+  const unreadNotificationItems = useMemo(
+    () => notificationItems.filter((item) => !item.isRead),
+    [notificationItems]
+  );
 
   const searchResults = useMemo<SearchResult[]>(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -289,6 +293,15 @@ export default function App() {
         keywords: ['calendar', 'events', 'schedule', 'meetings'],
         actionLabel: 'Open page',
         tab: 'calendar',
+      },
+      {
+        id: 'tab-notifications',
+        kind: 'tab',
+        title: 'Notifications',
+        subtitle: 'Due dates and reminders',
+        keywords: ['notifications', 'reminders', 'alerts', 'bell'],
+        actionLabel: 'Open page',
+        tab: 'notifications',
       },
       {
         id: 'tab-settings',
@@ -371,7 +384,6 @@ export default function App() {
     openWorkspaceTab(result.tab, result.moduleId ?? null);
     setSearchQuery('');
     setIsSearchOpen(false);
-    setIsNotificationsOpen(false);
   };
 
   useEffect(() => {
@@ -380,15 +392,11 @@ export default function App() {
       if (searchRef.current && !searchRef.current.contains(target)) {
         setIsSearchOpen(false);
       }
-      if (notificationsRef.current && !notificationsRef.current.contains(target)) {
-        setIsNotificationsOpen(false);
-      }
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setIsSearchOpen(false);
-        setIsNotificationsOpen(false);
       }
     };
 
@@ -408,13 +416,14 @@ export default function App() {
     }
     if (activeTab === 'personal') return 'Personal Focus';
     if (activeTab === 'calendar') return 'Schedule';
+    if (activeTab === 'notifications') return 'Notifications';
     if (activeTab === 'settings') return 'Settings';
     if (activeTab === 'profile') return 'About';
     return 'Dashboard';
   }, [activeTab, activeModule]);
 
   useEffect(() => {
-    if (appStage !== 'workspace' || activeTab === 'home' || activeTab === 'settings' || activeTab === 'profile') return;
+    if (appStage !== 'workspace' || activeTab === 'home' || activeTab === 'settings' || activeTab === 'profile' || activeTab === 'notifications') return;
     saveRecentPage({
       label: activeBreadcrumb,
       tab: activeTab,
@@ -442,26 +451,33 @@ export default function App() {
     [searchResults]
   );
 
-  const navbarNotifications = useMemo(
-    () =>
-      upcomingNotifications.map((item) => ({
-        id: item.id,
-        title: item.title,
-        subtitle: item.subtitle,
-        onSelect: () => {
-          item.action();
-          setIsNotificationsOpen(false);
-        },
-        onMarkRead: () => {
-          setReadNotificationIds((current) => {
-            const next = current.includes(item.id) ? current : [...current, item.id];
-            localStorage.setItem('my_notion_read_notifications', JSON.stringify(next));
-            return next;
-          });
-        },
-      })),
-    [upcomingNotifications]
+  const unreadNotificationCount = unreadNotificationItems.length;
+
+  const markNotificationRead = useCallback((notificationId: string) => {
+    setReadNotificationIds((current) => {
+      const next = current.includes(notificationId) ? current : [...current, notificationId];
+      localStorage.setItem('my_notion_read_notifications', JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const markAllNotificationsRead = useCallback(() => {
+    const next = Array.from(new Set([...readNotificationIds, ...notificationItems.map((item) => item.id)]));
+    localStorage.setItem('my_notion_read_notifications', JSON.stringify(next));
+    setReadNotificationIds(next);
+  }, [notificationItems, readNotificationIds]);
+
+  const openNotificationItem = useCallback(
+    (item: WorkspaceNotificationItem) => {
+      openWorkspaceTab(item.targetTab, item.moduleId ?? null);
+      markNotificationRead(item.id);
+    },
+    [markNotificationRead]
   );
+
+  const handleOpenNotifications = useCallback(() => {
+    openWorkspaceTab('notifications');
+  }, []);
 
   const landingModuleCodes = useMemo(
     () => state.modules.slice(0, 4).map((m) => m.code),
@@ -476,11 +492,6 @@ export default function App() {
     [searchResults]
   );
 
-  const handleToggleNotifications = useCallback(() => {
-    setIsNotificationsOpen((c) => !c);
-    setIsSearchOpen(false);
-  }, []);
-
   const navbarProps = useMemo(
     () => ({
       activeBreadcrumb,
@@ -491,11 +502,8 @@ export default function App() {
       searchResults: navbarSearchResults,
       onRunSearchResult: handleNavbarSearchResult,
       searchRef,
-      notificationsRef,
-      upcomingCount: upcomingNotifications.length,
-      isNotificationsOpen,
-      onToggleNotifications: handleToggleNotifications,
-      notifications: navbarNotifications,
+      upcomingCount: unreadNotificationCount,
+      onOpenNotifications: handleOpenNotifications,
       onOpenMobileSidebar: () => setIsMobileSidebarOpen(true),
       onGoLanding: () => setAppStage('landing'),
       onOpenAi: () => setIsAiPanelOpen(true),
@@ -506,10 +514,8 @@ export default function App() {
       isSearchOpen,
       navbarSearchResults,
       handleNavbarSearchResult,
-      upcomingNotifications.length,
-      isNotificationsOpen,
-      handleToggleNotifications,
-      navbarNotifications,
+      unreadNotificationCount,
+      handleOpenNotifications,
     ]
   );
 
@@ -743,6 +749,17 @@ export default function App() {
                   onAddEvent={addEvent} 
                   onRemoveEvent={removeEvent} 
                   onUpdateEvent={updateEvent} 
+                />
+              </div>
+            )}
+
+            {activeTab === 'notifications' && (
+              <div>
+                <NotificationsPage
+                  items={notificationItems}
+                  onOpenItem={openNotificationItem}
+                  onMarkRead={markNotificationRead}
+                  onMarkAllRead={markAllNotificationsRead}
                 />
               </div>
             )}

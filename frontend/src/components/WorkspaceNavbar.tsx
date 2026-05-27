@@ -1,7 +1,7 @@
 import { RefObject, useEffect, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { Bell, Menu, Search, Sparkles } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 import { Button } from './ui/Button';
 
@@ -22,11 +22,8 @@ interface WorkspaceNavbarProps {
   searchResults: SearchResultItem[];
   onRunSearchResult: (id: string) => void;
   searchRef: RefObject<HTMLDivElement | null>;
-  notificationsRef: RefObject<HTMLDivElement | null>;
   upcomingCount: number;
-  isNotificationsOpen: boolean;
-  onToggleNotifications: () => void;
-  notifications: Array<{ id: string; title: string; subtitle: string; onSelect: () => void; onMarkRead: () => void }>;
+  onOpenNotifications: () => void;
   onOpenMobileSidebar: () => void;
   onGoLanding: () => void;
   onOpenAi: () => void;
@@ -41,18 +38,14 @@ export function WorkspaceNavbar({
   searchResults,
   onRunSearchResult,
   searchRef,
-  notificationsRef,
   upcomingCount,
-  isNotificationsOpen,
-  onToggleNotifications,
-  notifications,
+  onOpenNotifications,
   onOpenMobileSidebar,
   onGoLanding,
   onOpenAi,
 }: WorkspaceNavbarProps) {
   const searchIsExpanded = isSearchOpen || searchQuery.trim().length > 0;
   const [searchPopoverStyle, setSearchPopoverStyle] = useState<CSSProperties | null>(null);
-  const [notificationsPopoverStyle, setNotificationsPopoverStyle] = useState<CSSProperties | null>(null);
 
   useEffect(() => {
     if (!isSearchOpen || !searchRef.current) {
@@ -81,34 +74,6 @@ export function WorkspaceNavbar({
       window.removeEventListener('scroll', updateStyle, true);
     };
   }, [isSearchOpen, searchRef]);
-
-  useEffect(() => {
-    if (!isNotificationsOpen || !notificationsRef.current) {
-      setNotificationsPopoverStyle(null);
-      return;
-    }
-
-    const updateStyle = () => {
-      const rect = notificationsRef.current?.getBoundingClientRect();
-      if (!rect) return;
-
-      setNotificationsPopoverStyle({
-        position: 'fixed',
-        right: Math.max(16, window.innerWidth - rect.right),
-        top: rect.bottom + 10,
-        width: 320,
-        zIndex: 230,
-      });
-    };
-
-    updateStyle();
-    window.addEventListener('resize', updateStyle);
-    window.addEventListener('scroll', updateStyle, true);
-    return () => {
-      window.removeEventListener('resize', updateStyle);
-      window.removeEventListener('scroll', updateStyle, true);
-    };
-  }, [isNotificationsOpen, notificationsRef]);
 
   const searchResultsPopover =
     isSearchOpen && searchPopoverStyle
@@ -158,8 +123,8 @@ export function WorkspaceNavbar({
       <header
         className={cn(
           'relative z-[120] mx-auto grid h-[var(--workspace-nav-bar)] w-full max-w-[1400px] items-center gap-3 rounded-full px-3 sm:px-4',
-          'border border-[color:var(--nav-glass-border)] bg-[color:var(--nav-glass-bg)] shadow-[0_8px_32px_rgba(0,0,0,0.35),inset_0_1px_0_var(--spotlight-hover)]',
-          'backdrop-blur-2xl backdrop-saturate-150',
+          'border border-[color:var(--nav-glass-border)] bg-[color:var(--nav-glass-bg)] shadow-[0_6px_18px_rgba(0,0,0,0.28),inset_0_1px_0_var(--spotlight-hover)]',
+          'backdrop-blur-md backdrop-saturate-150',
           'max-lg:grid-cols-[auto_1fr_auto] lg:grid-cols-[minmax(0,1fr)_minmax(12rem,28rem)_minmax(0,1fr)]'
         )}
       >
@@ -238,68 +203,19 @@ export function WorkspaceNavbar({
         </div>
 
         <div className="flex items-center justify-end gap-2 pr-1">
-          <div ref={notificationsRef} className="relative z-[120]">
-            <button
-              type="button"
-              onClick={onToggleNotifications}
-              className="relative flex h-10 w-10 items-center justify-center rounded-full border border-white/[0.08] bg-black/20 text-[color:var(--muted)] hover:bg-white/10 hover:text-[color:var(--text)]"
-              aria-label="Notifications"
-            >
-              <Bell className="h-[1.125rem] w-[1.125rem]" />
-              {upcomingCount > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[color:var(--accent)] px-1 text-[9px] font-bold text-[color:var(--on-accent)]">
-                  {upcomingCount}
-                </span>
-              )}
-            </button>
-          </div>
-
-          {isNotificationsOpen && notificationsPopoverStyle
-            ? createPortal(
-                <motion.div
-                  onMouseDown={(event) => event.stopPropagation()}
-                  initial={{ opacity: 0, scale: 0.98, y: 8 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.98, y: 8 }}
-                  style={notificationsPopoverStyle}
-                  className="overflow-hidden rounded-2xl border border-white/10 bg-[color:var(--surface-high)]/95 shadow-2xl backdrop-blur-xl"
-                >
-                  <div className="border-b border-[color:var(--border)] px-4 py-2.5">
-                    <p className="text-xs uppercase tracking-[0.22em] text-[color:var(--muted)]">Notifications</p>
-                  </div>
-                  <div className="max-h-[20rem] overflow-y-auto p-1.5">
-                    {notifications.length > 0 ? (
-                      notifications.map((item) => (
-                        <div
-                          key={item.id}
-                          className="flex w-full items-start justify-between gap-3 rounded-xl px-3 py-2.5 text-left hover:bg-white/5"
-                        >
-                          <button
-                            type="button"
-                            onClick={item.onSelect}
-                            className="min-w-0 flex-1 text-left"
-                          >
-                            <p className="truncate text-sm font-semibold text-[color:var(--text)]">{item.title}</p>
-                            <p className="mt-0.5 text-xs text-[color:var(--muted)]">{item.subtitle}</p>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={item.onMarkRead}
-                            className="shrink-0 rounded-full border border-[color:var(--border)] px-2.5 py-1 text-xs font-semibold text-[color:var(--muted)] transition-all duration-150 ease hover:bg-[color:var(--surface-low)] hover:text-[color:var(--text)]"
-                            aria-label={`Mark ${item.title} as read`}
-                          >
-                            Mark read
-                          </button>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="px-4 py-8 text-center text-sm text-[color:var(--muted)]">No upcoming items.</div>
-                    )}
-                  </div>
-                </motion.div>,
-                document.body
-              )
-            : null}
+          <button
+            type="button"
+            onClick={onOpenNotifications}
+            className="relative flex h-10 w-10 items-center justify-center rounded-full border border-white/[0.08] bg-black/20 text-[color:var(--muted)] hover:bg-white/10 hover:text-[color:var(--text)]"
+            aria-label="Notifications"
+          >
+            <Bell className="h-[1.125rem] w-[1.125rem]" />
+            {upcomingCount > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[color:var(--accent)] px-1 text-[9px] font-bold text-[color:var(--on-accent)]">
+                {upcomingCount}
+              </span>
+            )}
+          </button>
 
           <Button
             variant="primary"

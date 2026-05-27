@@ -173,12 +173,12 @@ export function useAppStore() {
     }
   };
 
-  const addEvent = async (title: string, startTime: string, endTime: string, color: Event['color'] = 'blue', description?: string) => {
+  const addEvent = async (title: string, startTime: string, endTime: string, color: Event['color'] = 'blue', description?: string, reminderMinutes?: number | null) => {
     try {
       const response = await fetch(`${API_BASE}/events`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, startTime, endTime, color, description })
+        body: JSON.stringify({ title, startTime, endTime, color, description, reminderMinutes })
       });
       if (!response.ok) throw new Error('Failed to create event');
       const newEvent = await response.json();

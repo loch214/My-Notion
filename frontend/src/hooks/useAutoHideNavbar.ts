@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react';
 
 /** Scroll down this many px (accumulated) before hiding */
-const HIDE_AFTER_PX = 10;
+const HIDE_AFTER_PX = 30;
 /** Scroll up this many px (accumulated) before showing */
-const SHOW_AFTER_PX = 6;
+const SHOW_AFTER_PX = 12;
 
 /**
  * Hides the workspace navbar when the user scrolls down inside `scrollRoot`,

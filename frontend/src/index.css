@@ -58,8 +58,8 @@
   );
   /* Gap between viewport edge and sidebar / main panel (matches body row padding) */
   --workspace-edge-inset: 1rem;
-  --workspace-motion-duration: 300ms;
-  --workspace-motion-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --workspace-motion-duration: 420ms;
+  --workspace-motion-ease: cubic-bezier(0.22, 0.9, 0.3, 1);
   
   /* Module colors - sophisticated low saturation background, distinct border & text */
   --module-blue-bg: rgba(56, 189, 248, 0.08);
@@ -327,13 +327,15 @@ h1, h2, h3, h4, h5, h6 {
   margin-bottom: 0;
   transition:
     transform var(--workspace-motion-duration) var(--workspace-motion-ease),
-    margin-bottom var(--workspace-motion-duration) var(--workspace-motion-ease);
+    margin-bottom var(--workspace-motion-duration) var(--workspace-motion-ease),
+    opacity var(--workspace-motion-duration) var(--workspace-motion-ease);
   will-change: transform, margin-bottom;
 }
 
 .workspace-navbar-slot--hidden {
   transform: translateY(-100%);
   margin-bottom: calc(-1 * var(--workspace-nav-chrome));
+  opacity: 0;
   pointer-events: none;
 }
 

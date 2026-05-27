@@ -375,7 +375,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage, refreshWorks
         exit={{ opacity: 0 }}
         transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
         onClick={onClose}
-        className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-[2px]"
+        className="fixed inset-0 z-[80] bg-black/56 backdrop-blur-sm"
       />
 
       <motion.div
@@ -383,7 +383,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage, refreshWorks
         animate={isMobile ? { y: 0 } : { x: 0 }}
         exit={isMobile ? { y: '100%' } : { x: '100%' }}
         transition={{ type: 'tween', duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-        className="workspace-chat-drawer relative z-[90] flex flex-col overflow-hidden border border-[color:var(--border)] bg-[color:var(--surface-med)]/96 text-[color:var(--text)] shadow-[0_20px_60px_rgba(0,0,0,0.5)] backdrop-blur-2xl"
+        className="workspace-chat-drawer relative z-[90] flex flex-col overflow-hidden border border-[color:var(--border)] bg-[color:var(--surface-med)]/96 text-[color:var(--text)] shadow-[0_10px_30px_rgba(0,0,0,0.38)] backdrop-blur-md"
         style={!isMobile ? { width: `${drawerWidth}px` } : undefined}
       >
         {!isMobile && (
