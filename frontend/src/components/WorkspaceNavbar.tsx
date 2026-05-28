@@ -75,9 +75,16 @@ export function WorkspaceNavbar({
     updateStyle();
     window.addEventListener('resize', updateStyle);
     window.addEventListener('scroll', updateStyle, true);
+    
+    const observer = new ResizeObserver(updateStyle);
+    if (searchRef.current) {
+      observer.observe(searchRef.current);
+    }
+
     return () => {
       window.removeEventListener('resize', updateStyle);
       window.removeEventListener('scroll', updateStyle, true);
+      observer.disconnect();
     };
   }, [isSearchOpen, searchRef]);
 
@@ -237,14 +244,15 @@ export function WorkspaceNavbar({
       : null;
 
   return (
-    <header className="workspace-navbar relative flex items-center justify-between gap-3 border-b border-[color:var(--border)] bg-[color:var(--surface-low)]/90 px-3 py-2.5 backdrop-blur-md sm:px-4">
-      <button type="button" onClick={onGoLanding} className="flex min-w-0 items-center gap-2 rounded-2xl px-2 py-1.5 text-left hover:bg-white/5">
-        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[color:var(--surface-med)] text-[color:var(--text)]">
+    <header className="workspace-navbar relative mx-[var(--workspace-edge-inset)] mt-[var(--workspace-nav-inset-top)] flex h-[var(--workspace-nav-bar)] items-center justify-between gap-3 rounded-[2rem] border border-[color:var(--nav-glass-border)] bg-[color:var(--surface-med)]/78 px-4 shadow-[0_8px_30px_rgba(4,10,28,0.3)] backdrop-blur-md sm:px-5">
+      <button type="button" onClick={onGoLanding} className="flex min-w-0 items-center gap-2 rounded-full px-1.5 py-1 text-left hover:bg-white/5">
+        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[color:var(--accent)]/22 text-[color:var(--text)] shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
           <Sparkles className="h-4 w-4" />
         </div>
-        <div className="min-w-0">
-          <p className="truncate text-xs uppercase tracking-[0.22em] text-[color:var(--muted)]">My-Notion</p>
-          <p className="truncate text-sm font-semibold text-[color:var(--text)]">{activeBreadcrumb}</p>
+        <div className="min-w-0 flex items-center gap-2 text-base">
+          <span className="truncate font-semibold text-[color:var(--text)]">My-Notion</span>
+          <span className="text-[color:var(--muted)]">/</span>
+          <span className="truncate text-[color:var(--muted)]">{activeBreadcrumb}</span>
         </div>
       </button>
 
@@ -256,19 +264,19 @@ export function WorkspaceNavbar({
             isSearchOpen ? "w-[400px]" : "w-[240px]"
           )}
         >
-          <div className="flex items-center gap-2 rounded-full border border-[color:var(--border)] bg-[color:var(--surface-med)] px-3 py-1.5">
+          <div className="flex items-center gap-2 rounded-full border border-[color:var(--nav-glass-border)] bg-[color:var(--surface-low)]/80 px-3 py-1.5">
             <input
               ref={searchInputRef}
               type="text"
               value={searchQuery}
               onChange={(event) => onSearchChange(event.target.value)}
               onFocus={() => onSearchOpen(true)}
-              placeholder="Search..."
+              placeholder="Search anything..."
               className="w-full bg-transparent text-sm text-[color:var(--text)] outline-none placeholder:text-[color:var(--muted)]"
             />
             <button 
               type="button" 
-              className="flex h-6 w-6 items-center justify-center rounded-full text-[color:var(--muted)] hover:bg-white/5 hover:text-[color:var(--text)]" 
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/5 text-[color:var(--muted)] hover:bg-white/10 hover:text-[color:var(--text)]" 
               onClick={() => onSearchOpen(!isSearchOpen)}
             >
               <Search className="h-3.5 w-3.5" />
@@ -279,14 +287,14 @@ export function WorkspaceNavbar({
       </div>
 
       <div className="flex items-center gap-2">
-        <button type="button" onClick={onOpenMobileSidebar} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/[0.08] bg-black/20 text-[color:var(--muted)] hover:bg-white/10 hover:text-[color:var(--text)] md:hidden" aria-label="Open sidebar">
+        <button type="button" onClick={onOpenMobileSidebar} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--nav-glass-border)] bg-[color:var(--surface-low)]/75 text-[color:var(--muted)] hover:bg-white/10 hover:text-[color:var(--text)] md:hidden" aria-label="Open sidebar">
           <Menu className="h-4 w-4" />
         </button>
-        <button ref={notificationsButtonRef} type="button" onClick={onOpenNotifications} className="relative flex h-10 w-10 items-center justify-center rounded-full border border-white/[0.08] bg-black/20 text-[color:var(--muted)] hover:bg-white/10 hover:text-[color:var(--text)]" aria-label="Notifications">
+        <button ref={notificationsButtonRef} type="button" onClick={onOpenNotifications} className="relative flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--nav-glass-border)] bg-[color:var(--surface-low)]/75 text-[color:var(--muted)] hover:bg-white/10 hover:text-[color:var(--text)]" aria-label="Notifications">
           <Bell className="h-4 w-4" />
           {upcomingCount > 0 ? <span className="absolute -right-1 -top-1 rounded-full bg-[color:var(--accent)] px-1.5 py-0.5 text-[10px] font-semibold text-white">{upcomingCount}</span> : null}
         </button>
-        <button type="button" onClick={onOpenAi} className="inline-flex h-10 items-center gap-2 rounded-full border border-[color:var(--border)] bg-[color:var(--surface-med)] px-4 text-sm font-semibold text-[color:var(--text)] hover:bg-[color:var(--surface-high)]">
+        <button type="button" onClick={onOpenAi} className="inline-flex h-10 items-center gap-2 rounded-full border border-[color:var(--nav-glass-border)] bg-gradient-to-r from-[color:var(--accent)]/85 to-[color:var(--accent-2)]/85 px-4 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(99,102,241,0.35)] hover:brightness-110">
           <Sparkles className="h-4 w-4" />
           Say Hello
         </button>

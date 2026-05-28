@@ -30,7 +30,8 @@ const GRID_END_MINUTES = 20 * 60 + 30;
 const PIXELS_PER_MINUTE = 1.1;
 const GRID_HEIGHT = (GRID_END_MINUTES - GRID_START_MINUTES) * PIXELS_PER_MINUTE;
 const COLUMN_HEADER_HEIGHT = 44;
-const TIME_RAIL_WIDTH = 50;
+const TIME_RAIL_WIDTH = 38;
+const DAY_MIN_WIDTH = 120;
 
 const KIND_META = {
   lecture: {
@@ -74,7 +75,7 @@ const DEFAULT_DRAFT: Draft = {
 };
 
 const HOUR_OPTIONS = Array.from({ length: 13 }, (_, index) => String(8 + index).padStart(2, '0'));
-const MINUTE_OPTIONS = ['00', '15', '30', '45'];
+const MINUTE_OPTIONS = Array.from({ length: 60 }, (_, index) => String(index).padStart(2, '0'));
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
@@ -94,6 +95,22 @@ function minutesToTime(totalMinutes: number) {
 
 function formatTimeLabel(value: string) {
   return value;
+}
+
+function rangesOverlap(startA: number, endA: number, startB: number, endB: number) {
+  return startA < endB && startB < endA;
+}
+
+function hasTimetableConflict(entriesToCheck: TimetableEntry[], candidate: Draft, ignoreEntryId?: string) {
+  const candidateStart = timeToMinutes(candidate.startTime);
+  const candidateEnd = timeToMinutes(candidate.endTime);
+
+  return entriesToCheck.some((entry) => {
+    if (ignoreEntryId && entry.id === ignoreEntryId) return false;
+    if (entry.dayOfWeek !== candidate.dayOfWeek) return false;
+
+    return rangesOverlap(candidateStart, candidateEnd, timeToMinutes(entry.startTime), timeToMinutes(entry.endTime));
+  });
 }
 
 function splitTime(value: string) {
@@ -180,7 +197,7 @@ function buildDayLayout(dayEntries: TimetableEntry[]): PositionedEntry[] {
       const startMinutes = timeToMinutes(entry.startTime);
       const endMinutes = timeToMinutes(entry.endTime);
       const top = clamp((startMinutes - GRID_START_MINUTES) * PIXELS_PER_MINUTE, 0, GRID_HEIGHT);
-      const height = clamp((endMinutes - startMinutes) * PIXELS_PER_MINUTE, 10, GRID_HEIGHT - top);
+      const height = clamp((endMinutes - startMinutes) * PIXELS_PER_MINUTE, 24, GRID_HEIGHT - top);
 
       return {
         entry,
@@ -312,41 +329,34 @@ function TimeSlotCard({
 }) {
   const kind = KIND_META[entry.kind];
   const Icon = kind.icon;
-  const compact = height < 45;
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className={cn(
-        "group absolute overflow-hidden rounded-[4px] border-y border-r border-l-[3px] border-y-[color:var(--border)] border-r-[color:var(--border)] text-left shadow-sm transition hover:-translate-y-0.5 focus:outline-none",
-        entry.kind === 'lecture' && 'border-l-[color:var(--accent)]',
-        entry.kind === 'lab' && 'border-l-emerald-400',
-        entry.kind === 'tutorial' && 'border-l-amber-400'
-      )}
+      className="group absolute overflow-hidden rounded-[6px] text-left transition hover:-translate-y-0.5 focus:outline-none"
       style={{
         top: `${top}px`,
         height: `${height}px`,
-        left: laneCount > 1 ? (laneIndex === 0 ? '0' : '50%') : '0',
+        left: laneCount > 1 ? `${laneIndex * 50}%` : 0,
+        right: laneCount > 1 ? 'auto' : 0,
         width: laneCount > 1 ? '50%' : '100%',
-        backgroundColor: 'var(--surface-med)',
+        minWidth: '55px',
       }}
     >
-      <div className="flex h-full min-w-0 flex-col gap-1 px-2 py-1.5">
-        <p className="min-w-0 truncate text-[12px] font-bold leading-tight text-[color:var(--text)]" title={module?.title ?? 'Module'}>
-          {module?.title ?? 'Module'}
+      <div className="absolute left-0 top-0 bottom-0 w-1" aria-hidden style={{ pointerEvents: 'none' }}>
+        <div className={cn(kind.accent, 'h-full w-full rounded-r')} />
+      </div>
+
+      <div className="flex h-full min-w-0 flex-col gap-2 bg-[color:var(--surface-high)]/60 px-3 py-2 pl-4">
+        <p className="min-w-0 break-words text-[14px] font-semibold leading-tight text-[color:var(--text)]">{module?.code ?? module?.title ?? 'Module'}</p>
+        <div className={cn('inline-flex w-fit items-center gap-1.5 rounded-full border px-2 py-0.5 text-[14px] font-medium leading-tight', kind.badge)}>
+          <Icon className="h-3.5 w-3.5" />
+          {kind.label}
+        </div>
+        <p className="text-[14px] font-medium leading-tight text-[color:var(--muted)] tabular-nums">
+          {formatTimeLabel(entry.startTime)} - {formatTimeLabel(entry.endTime)}
         </p>
-        {!compact ? (
-          <>
-            <div className={cn('inline-flex w-fit items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium leading-none', kind.badge)}>
-              <Icon className="h-3 w-3" />
-              {kind.label}
-            </div>
-            <p className="mt-auto whitespace-nowrap text-[11px] font-medium text-[color:var(--muted)]">
-              {formatTimeLabel(entry.startTime)} - {formatTimeLabel(entry.endTime)}
-            </p>
-          </>
-        ) : null}
       </div>
     </button>
   );
@@ -355,7 +365,7 @@ function TimeSlotCard({
 function TimeAxis() {
   const labels = useMemo(() => {
     const values: Array<{ label: string; top: number }> = [];
-    for (let hour = 9; hour <= 20; hour += 1) {
+    for (let hour = 8; hour <= 20; hour += 1) {
       const minutes = hour * 60;
       values.push({
         label: minutesToTime(minutes),
@@ -370,7 +380,7 @@ function TimeAxis() {
       {labels.map((label) => (
         <div
           key={label.top}
-          className="absolute right-1.5 -translate-y-1/2 text-[11px] text-[color:var(--muted)]"
+          className="absolute right-1.5 -translate-y-1/2 text-[12px] font-semibold tabular-nums text-[color:var(--text)]/90"
           style={{ top: `${label.top}px` }}
         >
           {label.label}
@@ -385,6 +395,8 @@ export default function Timetable({ modules, entries, onAddEntry, onUpdateEntry,
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<TimetableEntry | null>(null);
   const [editDraft, setEditDraft] = useState<Draft>(DEFAULT_DRAFT);
+  const [viewportWidth, setViewportWidth] = useState<number>(() => (typeof window !== 'undefined' ? window.innerWidth : 0));
+  const todayDayOfWeek = new Date().getDay();
 
   useEffect(() => {
     if (!draft.moduleId && modules[0]?.id) {
@@ -394,6 +406,22 @@ export default function Timetable({ modules, entries, onAddEntry, onUpdateEntry,
       setEditDraft((current) => ({ ...current, moduleId: modules[0].id }));
     }
   }, [draft.moduleId, editDraft.moduleId, modules]);
+
+  useEffect(() => {
+    let resizeTimer: ReturnType<typeof setTimeout> | null = null;
+    const onResize = () => {
+      if (resizeTimer) clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        setViewportWidth(window.innerWidth);
+      }, 120);
+    };
+
+    window.addEventListener('resize', onResize);
+    return () => {
+      window.removeEventListener('resize', onResize);
+      if (resizeTimer) clearTimeout(resizeTimer);
+    };
+  }, []);
 
   const entriesByDay = useMemo(() => {
     return DAY_TABS.reduce<Record<number, TimetableEntry[]>>((accumulator, day) => {
@@ -409,10 +437,14 @@ export default function Timetable({ modules, entries, onAddEntry, onUpdateEntry,
       accumulator[day.value] = buildDayLayout(entriesByDay[day.value] ?? []);
       return accumulator;
     }, {} as Record<number, PositionedEntry[]>);
-  }, [entriesByDay]);
+  }, [entriesByDay, viewportWidth]);
 
   const handleAdd = () => {
     if (!draft.moduleId) return;
+    if (hasTimetableConflict(entries, draft)) {
+      window.alert('This session overlaps another session on the same day.');
+      return;
+    }
     onAddEntry(draft);
     setIsAddModalOpen(false);
     setDraft({ ...DEFAULT_DRAFT, moduleId: modules[0]?.id ?? '', reminderMinutes: -1 });
@@ -442,6 +474,10 @@ export default function Timetable({ modules, entries, onAddEntry, onUpdateEntry,
 
   const saveEdit = () => {
     if (!editingEntry) return;
+    if (hasTimetableConflict(entries, editDraft, editingEntry.id)) {
+      window.alert('This update overlaps another session on the same day.');
+      return;
+    }
     onUpdateEntry(editingEntry.id, editDraft);
     setEditingEntry(null);
   };
@@ -468,37 +504,33 @@ export default function Timetable({ modules, entries, onAddEntry, onUpdateEntry,
         </div>
       </div>
 
-      <div className="rounded-3xl border border-white/10 bg-[color:var(--surface-low)] p-3 shadow-[0_0_0_1px_rgba(255,255,255,0.02)] sm:p-4">
-        <div className="flex items-center justify-between gap-3 px-1 pb-3">
-          <div>
-            <p className="text-[10px] uppercase tracking-[0.22em] text-[color:var(--muted)]">Weekly schedule</p>
-            <h2 className="text-sm font-semibold text-[color:var(--text)]">Days and class slots</h2>
-          </div>
-          <p className="text-xs text-[color:var(--muted)]">Tap a card to edit</p>
-        </div>
-
-        <div className="overflow-hidden rounded-3xl border border-[color:var(--border)]/40 bg-[color:var(--surface-low)]">
-          <div className="flex w-full min-w-0 overflow-hidden">
-            <div className="relative shrink-0" style={{ width: `${TIME_RAIL_WIDTH}px`, height: `${GRID_HEIGHT + COLUMN_HEADER_HEIGHT}px` }}>
-              <div className="h-[44px]" />
-              <div className="relative" style={{ height: `${GRID_HEIGHT}px` }}>
-                <TimeAxis />
-              </div>
+      <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface-low)] p-2 sm:p-3">
+        <div className="flex w-full min-w-0 gap-2 overflow-visible pt-1">
+          <div className="relative shrink-0 pr-1" style={{ width: `${TIME_RAIL_WIDTH}px`, height: `${GRID_HEIGHT + COLUMN_HEADER_HEIGHT}px` }}>
+            <div style={{ height: `${COLUMN_HEADER_HEIGHT}px` }} />
+            <div className="relative" style={{ height: `${GRID_HEIGHT}px` }}>
+              <TimeAxis />
             </div>
+          </div>
 
+          <div className="flex min-w-0 flex-1 overflow-visible rounded-2xl border border-[color:var(--border)]">
             {DAY_TABS.map((day) => {
               const positionedEntries = layoutsByDay[day.value] ?? [];
 
               return (
                 <div
                   key={day.value}
-                  className="relative flex min-w-0 flex-1 flex-col border-r border-[color:var(--border)]/30 last:border-r-0"
+                  className={cn(
+                    'relative flex min-w-0 flex-1 flex-col border-r border-[color:var(--border)]/20 last:border-r-0',
+                    day.value === todayDayOfWeek && 'bg-[color:var(--accent)]/4'
+                  )}
                   style={{ height: `${GRID_HEIGHT + COLUMN_HEADER_HEIGHT}px` }}
                 >
-                  <div className="flex h-[44px] items-center justify-between px-2">
+                  <div className={cn('flex h-[44px] items-center justify-between px-3 border-b border-[color:var(--border)]', day.value === todayDayOfWeek && 'border-b-[color:var(--accent)]/10') }>
                     <div className="min-w-0">
-                      <p className="text-[10px] uppercase tracking-[0.16em] text-[color:var(--muted)]">{day.label}</p>
-                      <p className="truncate text-sm font-semibold text-[color:var(--text)]">{formatDayLabel(day.value)}</p>
+                      <p className={cn('text-[10px] font-bold uppercase tracking-[0.2em] text-[color:var(--muted)]', day.value === todayDayOfWeek ? 'text-[color:var(--accent)]' : '')}>
+                        {day.label}
+                      </p>
                     </div>
                     <button
                       type="button"
@@ -518,7 +550,7 @@ export default function Timetable({ modules, entries, onAddEntry, onUpdateEntry,
                     }}
                   >
                     {positionedEntries.length === 0 ? (
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-3 text-center text-xs text-[color:var(--muted)]">
+                      <div className="absolute inset-0 flex items-start justify-center px-3 pt-4 text-center text-xs text-[color:var(--muted)]">
                         No classes yet.
                       </div>
                     ) : null}
