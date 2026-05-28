@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, Trash2, Clock, Edit2, GraduationCap, Beaker, Users } from 'lucide-react';
+import { Beaker, GraduationCap, Plus, Trash2, Users } from 'lucide-react';
 import { Module, TimetableEntry } from '../types';
 import { Button } from './ui/Button';
 import { Modal } from './ui/Modal';
+import { Select } from './ui/Input';
 import { cn } from '../lib/utils';
 import { formatDayLabel } from '../lib/timetable';
 
@@ -24,62 +25,35 @@ const DAY_TABS = [
   { label: 'Sun', value: 0 },
 ] as const;
 
+const GRID_START_MINUTES = 8 * 60 + 30;
+const GRID_END_MINUTES = 20 * 60 + 30;
+const PIXELS_PER_MINUTE = 1.1;
+const GRID_HEIGHT = (GRID_END_MINUTES - GRID_START_MINUTES) * PIXELS_PER_MINUTE;
+const COLUMN_HEADER_HEIGHT = 44;
+const TIME_RAIL_WIDTH = 50;
+
 const KIND_META = {
-  lecture: { label: 'Lecture' },
-  lab: { label: 'Lab' },
-  tutorial: { label: 'Tutorial' },
+  lecture: {
+    label: 'Lecture',
+    badge: 'bg-[color:var(--accent)]/15 text-[color:var(--accent)] border-[color:var(--accent)]/20',
+    accent: 'bg-[color:var(--accent)]',
+    icon: GraduationCap,
+  },
+  lab: {
+    label: 'Lab',
+    badge: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/20',
+    accent: 'bg-emerald-400',
+    icon: Beaker,
+  },
+  tutorial: {
+    label: 'Tutorial',
+    badge: 'bg-amber-500/15 text-amber-200 border-amber-500/20',
+    accent: 'bg-amber-400',
+    icon: Users,
+  },
 } as const;
 
 type Kind = keyof typeof KIND_META;
-
-// Timeline math configuration
-const TIMETABLE_START_MINUTES = 8 * 60 + 30; // 08:30 = 510 minutes
-const TIMETABLE_END_MINUTES = 20 * 60 + 30;  // 20:30 = 1230 minutes
-const PIXELS_PER_MINUTE = 1.5;                  // Scale factor
-const TIMELINE_HEIGHT = (TIMETABLE_END_MINUTES - TIMETABLE_START_MINUTES) * PIXELS_PER_MINUTE; // 1080px
-
-const COLOR_CLASSES = {
-  blue: {
-    bg: 'bg-[color:var(--module-blue-bg)]/20 hover:bg-[color:var(--module-blue-bg)]/35',
-    border: 'border-[color:var(--module-blue-border)]/20 hover:border-[color:var(--module-blue-border)]/60',
-    leftBar: 'bg-[color:var(--module-blue-text)]',
-    text: 'text-[color:var(--module-blue-text)]',
-    badge: 'bg-[color:var(--module-blue-bg)] text-[color:var(--module-blue-text)] border-[color:var(--module-blue-border)]/20',
-    glow: 'hover:shadow-[0_8px_30px_rgba(56,189,248,0.06)]',
-  },
-  amber: {
-    bg: 'bg-[color:var(--module-amber-bg)]/20 hover:bg-[color:var(--module-amber-bg)]/35',
-    border: 'border-[color:var(--module-amber-border)]/20 hover:border-[color:var(--module-amber-border)]/60',
-    leftBar: 'bg-[color:var(--module-amber-text)]',
-    text: 'text-[color:var(--module-amber-text)]',
-    badge: 'bg-[color:var(--module-amber-bg)] text-[color:var(--module-amber-text)] border-[color:var(--module-amber-border)]/20',
-    glow: 'hover:shadow-[0_8px_30px_rgba(251,191,36,0.06)]',
-  },
-  emerald: {
-    bg: 'bg-[color:var(--module-emerald-bg)]/20 hover:bg-[color:var(--module-emerald-bg)]/35',
-    border: 'border-[color:var(--module-emerald-border)]/20 hover:border-[color:var(--module-emerald-border)]/60',
-    leftBar: 'bg-[color:var(--module-emerald-text)]',
-    text: 'text-[color:var(--module-emerald-text)]',
-    badge: 'bg-[color:var(--module-emerald-bg)] text-[color:var(--module-emerald-text)] border-[color:var(--module-emerald-border)]/20',
-    glow: 'hover:shadow-[0_8px_30px_rgba(52,211,153,0.06)]',
-  },
-  purple: {
-    bg: 'bg-[color:var(--module-purple-bg)]/20 hover:bg-[color:var(--module-purple-bg)]/35',
-    border: 'border-[color:var(--module-purple-border)]/20 hover:border-[color:var(--module-purple-border)]/60',
-    leftBar: 'bg-[color:var(--module-purple-text)]',
-    text: 'text-[color:var(--module-purple-text)]',
-    badge: 'bg-[color:var(--module-purple-bg)] text-[color:var(--module-purple-text)] border-[color:var(--module-purple-border)]/20',
-    glow: 'hover:shadow-[0_8px_30px_rgba(139,92,246,0.06)]',
-  },
-  rose: {
-    bg: 'bg-[color:var(--module-rose-bg)]/20 hover:bg-[color:var(--module-rose-bg)]/35',
-    border: 'border-[color:var(--module-rose-border)]/20 hover:border-[color:var(--module-rose-border)]/60',
-    leftBar: 'bg-[color:var(--module-rose-text)]',
-    text: 'text-[color:var(--module-rose-text)]',
-    badge: 'bg-[color:var(--module-rose-bg)] text-[color:var(--module-rose-text)] border-[color:var(--module-rose-border)]/20',
-    glow: 'hover:shadow-[0_8px_30px_rgba(251,113,133,0.06)]',
-  },
-} as const;
 
 type Draft = {
   moduleId: string;
@@ -87,6 +61,7 @@ type Draft = {
   kind: Kind;
   startTime: string;
   endTime: string;
+  reminderMinutes: number;
 };
 
 const DEFAULT_DRAFT: Draft = {
@@ -95,18 +70,30 @@ const DEFAULT_DRAFT: Draft = {
   kind: 'lecture',
   startTime: '08:30',
   endTime: '10:00',
+  reminderMinutes: -1,
 };
 
-// --- Time Helpers ---
+const HOUR_OPTIONS = Array.from({ length: 13 }, (_, index) => String(8 + index).padStart(2, '0'));
+const MINUTE_OPTIONS = ['00', '15', '30', '45'];
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
 function timeToMinutes(value: string) {
   const [hoursRaw, minutesRaw] = value.split(':');
   return Number(hoursRaw || 0) * 60 + Number(minutesRaw || 0);
 }
 
 function minutesToTime(totalMinutes: number) {
-  const hours = Math.floor(totalMinutes / 60) % 24;
-  const minutes = totalMinutes % 60;
+  const normalized = ((totalMinutes % 1440) + 1440) % 1440;
+  const hours = Math.floor(normalized / 60);
+  const minutes = normalized % 60;
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+}
+
+function formatTimeLabel(value: string) {
+  return value;
 }
 
 function splitTime(value: string) {
@@ -117,40 +104,14 @@ function splitTime(value: string) {
   };
 }
 
-function getTopOffset(timeStr: string): number {
-  const minutes = timeToMinutes(timeStr);
-  const diff = minutes - TIMETABLE_START_MINUTES;
-  return diff * PIXELS_PER_MINUTE;
+function joinTime(hour: string, minute: string) {
+  return `${hour}:${minute}`;
 }
 
-function addMinutesToTime(timeStr: string, minsToAdd: number): string {
-  const mins = timeToMinutes(timeStr);
-  return minutesToTime(mins + minsToAdd);
+function getGridTop(timeValue: string) {
+  return (timeToMinutes(timeValue) - GRID_START_MINUTES) * PIXELS_PER_MINUTE;
 }
 
-// Get dates for the current week starting from Monday
-function getWeekDates() {
-  const now = new Date();
-  const currentDay = now.getDay();
-  const diffToMonday = currentDay === 0 ? -6 : 1 - currentDay;
-  const monday = new Date(now);
-  monday.setDate(now.getDate() + diffToMonday);
-
-  const dates: Record<number, { dateNum: number; formattedDate: string; isToday: boolean }> = {};
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(monday);
-    d.setDate(monday.getDate() + i);
-    const dayVal = d.getDay();
-    dates[dayVal] = {
-      dateNum: d.getDate(),
-      formattedDate: `${d.getDate()}/${String(d.getMonth() + 1).padStart(2, '0')}`,
-      isToday: d.toDateString() === now.toDateString(),
-    };
-  }
-  return dates;
-}
-
-// --- Layout Engine ---
 interface PositionedEntry {
   entry: TimetableEntry;
   top: number;
@@ -160,171 +121,148 @@ interface PositionedEntry {
 }
 
 function buildDayLayout(dayEntries: TimetableEntry[]): PositionedEntry[] {
-  const sorted = [...dayEntries].sort((a, b) => a.startTime.localeCompare(b.startTime));
+  const sorted = [...dayEntries].sort((left, right) => {
+    const startDifference = timeToMinutes(left.startTime) - timeToMinutes(right.startTime);
+    if (startDifference !== 0) return startDifference;
+    return timeToMinutes(left.endTime) - timeToMinutes(right.endTime);
+  });
+
   const clusters: TimetableEntry[][] = [];
+  let currentCluster: TimetableEntry[] = [];
+  let currentClusterEnd = -1;
 
   for (const entry of sorted) {
-    const lastCluster = clusters[clusters.length - 1];
-    if (!lastCluster) {
-      clusters.push([entry]);
+    const startMinutes = timeToMinutes(entry.startTime);
+    const endMinutes = timeToMinutes(entry.endTime);
+
+    if (currentCluster.length === 0 || startMinutes < currentClusterEnd) {
+      currentCluster.push(entry);
+      currentClusterEnd = Math.max(currentClusterEnd, endMinutes);
       continue;
     }
 
-    const clusterEnd = Math.max(...lastCluster.map((e) => timeToMinutes(e.endTime)));
-    if (timeToMinutes(entry.startTime) < clusterEnd) {
-      lastCluster.push(entry);
-    } else {
-      clusters.push([entry]);
-    }
+    clusters.push(currentCluster);
+    currentCluster = [entry];
+    currentClusterEnd = endMinutes;
+  }
+
+  if (currentCluster.length > 0) {
+    clusters.push(currentCluster);
   }
 
   return clusters.flatMap((cluster) => {
-    const lanes: TimetableEntry[][] = [];
+    const laneEndTimes: number[] = [];
+    const laneAssignments = new Map<string, number>();
 
     for (const entry of cluster) {
-      const laneIndex = lanes.findIndex((lane) =>
-        lane.every((laneEntry) =>
-          timeToMinutes(entry.startTime) >= timeToMinutes(laneEntry.endTime) ||
-          timeToMinutes(entry.endTime) <= timeToMinutes(laneEntry.startTime)
-        )
-      );
+      const startMinutes = timeToMinutes(entry.startTime);
+      const endMinutes = timeToMinutes(entry.endTime);
+      let laneIndex = laneEndTimes.findIndex((laneEnd) => laneEnd <= startMinutes);
+
       if (laneIndex === -1) {
-        lanes.push([entry]);
+        if (laneEndTimes.length < 2) {
+          laneIndex = laneEndTimes.length;
+          laneEndTimes.push(endMinutes);
+        } else {
+          laneIndex = laneEndTimes[0] <= laneEndTimes[1] ? 0 : 1;
+          laneEndTimes[laneIndex] = endMinutes;
+        }
       } else {
-        lanes[laneIndex].push(entry);
+        laneEndTimes[laneIndex] = endMinutes;
       }
+
+      laneAssignments.set(entry.id, laneIndex);
     }
 
-    const laneCount = Math.max(1, lanes.length);
+    const laneCount = cluster.length > 1 ? 2 : 1;
 
     return cluster.map((entry) => {
-      const laneIndex = lanes.findIndex((lane) => lane.includes(entry));
-      const startMins = timeToMinutes(entry.startTime);
-      const endMins = timeToMinutes(entry.endTime);
-      
-      const displayStart = Math.max(startMins, TIMETABLE_START_MINUTES);
-      const displayEnd = Math.min(endMins, TIMETABLE_END_MINUTES);
-      
-      const top = (displayStart - TIMETABLE_START_MINUTES) * PIXELS_PER_MINUTE;
-      const height = (displayEnd - displayStart) * PIXELS_PER_MINUTE;
+      const startMinutes = timeToMinutes(entry.startTime);
+      const endMinutes = timeToMinutes(entry.endTime);
+      const top = clamp((startMinutes - GRID_START_MINUTES) * PIXELS_PER_MINUTE, 0, GRID_HEIGHT);
+      const height = clamp((endMinutes - startMinutes) * PIXELS_PER_MINUTE, 10, GRID_HEIGHT - top);
 
       return {
         entry,
         top,
         height,
-        laneIndex: laneIndex < 0 ? 0 : laneIndex,
+        laneIndex: laneAssignments.get(entry.id) ?? 0,
         laneCount,
       };
     });
   });
 }
 
-// --- iOS-Style Snap Scroll Wheel ---
-interface ScrollWheelProps {
-  options: string[];
-  value: string;
-  onChange: (val: string) => void;
-}
+function ScrollWheel({ options, value, onChange }: { options: string[]; value: string; onChange: (value: string) => void }) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const scrollLockRef = useRef(false);
+  const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const itemHeight = 36;
 
-export function ScrollWheel({ options, value, onChange }: ScrollWheelProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isInternalScrollRef = useRef(false);
-  const isMountedRef = useRef(false);
-  const itemHeight = 40; // px
-
-  // Sync scroll position when value changes from outside
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-    
+
     const index = options.indexOf(value);
-    if (index === -1) return;
+    if (index < 0) return;
 
-    const targetScroll = index * itemHeight;
-    if (Math.abs(container.scrollTop - targetScroll) <= 2) return;
+    const targetTop = index * itemHeight;
+    if (Math.abs(container.scrollTop - targetTop) <= 2) return;
 
-    const performScroll = () => {
-      isInternalScrollRef.current = true;
-      container.scrollTo({ top: targetScroll, behavior: 'auto' });
-      requestAnimationFrame(() => {
-        setTimeout(() => {
-          isInternalScrollRef.current = false;
-        }, 50);
-      });
-    };
+    scrollLockRef.current = true;
+    container.scrollTo({ top: targetTop, behavior: 'auto' });
+    const timer = setTimeout(() => {
+      scrollLockRef.current = false;
+    }, 40);
 
-    // Use a delay for the very first scroll on mount to avoid parent modal scrolling / autofocus bugs
-    if (!isMountedRef.current) {
-      isMountedRef.current = true;
-      const timer = setTimeout(performScroll, 100);
-      return () => clearTimeout(timer);
-    } else {
-      performScroll();
-    }
-  }, [value, options]);
-
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    // If it's a programmatic scroll, don't trigger state updates
-    if (isInternalScrollRef.current) return;
-
-    const container = e.currentTarget;
-
-    // Clear previous timeout
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-
-    // Set timeout to detect scroll end
-    timeoutRef.current = setTimeout(() => {
-      const scrollTop = container.scrollTop;
-      const index = Math.round(scrollTop / itemHeight);
-      if (index >= 0 && index < options.length) {
-        const selected = options[index];
-        if (selected && selected !== value) {
-          onChange(selected);
-        }
-      }
-    }, 85); // Debounce to allow user to drag smoothly without rendering lockups
-  };
+    return () => clearTimeout(timer);
+  }, [itemHeight, options, value]);
 
   useEffect(() => {
     return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (settleTimerRef.current) {
+        clearTimeout(settleTimerRef.current);
+      }
     };
   }, []);
 
+  const handleScroll = (event: React.UIEvent<HTMLDivElement>) => {
+    if (scrollLockRef.current) return;
+
+    const container = event.currentTarget;
+    if (settleTimerRef.current) {
+      clearTimeout(settleTimerRef.current);
+    }
+
+    settleTimerRef.current = setTimeout(() => {
+      const selectedIndex = Math.round(container.scrollTop / itemHeight);
+      const selected = options[selectedIndex];
+      if (selected && selected !== value) {
+        onChange(selected);
+      }
+    }, 80);
+  };
+
   return (
-    <div className="relative h-[120px] w-20 overflow-hidden bg-[color:var(--surface)] rounded-2xl border border-[color:var(--border)] shadow-sm shrink-0">
-      {/* Center highlighter */}
-      <div className="absolute top-[40px] left-0 right-0 h-[40px] border-y border-[color:var(--accent)]/30 bg-[color:var(--accent)]/5 pointer-events-none" />
-      
-      {/* Fade overlay */}
-      <div className="absolute top-0 left-0 right-0 h-8 bg-gradient-to-b from-[color:var(--surface)] to-transparent pointer-events-none z-10" />
-      <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[color:var(--surface)] to-transparent pointer-events-none z-10" />
-      
-      {/* Scrollable list */}
-      <div
-        ref={containerRef}
-        onScroll={handleScroll}
-        className="h-full overflow-y-auto snap-y snap-mandatory py-10 no-scrollbar flex flex-col"
-        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-      >
+    <div className="relative h-[120px] w-[72px] overflow-hidden rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-med)] shadow-sm">
+      <div className="pointer-events-none absolute inset-x-0 top-[42px] h-[36px] border-y border-[color:var(--accent)]/20 bg-[color:var(--accent)]/5" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-[color:var(--surface-med)] to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[color:var(--surface-med)] to-transparent" />
+      <div ref={containerRef} onScroll={handleScroll} className="h-full overflow-y-auto py-[42px] no-scrollbar">
         {options.map((option) => {
-          const isActive = option === value;
+          const isSelected = option === value;
           return (
-            <div
+            <button
               key={option}
-              onClick={() => {
-                if (!isInternalScrollRef.current) onChange(option);
-              }}
+              type="button"
+              onClick={() => onChange(option)}
               className={cn(
-                "h-10 flex items-center justify-center text-sm font-semibold snap-center cursor-pointer select-none transition-colors duration-150 shrink-0",
-                isActive ? "text-[color:var(--accent)] text-base font-bold" : "text-[color:var(--muted)] hover:text-[color:var(--text)]"
+                'flex h-[36px] w-full items-center justify-center text-sm tabular-nums transition-colors',
+                isSelected ? 'font-bold text-[color:var(--accent)]' : 'text-[color:var(--muted)] hover:text-[color:var(--text)]'
               )}
             >
               {option}
-            </div>
+            </button>
           );
         })}
       </div>
@@ -332,192 +270,164 @@ export function ScrollWheel({ options, value, onChange }: ScrollWheelProps) {
   );
 }
 
-// --- Time Wheel Selector Combines Wheels ---
-interface TimeWheelPickerProps {
+function TimeWheelPicker({
+  label,
+  value,
+  onChange,
+}: {
   label: string;
   value: string;
-  onChange: (val: string) => void;
-}
-
-export function TimeWheelPicker({ label, value, onChange }: TimeWheelPickerProps) {
+  onChange: (value: string) => void;
+}) {
   const parts = splitTime(value);
 
-  // Visible slots range 08:00 to 21:00 to give flexibility in choosing times bordering the timeline range
-  const hours = useMemo(() => Array.from({ length: 14 }, (_, i) => String(8 + i).padStart(2, '0')), []);
-  const minutes = useMemo(() => Array.from({ length: 60 }, (_, i) => String(i).padStart(2, '0')), []);
-
-  const handleHourChange = (newHour: string) => {
-    onChange(`${newHour}:${parts.minute}`);
-  };
-
-  const handleMinuteChange = (newMinute: string) => {
-    onChange(`${parts.hour}:${newMinute}`);
-  };
-
   return (
-    <div className="flex items-center justify-between gap-4 w-full select-none">
-      <span className="text-sm font-semibold text-[color:var(--text)] pl-1">{label}</span>
-      <div className="flex items-center gap-2 shrink-0">
-        <ScrollWheel options={hours} value={parts.hour} onChange={handleHourChange} />
-        <span className="text-lg font-bold text-[color:var(--muted)] select-none px-1">:</span>
-        <ScrollWheel options={minutes} value={parts.minute} onChange={handleMinuteChange} />
+    <div className="space-y-1.5">
+      <span className="text-xs text-[color:var(--muted)]">{label}</span>
+      <div className="flex items-center gap-2">
+        <ScrollWheel options={HOUR_OPTIONS} value={parts.hour} onChange={(hour) => onChange(joinTime(hour, parts.minute))} />
+        <span className="text-lg font-semibold text-[color:var(--muted)]">:</span>
+        <ScrollWheel options={MINUTE_OPTIONS} value={parts.minute} onChange={(minute) => onChange(joinTime(parts.hour, minute))} />
       </div>
     </div>
   );
 }
 
-// --- Custom Module List Selector Component (No clipping, direct visual selects) ---
-interface ModuleSelectorProps {
-  modules: Module[];
-  selectedId: string;
-  onSelect: (id: string) => void;
+function TimeSlotCard({
+  entry,
+  module,
+  top,
+  height,
+  laneIndex,
+  laneCount,
+  onClick,
+}: {
+  entry: TimetableEntry;
+  module: Module | undefined;
+  top: number;
+  height: number;
+  laneIndex: number;
+  laneCount: number;
+  onClick: () => void;
+}) {
+  const kind = KIND_META[entry.kind];
+  const Icon = kind.icon;
+  const compact = height < 45;
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "group absolute overflow-hidden rounded-[4px] border-y border-r border-l-[3px] border-y-[color:var(--border)] border-r-[color:var(--border)] text-left shadow-sm transition hover:-translate-y-0.5 focus:outline-none",
+        entry.kind === 'lecture' && 'border-l-[color:var(--accent)]',
+        entry.kind === 'lab' && 'border-l-emerald-400',
+        entry.kind === 'tutorial' && 'border-l-amber-400'
+      )}
+      style={{
+        top: `${top}px`,
+        height: `${height}px`,
+        left: laneCount > 1 ? (laneIndex === 0 ? '0' : '50%') : '0',
+        width: laneCount > 1 ? '50%' : '100%',
+        backgroundColor: 'var(--surface-med)',
+      }}
+    >
+      <div className="flex h-full min-w-0 flex-col gap-1 px-2 py-1.5">
+        <p className="min-w-0 truncate text-[12px] font-bold leading-tight text-[color:var(--text)]" title={module?.title ?? 'Module'}>
+          {module?.title ?? 'Module'}
+        </p>
+        {!compact ? (
+          <>
+            <div className={cn('inline-flex w-fit items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium leading-none', kind.badge)}>
+              <Icon className="h-3 w-3" />
+              {kind.label}
+            </div>
+            <p className="mt-auto whitespace-nowrap text-[11px] font-medium text-[color:var(--muted)]">
+              {formatTimeLabel(entry.startTime)} - {formatTimeLabel(entry.endTime)}
+            </p>
+          </>
+        ) : null}
+      </div>
+    </button>
+  );
 }
 
-function ModuleSelectorList({ modules, selectedId, onSelect }: ModuleSelectorProps) {
+function TimeAxis() {
+  const labels = useMemo(() => {
+    const values: Array<{ label: string; top: number }> = [];
+    for (let hour = 9; hour <= 20; hour += 1) {
+      const minutes = hour * 60;
+      values.push({
+        label: minutesToTime(minutes),
+        top: (minutes - GRID_START_MINUTES) * PIXELS_PER_MINUTE,
+      });
+    }
+    return values;
+  }, []);
+
   return (
-    <div className="flex flex-col gap-1.5">
-      <span className="text-xs font-semibold text-[color:var(--muted)] pl-1">Academic module</span>
-      <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto pr-1 no-scrollbar" style={{ scrollbarWidth: 'none' }}>
-        {modules.length === 0 ? (
-          <div className="text-xs text-[color:var(--muted)] p-4 border border-dashed border-[color:var(--border)] rounded-2xl text-center">
-            No modules found. Please create modules in the Academic page.
-          </div>
-        ) : (
-          modules.map((m) => {
-            const isSelected = selectedId === m.id;
-            return (
-              <button
-                key={m.id}
-                type="button"
-                onClick={() => onSelect(m.id)}
-                className={cn(
-                  "flex items-center justify-between rounded-2xl border p-3 transition-all text-left w-full cursor-pointer",
-                  isSelected
-                    ? "bg-[color:var(--surface-high)] border-[color:var(--accent)] text-[color:var(--text)] shadow-sm"
-                    : "bg-[color:var(--surface)] border-[color:var(--border)] text-[color:var(--muted)] hover:text-[color:var(--text)] hover:border-[color:var(--border-focus)]/30"
-                )}
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className={cn(
-                    "w-2.5 h-2.5 rounded-full shrink-0 shadow-sm",
-                    m.color === 'blue' && 'bg-[color:var(--module-blue-text)]',
-                    m.color === 'amber' && 'bg-[color:var(--module-amber-text)]',
-                    m.color === 'emerald' && 'bg-[color:var(--module-emerald-text)]',
-                    m.color === 'purple' && 'bg-[color:var(--module-purple-text)]',
-                    m.color === 'rose' && 'bg-[color:var(--module-rose-text)]'
-                  )} />
-                  <span className="text-xs font-bold tracking-tight">{m.code}</span>
-                  <span className="text-xs opacity-75 truncate max-w-[220px] font-medium">{m.title}</span>
-                </div>
-                {isSelected && (
-                  <div className="w-1.5 h-1.5 rounded-full bg-[color:var(--accent)]" />
-                )}
-              </button>
-            );
-          })
-        )}
-      </div>
+    <div className="relative h-full w-full">
+      {labels.map((label) => (
+        <div
+          key={label.top}
+          className="absolute right-1.5 -translate-y-1/2 text-[11px] text-[color:var(--muted)]"
+          style={{ top: `${label.top}px` }}
+        >
+          {label.label}
+        </div>
+      ))}
     </div>
   );
 }
 
-// --- Main Timetable Component ---
-export default function Timetable({
-  modules,
-  entries,
-  onAddEntry,
-  onUpdateEntry,
-  onRemoveEntry,
-}: TimetableProps) {
+export default function Timetable({ modules, entries, onAddEntry, onUpdateEntry, onRemoveEntry }: TimetableProps) {
   const [draft, setDraft] = useState<Draft>(() => ({ ...DEFAULT_DRAFT, moduleId: modules[0]?.id ?? '' }));
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<TimetableEntry | null>(null);
   const [editDraft, setEditDraft] = useState<Draft>(DEFAULT_DRAFT);
-  const [now, setNow] = useState(() => new Date());
 
-  // Track system clock for live indicator line
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setNow(new Date());
-    }, 60000);
-    return () => clearInterval(timer);
-  }, []);
-
-  // Update default module selection when items list loads
   useEffect(() => {
     if (!draft.moduleId && modules[0]?.id) {
-      setDraft((curr) => ({ ...curr, moduleId: modules[0].id }));
+      setDraft((current) => ({ ...current, moduleId: modules[0].id }));
     }
     if (!editDraft.moduleId && modules[0]?.id) {
-      setEditDraft((curr) => ({ ...curr, moduleId: modules[0].id }));
+      setEditDraft((current) => ({ ...current, moduleId: modules[0].id }));
     }
-  }, [modules, draft.moduleId, editDraft.moduleId]);
+  }, [draft.moduleId, editDraft.moduleId, modules]);
 
-  // Organize elements by day
   const entriesByDay = useMemo(() => {
-    const map: Record<number, TimetableEntry[]> = { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 0: [] };
-    entries.forEach((e) => {
-      if (map[e.dayOfWeek]) {
-        map[e.dayOfWeek].push(e);
-      }
-    });
-    return map;
+    return DAY_TABS.reduce<Record<number, TimetableEntry[]>>((accumulator, day) => {
+      accumulator[day.value] = entries
+        .filter((entry) => entry.dayOfWeek === day.value)
+        .sort((left, right) => timeToMinutes(left.startTime) - timeToMinutes(right.startTime));
+      return accumulator;
+    }, {} as Record<number, TimetableEntry[]>);
   }, [entries]);
 
-  // Compute positioned layers
   const layoutsByDay = useMemo(() => {
-    const map: Record<number, PositionedEntry[]> = { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 0: [] };
-    DAY_TABS.forEach((day) => {
-      map[day.value] = buildDayLayout(entriesByDay[day.value] ?? []);
-    });
-    return map;
+    return DAY_TABS.reduce<Record<number, PositionedEntry[]>>((accumulator, day) => {
+      accumulator[day.value] = buildDayLayout(entriesByDay[day.value] ?? []);
+      return accumulator;
+    }, {} as Record<number, PositionedEntry[]>);
   }, [entriesByDay]);
 
-  const dates = useMemo(() => getWeekDates(), [now]);
-
-  // Generate background rule markings every 30 minutes
-  const timeSteps = useMemo(() => {
-    const steps = [];
-    for (let min = TIMETABLE_START_MINUTES; min <= TIMETABLE_END_MINUTES; min += 30) {
-      steps.push({
-        time: minutesToTime(min),
-        minutes: min,
-      });
-    }
-    return steps;
-  }, []);
-
-  // Add event handler
   const handleAdd = () => {
     if (!draft.moduleId) return;
-    try {
-      onAddEntry({
-        moduleId: draft.moduleId,
-        dayOfWeek: draft.dayOfWeek,
-        kind: draft.kind,
-        startTime: draft.startTime,
-        endTime: draft.endTime,
-        reminderMinutes: -1, // default reminders disabled
-      });
-      setIsAddModalOpen(false);
-    } catch (err) {
-      console.error('Failed to add timetable slot:', err);
-    }
+    onAddEntry(draft);
+    setIsAddModalOpen(false);
+    setDraft({ ...DEFAULT_DRAFT, moduleId: modules[0]?.id ?? '', reminderMinutes: -1 });
   };
 
-  // Open add popover pre-assigning day value
   const openAdd = (dayOfWeek: number) => {
     setDraft({
+      ...DEFAULT_DRAFT,
       moduleId: modules[0]?.id ?? '',
       dayOfWeek,
-      kind: 'lecture',
-      startTime: '08:30',
-      endTime: '10:00',
+      reminderMinutes: -1,
     });
     setIsAddModalOpen(true);
   };
 
-  // Open edit modal
   const openEdit = (entry: TimetableEntry) => {
     setEditingEntry(entry);
     setEditDraft({
@@ -526,496 +436,235 @@ export default function Timetable({
       kind: entry.kind,
       startTime: entry.startTime,
       endTime: entry.endTime,
+      reminderMinutes: entry.reminderMinutes,
     });
   };
 
-  // Save changes
   const saveEdit = () => {
     if (!editingEntry) return;
-    try {
-      onUpdateEntry(editingEntry.id, {
-        moduleId: editDraft.moduleId,
-        dayOfWeek: editDraft.dayOfWeek,
-        kind: editDraft.kind,
-        startTime: editDraft.startTime,
-        endTime: editDraft.endTime,
-        reminderMinutes: -1,
-      });
-      setEditingEntry(null);
-    } catch (err) {
-      console.error('Failed to update timetable slot:', err);
-    }
+    onUpdateEntry(editingEntry.id, editDraft);
+    setEditingEntry(null);
   };
 
-  // Remove entry
   const removeEdit = () => {
     if (!editingEntry) return;
-    try {
-      onRemoveEntry(editingEntry.id);
-      setEditingEntry(null);
-    } catch (err) {
-      console.error('Failed to delete timetable slot:', err);
-    }
-  };
-
-  // Safe handlers to prevent overlap issues
-  const handleDraftStartChange = (val: string) => {
-    setDraft((curr) => {
-      const updates: Partial<Draft> = { startTime: val };
-      if (timeToMinutes(val) >= timeToMinutes(curr.endTime)) {
-        updates.endTime = addMinutesToTime(val, 90);
-      }
-      return { ...curr, ...updates };
-    });
-  };
-
-  const handleDraftEndChange = (val: string) => {
-    setDraft((curr) => {
-      const updates: Partial<Draft> = { endTime: val };
-      if (timeToMinutes(val) <= timeToMinutes(curr.startTime)) {
-        updates.startTime = addMinutesToTime(val, -90);
-      }
-      return { ...curr, ...updates };
-    });
-  };
-
-  const handleEditDraftStartChange = (val: string) => {
-    setEditDraft((curr) => {
-      const updates: Partial<Draft> = { startTime: val };
-      if (timeToMinutes(val) >= timeToMinutes(curr.endTime)) {
-        updates.endTime = addMinutesToTime(val, 90);
-      }
-      return { ...curr, ...updates };
-    });
-  };
-
-  const handleEditDraftEndChange = (val: string) => {
-    setEditDraft((curr) => {
-      const updates: Partial<Draft> = { endTime: val };
-      if (timeToMinutes(val) <= timeToMinutes(curr.startTime)) {
-        updates.startTime = addMinutesToTime(val, -90);
-      }
-      return { ...curr, ...updates };
-    });
-  };
-
-  // Time indicator math
-  const nowMins = now.getHours() * 60 + now.getMinutes();
-  const showTimeIndicator = nowMins >= TIMETABLE_START_MINUTES && nowMins <= TIMETABLE_END_MINUTES;
-  const timeIndicatorTop = showTimeIndicator ? (nowMins - TIMETABLE_START_MINUTES) * PIXELS_PER_MINUTE : 0;
-  const todayDayIndex = now.getDay(); // 0 is Sunday, 1 is Monday
-
-  // Dynamic Lucide type icons inside cards (matching reference icons)
-  const getIcon = (kind: Kind) => {
-    switch (kind) {
-      case 'lecture':
-        return <GraduationCap className="h-4 w-4 shrink-0" />;
-      case 'lab':
-        return <Beaker className="h-4 w-4 shrink-0" />;
-      case 'tutorial':
-        return <Users className="h-4 w-4 shrink-0" />;
-    }
+    onRemoveEntry(editingEntry.id);
+    setEditingEntry(null);
   };
 
   return (
-    <div className="space-y-6">
-      {/* Page Header aligned with Reference Image */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between border-b border-[color:var(--border)]/35 pb-5">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight text-[color:var(--text)] font-heading">
-            Stay up to date, Loch
-          </h1>
-          <p className="text-sm text-[color:var(--muted)]">
-            Overview of your academic calendar schedule and weekly modules.
+    <div className="space-y-5">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div className="space-y-2">
+          <p className="text-[10px] uppercase tracking-[0.24em] text-[color:var(--muted)]">Workspace</p>
+          <h1 className="text-3xl font-semibold tracking-tight text-[color:var(--text)]">Timetable</h1>
+          <p className="max-w-2xl text-sm text-[color:var(--muted)]">
+            Pick a module, choose lecture, lab, or tutorial, and add the weekly slot. Click a card to edit or delete it.
           </p>
         </div>
-        
-        {/* Aligning Tools */}
-        <div className="flex flex-wrap items-center gap-3">
-          <Button onClick={() => openAdd(1)} leftIcon={<Plus className="h-4.5 w-4.5" />} variant="primary">
-            Add slot
-          </Button>
+        <div className="flex flex-wrap gap-2 text-xs text-[color:var(--muted)]">
+          <span className="rounded-full border border-[color:var(--border)] bg-[color:var(--surface-med)] px-3 py-1.5">{modules.length} modules</span>
+          <span className="rounded-full border border-[color:var(--border)] bg-[color:var(--surface-med)] px-3 py-1.5">{entries.length} weekly slots</span>
         </div>
       </div>
 
-      {/* Main Grid Wrapper */}
-      <div className="rounded-[2.2rem] border border-[color:var(--border)] bg-[color:var(--surface-low)]/20 p-2 shadow-2xl backdrop-blur-md">
-        {/* Horizontal & Vertical Scroll Area */}
-        <div className="overflow-x-auto overflow-y-auto no-scrollbar max-h-[calc(100vh-260px)] rounded-[1.8rem] relative">
-          <div className="w-full min-w-0 relative flex flex-col select-none">
-            
-            {/* Sticky Header Row */}
-            <div className="sticky top-0 z-30 flex bg-[color:var(--surface-low)] border-b border-[color:var(--border)] shrink-0 shadow-sm">
-              {/* Top-left spacer intersection */}
-              <div className="w-[60px] shrink-0 border-r border-[color:var(--border)]/40 bg-[color:var(--surface-low)] sticky left-0 z-40" />
-              
-              {/* Days header list */}
-              <div className="flex-1 flex">
-                {DAY_TABS.map((day) => {
-                  const dateInfo = dates[day.value];
-                  const isToday = dateInfo?.isToday ?? false;
-                  return (
-                    <div
-                      key={day.value}
-                      className={cn(
-                        "flex-1 min-w-[80px] group/header relative py-4 flex flex-col items-center justify-center border-r border-[color:var(--border)]/15 last:border-r-0 text-center"
-                      )}
-                    >
-                      <span className={cn(
-                        "text-[10px] font-bold uppercase tracking-wider",
-                        isToday ? "text-[color:var(--accent)] font-extrabold" : "text-[color:var(--muted)]"
-                      )}>
-                        {day.label}
-                      </span>
-                      <span className={cn(
-                        "text-sm font-bold mt-1 px-3 py-0.5 rounded-full select-none",
-                        isToday ? "bg-[color:var(--accent)] text-white shadow-md shadow-[color:var(--accent)]/30" : "text-[color:var(--text)]"
-                      )}>
-                        {dateInfo?.dateNum ?? formatDayLabel(day.value).substring(0, 3)}
-                      </span>
-                      
-                      {/* Hover action add shortcut button */}
-                      <button
-                        onClick={() => openAdd(day.value)}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 opacity-0 group-hover/header:opacity-100 transition-opacity p-1.5 rounded-xl hover:bg-[color:var(--surface)] text-[color:var(--muted)] hover:text-[color:var(--text)] cursor-pointer"
-                        title={`Add class for ${day.label}`}
-                      >
-                        <Plus className="h-4.5 w-4.5" />
-                      </button>
-                    </div>
-                  );
-                })}
+      <div className="rounded-3xl border border-white/10 bg-[color:var(--surface-low)] p-3 shadow-[0_0_0_1px_rgba(255,255,255,0.02)] sm:p-4">
+        <div className="flex items-center justify-between gap-3 px-1 pb-3">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.22em] text-[color:var(--muted)]">Weekly schedule</p>
+            <h2 className="text-sm font-semibold text-[color:var(--text)]">Days and class slots</h2>
+          </div>
+          <p className="text-xs text-[color:var(--muted)]">Tap a card to edit</p>
+        </div>
+
+        <div className="overflow-hidden rounded-3xl border border-[color:var(--border)]/40 bg-[color:var(--surface-low)]">
+          <div className="flex w-full min-w-0 overflow-hidden">
+            <div className="relative shrink-0" style={{ width: `${TIME_RAIL_WIDTH}px`, height: `${GRID_HEIGHT + COLUMN_HEADER_HEIGHT}px` }}>
+              <div className="h-[44px]" />
+              <div className="relative" style={{ height: `${GRID_HEIGHT}px` }}>
+                <TimeAxis />
               </div>
             </div>
 
-            {/* Continuous Grid Body */}
-            <div className="flex relative shrink-0" style={{ height: `${TIMELINE_HEIGHT}px`, minHeight: `${TIMELINE_HEIGHT}px` }}>
-              
-              {/* Left Sticky Time Axis Rail */}
-              <div className="w-[60px] shrink-0 sticky left-0 z-20 bg-[color:var(--surface-low)] border-r border-[color:var(--border)]/40 relative select-none">
-                {timeSteps.map((step) => {
-                  const top = getTopOffset(step.time);
-                  const isHour = step.minutes % 60 === 0;
-                  return (
-                    <div
-                      key={step.time}
-                      className="absolute right-2.5 -translate-y-1/2 flex items-center justify-end"
-                      style={{ top: `${top}px` }}
-                    >
-                      <span className={cn(
-                        "font-medium tabular-nums text-right block w-full",
-                        isHour ? "text-xs font-semibold text-[color:var(--text)]/85" : "text-[10px] text-[color:var(--muted)]/50 font-normal"
-                      )}>
-                        {isHour ? step.time : ":30"}
-                      </span>
+            {DAY_TABS.map((day) => {
+              const positionedEntries = layoutsByDay[day.value] ?? [];
+
+              return (
+                <div
+                  key={day.value}
+                  className="relative flex min-w-0 flex-1 flex-col border-r border-[color:var(--border)]/30 last:border-r-0"
+                  style={{ height: `${GRID_HEIGHT + COLUMN_HEADER_HEIGHT}px` }}
+                >
+                  <div className="flex h-[44px] items-center justify-between px-2">
+                    <div className="min-w-0">
+                      <p className="text-[10px] uppercase tracking-[0.16em] text-[color:var(--muted)]">{day.label}</p>
+                      <p className="truncate text-sm font-semibold text-[color:var(--text)]">{formatDayLabel(day.value)}</p>
                     </div>
-                  );
-                })}
-                
-                {/* Current Time Axis Badge overlay */}
-                {showTimeIndicator && (
-                  <div
-                    className="absolute right-1 -translate-y-1/2 bg-rose-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow shadow-rose-500/30 z-20 pointer-events-none tabular-nums animate-pulse"
-                    style={{ top: `${timeIndicatorTop}px` }}
-                  >
-                    {String(now.getHours()).padStart(2, '0')}:{String(now.getMinutes()).padStart(2, '0')}
+                    <button
+                      type="button"
+                      onClick={() => openAdd(day.value)}
+                      className="inline-flex h-8 shrink-0 items-center justify-center rounded-full border border-dashed border-[color:var(--border)]/45 bg-transparent px-3 text-[11px] font-semibold text-[color:var(--muted)] transition hover:border-[color:var(--accent)]/35 hover:text-[color:var(--text)]"
+                      aria-label={`Add slot for ${formatDayLabel(day.value)}`}
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                    </button>
                   </div>
-                )}
-              </div>
 
-              {/* Day columns & Cards area */}
-              <div className="flex-1 flex relative">
-                
-                {/* Horizontal guide line grids */}
-                <div className="absolute inset-0 pointer-events-none z-0">
-                  {timeSteps.map((step) => {
-                    const top = getTopOffset(step.time);
-                    const isHour = step.minutes % 60 === 0;
-                    return (
-                      <div
-                        key={step.time}
-                        className={cn(
-                          "absolute left-0 right-0 border-t",
-                          isHour ? "border-[color:var(--border)]/30" : "border-[color:var(--border)]/10 border-dashed"
-                        )}
-                        style={{ top: `${top}px` }}
-                      />
-                    );
-                  })}
-                </div>
-
-                {/* Live clock horizontal line marker */}
-                {showTimeIndicator && (
                   <div
-                    className="absolute left-0 right-0 border-t-2 border-rose-500/60 pointer-events-none z-10 shadow-sm"
-                    style={{ top: `${timeIndicatorTop}px` }}
-                  />
-                )}
+                    className="relative"
+                    style={{
+                      height: `${GRID_HEIGHT}px`,
+                      background: 'transparent',
+                    }}
+                  >
+                    {positionedEntries.length === 0 ? (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-3 text-center text-xs text-[color:var(--muted)]">
+                        No classes yet.
+                      </div>
+                    ) : null}
 
-                {/* Vertical Day Columns containing events */}
-                {DAY_TABS.map((day) => {
-                  const positionedEntries = layoutsByDay[day.value] ?? [];
-                  return (
-                    <div
-                      key={day.value}
-                      onClick={(e) => {
-                        if (e.target === e.currentTarget) {
-                          openAdd(day.value);
-                        }
-                      }}
-                      className="flex-1 min-w-[80px] relative h-full border-r border-[color:var(--border)]/15 last:border-r-0 hover:bg-white/[0.005] transition-colors cursor-pointer group"
-                    >
-                      {/* Pulsing indicator marker dot at intersection */}
-                      {showTimeIndicator && day.value === todayDayIndex && (
-                        <div
-                          className="absolute left-0 w-2.5 h-2.5 -translate-x-1.5 -translate-y-1 rounded-full bg-rose-500 shadow shadow-rose-500/50 animate-pulse pointer-events-none z-20"
-                          style={{ top: `${timeIndicatorTop}px` }}
+                    {positionedEntries.map(({ entry, top, height, laneIndex, laneCount }) => {
+                      const module = modules.find((moduleEntry) => moduleEntry.id === entry.moduleId);
+
+                      return (
+                        <TimeSlotCard
+                          key={entry.id}
+                          entry={entry}
+                          module={module}
+                          top={top}
+                          height={height}
+                          laneIndex={laneIndex}
+                          laneCount={laneCount}
+                          onClick={() => openEdit(entry)}
                         />
-                      )}
-
-                      {/* Render absolute positioned session cards */}
-                      {positionedEntries.map(({ entry, top, height, laneIndex, laneCount }) => {
-                        const module = modules.find((m) => m.id === entry.moduleId);
-                        const colorKey = module?.color ?? 'blue';
-                        const colors = COLOR_CLASSES[colorKey] ?? COLOR_CLASSES.blue;
-                        
-                        const currentMinutes = now.getHours() * 60 + now.getMinutes();
-                        const startMinutes = timeToMinutes(entry.startTime);
-                        const endMinutes = timeToMinutes(entry.endTime);
-                        const isActiveNow = day.value === todayDayIndex && currentMinutes >= startMinutes && currentMinutes <= endMinutes;
-
-                        return (
-                          <button
-                            key={entry.id}
-                            type="button"
-                            onClick={() => openEdit(entry)}
-                            className={cn(
-                              "absolute rounded-2xl border text-left pl-4 pr-3 py-3 flex flex-col justify-between overflow-hidden transition-all duration-200 group/card",
-                              "hover:scale-[1.01] hover:-translate-y-0.5 shadow-sm active:scale-[0.99]",
-                              colors.bg,
-                              colors.border,
-                              colors.glow,
-                              "cursor-pointer"
-                            )}
-                            style={{
-                              top: `${top}px`,
-                              height: `${height}px`,
-                              left: `calc(${(laneIndex * 100) / laneCount}% + 3px)`,
-                              width: `calc(${100 / laneCount}% - 6px)`,
-                              zIndex: 10 + laneIndex,
-                            }}
-                          >
-                            <div className="flex flex-col h-full justify-between w-full relative min-w-0">
-                              {/* Left vertical color bar - Notion/Apple Calendar style */}
-                              <div className={cn("absolute left-[-16px] top-[-12px] bottom-[-12px] w-1 rounded-l-2xl", colors.leftBar)} />
-
-                              <div className="flex flex-col gap-1 w-full flex-1 min-w-0">
-                                {/* Header type badge & edit icon */}
-                                <div className="flex items-center justify-between gap-1 w-full shrink-0 min-w-0">
-                                  <div className={cn("flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider min-w-0", colors.text)} title={entry.kind}>
-                                    {getIcon(entry.kind)}
-                                    <span className="hidden sm:inline truncate">{entry.kind}</span>
-                                  </div>
-                                  
-                                  {isActiveNow && (
-                                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shrink-0" />
-                                  )}
-                                </div>
-
-                                {/* Title / Module code */}
-                                <div className="min-w-0 flex-1 my-0.5 flex flex-col justify-center">
-                                  <p className="text-xs sm:text-sm font-bold text-[color:var(--text)] truncate tracking-tight" title={module ? `${module.code} - ${module.title}` : 'Module'}>
-                                    {module ? module.code : 'Module'}
-                                  </p>
-                                  {height > 65 && module && (
-                                    <p className="text-[10px] text-[color:var(--muted)] truncate font-semibold">
-                                      {module.title}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* Time Range footer */}
-                              <div className="flex items-center gap-1 text-[9px] sm:text-[10px] font-bold text-[color:var(--muted)] shrink-0 pt-1 border-t border-[color:var(--border)]/10 min-w-0">
-                                <span className="tabular-nums truncate">{entry.startTime} - {entry.endTime}</span>
-                              </div>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
 
-      {/* --- ADD TIMETABLE SLOT MODAL --- */}
       <Modal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        title="Add class slot"
-        subtitle="Set standard weekly class timing parameters"
-        maxWidthClassName="max-w-md"
+        title="Add timetable slot"
+        subtitle={`Add a class for ${formatDayLabel(draft.dayOfWeek)}`}
+        maxWidthClassName="max-w-2xl"
       >
-        <div className="space-y-5">
-          {/* Custom Module List Selector (Resolves bad native select contrast & empty options) */}
-          <ModuleSelectorList
-            modules={modules}
-            selectedId={draft.moduleId}
-            onSelect={(id) => setDraft((curr) => ({ ...curr, moduleId: id }))}
-          />
+        <div className="space-y-4">
+          <label className="block space-y-1.5">
+            <span className="text-xs text-[color:var(--muted)]">Academic module</span>
+            <Select value={draft.moduleId} onChange={(event) => setDraft((current) => ({ ...current, moduleId: event.target.value }))}>
+              <option value="">Select a module</option>
+              {modules.map((module) => (
+                <option key={module.id} value={module.id}>
+                  {module.code} - {module.title}
+                </option>
+              ))}
+            </Select>
+          </label>
 
-          {/* Segmented Weekday Pill Bar */}
-          <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-semibold text-[color:var(--muted)] pl-1">Day of the week</span>
-            <div className="flex rounded-2xl bg-[color:var(--surface)] border border-[color:var(--border)] p-1 gap-1 justify-between select-none">
-              {DAY_TABS.map((day) => {
-                const isActive = draft.dayOfWeek === day.value;
-                return (
-                  <button
-                    key={day.value}
-                    type="button"
-                    onClick={() => setDraft((curr) => ({ ...curr, dayOfWeek: day.value }))}
-                    className={cn(
-                      "w-9 h-9 flex items-center justify-center text-xs font-bold rounded-xl transition-all cursor-pointer",
-                      isActive
-                        ? "bg-[color:var(--accent)] text-white shadow-sm font-extrabold"
-                        : "text-[color:var(--muted)] hover:text-[color:var(--text)] hover:bg-[color:var(--surface-high)]/60"
-                    )}
-                    title={formatDayLabel(day.value)}
-                  >
-                    {day.label[0]}
-                  </button>
-                );
-              })}
-            </div>
+          <div className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-med)] p-3">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-[color:var(--muted)]">Selected day</p>
+            <p className="mt-1 text-sm font-semibold text-[color:var(--text)]">{formatDayLabel(draft.dayOfWeek)}</p>
           </div>
 
-          {/* Segmented Class Type selector */}
-          <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-semibold text-[color:var(--muted)] pl-1">Class type</span>
-            <div className="flex rounded-2xl bg-[color:var(--surface)] border border-[color:var(--border)] p-1 gap-1 select-none">
-              {(['lecture', 'lab', 'tutorial'] as Kind[]).map((kind) => {
-                const isActive = draft.kind === kind;
-                return (
-                  <button
-                    key={kind}
-                    type="button"
-                    onClick={() => setDraft((curr) => ({ ...curr, kind }))}
-                    className={cn(
-                      "flex-1 py-2 text-xs font-semibold rounded-xl capitalize transition-all cursor-pointer",
-                      isActive
-                        ? "bg-[color:var(--surface-high)] text-[color:var(--text)] border border-[color:var(--border)]/30 shadow-sm"
-                        : "text-[color:var(--muted)] hover:text-[color:var(--text)]"
-                    )}
-                  >
-                    {kind}
-                  </button>
-                );
-              })}
-            </div>
+          <label className="block space-y-1.5">
+            <span className="text-xs text-[color:var(--muted)]">Class type</span>
+            <Select value={draft.kind} onChange={(event) => setDraft((current) => ({ ...current, kind: event.target.value as Kind }))}>
+              <option value="lecture">Lecture</option>
+              <option value="lab">Lab</option>
+              <option value="tutorial">Tutorial</option>
+            </Select>
+          </label>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TimeWheelPicker label="Start time" value={draft.startTime} onChange={(value) => setDraft((current) => ({ ...current, startTime: value }))} />
+            <TimeWheelPicker label="End time" value={draft.endTime} onChange={(value) => setDraft((current) => ({ ...current, endTime: value }))} />
           </div>
 
-          {/* iOS-Style Wheel Picker for Times (Stacked vertically to prevent overflow and squishing) */}
-          <div className="flex flex-col gap-4 p-4 bg-[color:var(--surface)] border border-[color:var(--border)] rounded-2xl">
-            <TimeWheelPicker label="Start Time" value={draft.startTime} onChange={handleDraftStartChange} />
-            <div className="border-t border-[color:var(--border)]/15 my-0.5" />
-            <TimeWheelPicker label="End Time" value={draft.endTime} onChange={handleDraftEndChange} />
-          </div>
+          <label className="block space-y-1.5">
+            <span className="text-xs text-[color:var(--muted)]">Reminder offset</span>
+            <Select
+              value={draft.reminderMinutes}
+              onChange={(event) => setDraft((current) => ({ ...current, reminderMinutes: Number(event.target.value) }))}
+            >
+              <option value={-1}>Off</option>
+              <option value={0}>At class time</option>
+              <option value={15}>15 minutes before</option>
+              <option value={30}>30 minutes before</option>
+              <option value={60}>1 hour before</option>
+              <option value={1440}>1 day before</option>
+            </Select>
+          </label>
 
-          <div className="flex gap-3 pt-2">
-            <Button onClick={handleAdd} variant="primary" className="flex-1 font-semibold" disabled={!draft.moduleId}>
+          <div className="flex gap-2 pt-2">
+            <Button onClick={handleAdd} variant="secondary" className="flex-1">
               Add class slot
             </Button>
-            <Button onClick={() => setIsAddModalOpen(false)} variant="secondary" className="font-semibold">
+            <Button onClick={() => setIsAddModalOpen(false)} variant="ghost">
               Cancel
             </Button>
           </div>
         </div>
       </Modal>
 
-      {/* --- EDIT TIMETABLE SLOT MODAL --- */}
       <Modal
         isOpen={editingEntry !== null}
         onClose={() => setEditingEntry(null)}
         title="Edit timetable slot"
-        subtitle="Modify settings or delete this class slot"
-        maxWidthClassName="max-w-md"
+        subtitle="Update or remove this class slot"
+        maxWidthClassName="max-w-2xl"
       >
-        <div className="space-y-5">
-          {/* Custom Module Selector */}
-          <ModuleSelectorList
-            modules={modules}
-            selectedId={editDraft.moduleId}
-            onSelect={(id) => setEditDraft((curr) => ({ ...curr, moduleId: id }))}
-          />
+        <div className="space-y-4">
+          <label className="block space-y-1.5">
+            <span className="text-xs text-[color:var(--muted)]">Academic module</span>
+            <Select value={editDraft.moduleId} onChange={(event) => setEditDraft((current) => ({ ...current, moduleId: event.target.value }))}>
+              {modules.map((module) => (
+                <option key={module.id} value={module.id}>
+                  {module.code} - {module.title}
+                </option>
+              ))}
+            </Select>
+          </label>
 
-          {/* Segmented Weekday Pill Bar */}
-          <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-semibold text-[color:var(--muted)] pl-1">Day of the week</span>
-            <div className="flex rounded-2xl bg-[color:var(--surface)] border border-[color:var(--border)] p-1 gap-1 justify-between select-none">
-              {DAY_TABS.map((day) => {
-                const isActive = editDraft.dayOfWeek === day.value;
-                return (
-                  <button
-                    key={day.value}
-                    type="button"
-                    onClick={() => setEditDraft((curr) => ({ ...curr, dayOfWeek: day.value }))}
-                    className={cn(
-                      "w-9 h-9 flex items-center justify-center text-xs font-bold rounded-xl transition-all cursor-pointer",
-                      isActive
-                        ? "bg-[color:var(--accent)] text-white shadow-sm font-extrabold"
-                        : "text-[color:var(--muted)] hover:text-[color:var(--text)] hover:bg-[color:var(--surface-high)]/60"
-                    )}
-                    title={formatDayLabel(day.value)}
-                  >
-                    {day.label[0]}
-                  </button>
-                );
-              })}
-            </div>
+          <label className="block space-y-1.5">
+            <span className="text-xs text-[color:var(--muted)]">Class type</span>
+            <Select value={editDraft.kind} onChange={(event) => setEditDraft((current) => ({ ...current, kind: event.target.value as Kind }))}>
+              <option value="lecture">Lecture</option>
+              <option value="lab">Lab</option>
+              <option value="tutorial">Tutorial</option>
+            </Select>
+          </label>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <TimeWheelPicker label="Start time" value={editDraft.startTime} onChange={(value) => setEditDraft((current) => ({ ...current, startTime: value }))} />
+            <TimeWheelPicker label="End time" value={editDraft.endTime} onChange={(value) => setEditDraft((current) => ({ ...current, endTime: value }))} />
           </div>
 
-          {/* Segmented Class Type selector */}
-          <div className="flex flex-col gap-1.5">
-            <span className="text-xs font-semibold text-[color:var(--muted)] pl-1">Class type</span>
-            <div className="flex rounded-2xl bg-[color:var(--surface)] border border-[color:var(--border)] p-1 gap-1 select-none">
-              {(['lecture', 'lab', 'tutorial'] as Kind[]).map((kind) => {
-                const isActive = editDraft.kind === kind;
-                return (
-                  <button
-                    key={kind}
-                    type="button"
-                    onClick={() => setEditDraft((curr) => ({ ...curr, kind }))}
-                    className={cn(
-                      "flex-1 py-2 text-xs font-semibold rounded-xl capitalize transition-all cursor-pointer",
-                      isActive
-                        ? "bg-[color:var(--surface-high)] text-[color:var(--text)] border border-[color:var(--border)]/30 shadow-sm"
-                        : "text-[color:var(--muted)] hover:text-[color:var(--text)]"
-                    )}
-                  >
-                    {kind}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          <label className="block space-y-1.5">
+            <span className="text-xs text-[color:var(--muted)]">Reminder offset</span>
+            <Select
+              value={editDraft.reminderMinutes}
+              onChange={(event) => setEditDraft((current) => ({ ...current, reminderMinutes: Number(event.target.value) }))}
+            >
+              <option value={-1}>Off</option>
+              <option value={0}>At class time</option>
+              <option value={15}>15 minutes before</option>
+              <option value={30}>30 minutes before</option>
+              <option value={60}>1 hour before</option>
+              <option value={1440}>1 day before</option>
+            </Select>
+          </label>
 
-          {/* iOS-Style Wheel Picker for Times (Stacked vertically to prevent overflow and squishing) */}
-          <div className="flex flex-col gap-4 p-4 bg-[color:var(--surface)] border border-[color:var(--border)] rounded-2xl">
-            <TimeWheelPicker label="Start Time" value={editDraft.startTime} onChange={handleEditDraftStartChange} />
-            <div className="border-t border-[color:var(--border)]/15 my-0.5" />
-            <TimeWheelPicker label="End Time" value={editDraft.endTime} onChange={handleEditDraftEndChange} />
-          </div>
-
-          <div className="flex gap-3 pt-2">
-            <Button onClick={saveEdit} variant="primary" className="flex-1 font-semibold">
+          <div className="flex gap-2 pt-2">
+            <Button onClick={saveEdit} variant="secondary" className="flex-1">
               Save changes
             </Button>
-            <Button onClick={removeEdit} variant="danger" className="font-semibold" leftIcon={<Trash2 className="h-4.5 w-4.5" />}>
+            <Button onClick={removeEdit} variant="danger" leftIcon={<Trash2 className="h-4 w-4" />}>
               Delete
             </Button>
           </div>

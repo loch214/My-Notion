@@ -248,23 +248,34 @@ export function WorkspaceNavbar({
         </div>
       </button>
 
-      <div ref={searchRef} className="relative hidden min-w-0 flex-1 md:block">
-        <div className="flex items-center gap-2 rounded-full border border-[color:var(--border)] bg-[color:var(--surface-med)] px-3 py-1.5">
-          <Search className="h-4 w-4 text-[color:var(--muted)]" />
-          <input
-            ref={searchInputRef}
-            type="text"
-            value={searchQuery}
-            onChange={(event) => onSearchChange(event.target.value)}
-            onFocus={() => onSearchOpen(true)}
-            placeholder="Search"
-            className="w-full bg-transparent text-sm text-[color:var(--text)] outline-none placeholder:text-[color:var(--muted)]"
-          />
-          <button type="button" className="rounded-full px-2 py-1 text-[10px] uppercase tracking-[0.2em] text-[color:var(--muted)]" onClick={() => onSearchOpen(!isSearchOpen)}>
-            Search
-          </button>
+      <div className="hidden flex-1 items-center justify-center md:flex">
+        <div 
+          ref={searchRef} 
+          className={cn(
+            "relative transition-all duration-300 ease-in-out",
+            isSearchOpen ? "w-[400px]" : "w-[240px]"
+          )}
+        >
+          <div className="flex items-center gap-2 rounded-full border border-[color:var(--border)] bg-[color:var(--surface-med)] px-3 py-1.5">
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={searchQuery}
+              onChange={(event) => onSearchChange(event.target.value)}
+              onFocus={() => onSearchOpen(true)}
+              placeholder="Search..."
+              className="w-full bg-transparent text-sm text-[color:var(--text)] outline-none placeholder:text-[color:var(--muted)]"
+            />
+            <button 
+              type="button" 
+              className="flex h-6 w-6 items-center justify-center rounded-full text-[color:var(--muted)] hover:bg-white/5 hover:text-[color:var(--text)]" 
+              onClick={() => onSearchOpen(!isSearchOpen)}
+            >
+              <Search className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          {searchResultsPopover}
         </div>
-        {searchResultsPopover}
       </div>
 
       <div className="flex items-center gap-2">
