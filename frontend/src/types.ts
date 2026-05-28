@@ -73,6 +73,7 @@ export interface TimetableEntry {
   startTime: string;
   endTime: string;
   reminderMinutes: number;
+  room?: string;
 }
 
 export interface TimetableOccurrence {
@@ -83,4 +84,6 @@ export interface TimetableOccurrence {
   startTime: string;
   endTime: string;
   reminderMinutes: number;
+  room?: string;
 }
+

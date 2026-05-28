@@ -75,6 +75,7 @@ export function generateTimetableOccurrences(entries: TimetableEntry[], now = ne
           startTime: startTime.toISOString(),
           endTime: endTime.toISOString(),
           reminderMinutes: entry.reminderMinutes,
+          room: entry.room,
         });
       });
   }
