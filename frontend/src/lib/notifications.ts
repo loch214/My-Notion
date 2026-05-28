@@ -1,7 +1,7 @@
 import { addDays, format, formatDistanceToNowStrict, isAfter, isBefore, isSameDay, parseISO, subMinutes } from 'date-fns';
 import { Event, Module, Task } from '../types';
 
-export type WorkspaceTab = 'home' | 'academic' | 'personal' | 'calendar' | 'settings' | 'profile' | 'notifications';
+export type WorkspaceTab = 'home' | 'academic' | 'personal' | 'timetable' | 'calendar' | 'settings' | 'profile' | 'notifications';
 
 export type WorkspaceNotificationKind = 'task' | 'event';
 
@@ -105,7 +105,7 @@ export function buildWorkspaceNotifications({
     const startAt = safeParseDate(event.startTime);
     if (!startAt) continue;
 
-    const leadMinutes = event.reminderMinutes === null ? null : Math.max(0, event.reminderMinutes ?? 15);
+    const leadMinutes = event.reminderMinutes === null || event.reminderMinutes < 0 ? null : Math.max(0, event.reminderMinutes ?? 15);
     if (leadMinutes === null) continue;
 
     const notifyAt = subMinutes(startAt, leadMinutes);

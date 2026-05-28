@@ -64,3 +64,23 @@ export interface AppState {
   events: Event[];
   globalChatHistory: ChatMessage[];
 }
+
+export interface TimetableEntry {
+  id: string;
+  moduleId: string;
+  kind: 'lecture' | 'lab' | 'tutorial';
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  reminderMinutes: number;
+}
+
+export interface TimetableOccurrence {
+  id: string;
+  entryId: string;
+  moduleId: string;
+  kind: 'lecture' | 'lab' | 'tutorial';
+  startTime: string;
+  endTime: string;
+  reminderMinutes: number;
+}

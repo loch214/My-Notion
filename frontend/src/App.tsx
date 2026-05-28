@@ -29,9 +29,12 @@ import { WorkspaceNavbar } from './components/WorkspaceNavbar';
 import { SettingsPage } from './components/SettingsPage';
 import { AboutPage } from './components/AboutPage';
 import { NotificationsPage } from './components/NotificationsPage';
+import Timetable from './components/Timetable';
 import { useAutoHideNavbar } from './hooks/useAutoHideNavbar';
 import { loadRecentPage, saveRecentPage } from './lib/recentPage';
 import { buildWorkspaceNotifications, type WorkspaceNotificationItem, type WorkspaceTab } from './lib/notifications';
+import { addTimetableEntry, generateTimetableOccurrences, loadTimetableEntries, removeTimetableEntry, updateTimetableEntry } from './lib/timetable';
+import { TimetableEntry } from './types';
 
 const READ_NOTIFICATION_STORAGE_KEY = 'my_notion_read_notifications';
 
@@ -39,6 +42,7 @@ const WORKSPACE_NAV_ITEMS = [
   { id: 'home' as const, label: 'Home', icon: Home },
   { id: 'academic' as const, label: 'Academic', icon: Library },
   { id: 'personal' as const, label: 'Personal', icon: LayoutDashboard },
+  { id: 'timetable' as const, label: 'Timetable', icon: Calendar },
   { id: 'calendar' as const, label: 'Calendar', icon: Calendar },
   { id: 'notifications' as const, label: 'Notifications', icon: Bell },
   { id: 'settings' as const, label: 'Settings', icon: Settings },
@@ -49,6 +53,7 @@ function parseWorkspaceTab(value: string | null): WorkspaceTab {
   if (
     value === 'academic' ||
     value === 'personal' ||
+    value === 'timetable' ||
     value === 'calendar' ||
     value === 'notifications' ||
     value === 'settings' ||
@@ -142,6 +147,7 @@ export default function App() {
   const [recentPage, setRecentPage] = useState(() => loadRecentPage());
   const [mainScrollEl, setMainScrollEl] = useState<HTMLDivElement | null>(null);
   const [readNotificationIds, setReadNotificationIds] = useState<string[]>(() => loadReadNotificationIds());
+  const [timetableEntries, setTimetableEntries] = useState<TimetableEntry[]>(() => loadTimetableEntries());
   
   const searchRef = useRef<HTMLDivElement | null>(null);
 
@@ -273,13 +279,28 @@ export default function App() {
   };
 
   const notificationItems = useMemo<WorkspaceNotificationItem[]>(
-    () => buildWorkspaceNotifications({
-      tasks: state.tasks,
-      events: state.events,
-      modules: state.modules,
-      readNotificationIds,
-    }),
-    [readNotificationIds, state.events, state.modules, state.tasks]
+    () => {
+      const timetableEvents = generateTimetableOccurrences(timetableEntries).map((occurrence) => {
+        const module = state.modules.find((entry) => entry.id === occurrence.moduleId);
+        return {
+          id: occurrence.id,
+          title: module ? `${module.code} ${occurrence.kind}` : occurrence.kind,
+          startTime: occurrence.startTime,
+          endTime: occurrence.endTime,
+          description: module ? module.title : occurrence.kind,
+          reminderMinutes: occurrence.reminderMinutes,
+          color: 'blue' as const,
+        };
+      });
+
+      return buildWorkspaceNotifications({
+        tasks: state.tasks,
+        events: [...state.events, ...timetableEvents],
+        modules: state.modules,
+        readNotificationIds,
+      });
+    },
+    [readNotificationIds, state.events, state.modules, state.tasks, timetableEntries]
   );
 
   const unreadNotificationItems = useMemo(
@@ -317,6 +338,15 @@ export default function App() {
         keywords: ['personal', 'tasks', 'todo', 'priority'],
         actionLabel: 'Open page',
         tab: 'personal',
+      },
+      {
+        id: 'tab-timetable',
+        kind: 'tab',
+        title: 'Timetable',
+        subtitle: 'Weekly classes and reminders',
+        keywords: ['timetable', 'schedule', 'lecture', 'lab', 'tutorial'],
+        actionLabel: 'Open page',
+        tab: 'timetable',
       },
       {
         id: 'tab-calendar',
@@ -448,6 +478,7 @@ export default function App() {
       return activeModule ? `Academic / ${activeModule.code}` : 'Academic Space';
     }
     if (activeTab === 'personal') return 'Personal Focus';
+    if (activeTab === 'timetable') return 'Timetable';
     if (activeTab === 'calendar') return 'Schedule';
     if (activeTab === 'notifications') return 'Notifications';
     if (activeTab === 'settings') return 'Settings';
@@ -511,6 +542,22 @@ export default function App() {
   const handleOpenNotifications = useCallback(() => {
     setIsNotificationsOpen((current) => !current);
     setIsSearchOpen(false);
+  }, []);
+
+  const handleAddTimetableEntry = useCallback((entry: Omit<TimetableEntry, 'id'>) => {
+    const created = addTimetableEntry(entry);
+    setTimetableEntries((current) => [...current, created]);
+    return created;
+  }, []);
+
+  const handleRemoveTimetableEntry = useCallback((id: string) => {
+    removeTimetableEntry(id);
+    setTimetableEntries((current) => current.filter((entry) => entry.id !== id));
+  }, []);
+
+  const handleUpdateTimetableEntry = useCallback((id: string, updates: Partial<Omit<TimetableEntry, 'id'>>) => {
+    updateTimetableEntry(id, updates);
+    setTimetableEntries((current) => current.map((entry) => (entry.id === id ? { ...entry, ...updates } : entry)));
   }, []);
 
   const landingModuleCodes = useMemo(
@@ -792,6 +839,18 @@ export default function App() {
                   onAddEvent={addEvent} 
                   onRemoveEvent={removeEvent} 
                   onUpdateEvent={updateEvent} 
+                />
+              </div>
+            )}
+
+            {activeTab === 'timetable' && (
+              <div>
+                <Timetable
+                  modules={state.modules}
+                  entries={timetableEntries}
+                  onAddEntry={handleAddTimetableEntry}
+                  onUpdateEntry={handleUpdateTimetableEntry}
+                  onRemoveEntry={handleRemoveTimetableEntry}
                 />
               </div>
             )}

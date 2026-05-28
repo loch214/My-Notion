@@ -1,4 +1,4 @@
-export type RecentTab = 'home' | 'academic' | 'personal' | 'calendar';
+export type RecentTab = 'home' | 'academic' | 'personal' | 'timetable' | 'calendar';
 
 export interface RecentPage {
   label: string;
