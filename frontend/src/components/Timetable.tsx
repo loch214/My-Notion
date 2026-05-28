@@ -30,8 +30,10 @@ const GRID_END_MINUTES = 20 * 60 + 30;
 const PIXELS_PER_MINUTE = 1.1;
 const GRID_HEIGHT = (GRID_END_MINUTES - GRID_START_MINUTES) * PIXELS_PER_MINUTE;
 const COLUMN_HEADER_HEIGHT = 44;
+const GRID_TOP_GAP = 6;
 const TIME_RAIL_WIDTH = 38;
-const DAY_MIN_WIDTH = 120;
+const IS_DEV = Boolean((import.meta as ImportMeta & { env?: { DEV?: boolean } }).env?.DEV);
+const GUIDE_HIGHLIGHT_TIMES = ['09:30', '09:45', '11:00'] as const;
 
 const KIND_META = {
   lecture: {
@@ -125,8 +127,12 @@ function joinTime(hour: string, minute: string) {
   return `${hour}:${minute}`;
 }
 
+function getGridTopFromMinutes(totalMinutes: number) {
+  return (totalMinutes - GRID_START_MINUTES) * PIXELS_PER_MINUTE;
+}
+
 function getGridTop(timeValue: string) {
-  return (timeToMinutes(timeValue) - GRID_START_MINUTES) * PIXELS_PER_MINUTE;
+  return getGridTopFromMinutes(timeToMinutes(timeValue));
 }
 
 interface PositionedEntry {
@@ -196,7 +202,7 @@ function buildDayLayout(dayEntries: TimetableEntry[]): PositionedEntry[] {
     return cluster.map((entry) => {
       const startMinutes = timeToMinutes(entry.startTime);
       const endMinutes = timeToMinutes(entry.endTime);
-      const top = clamp((startMinutes - GRID_START_MINUTES) * PIXELS_PER_MINUTE, 0, GRID_HEIGHT);
+      const top = clamp(getGridTop(entry.startTime), 0, GRID_HEIGHT);
       const height = clamp((endMinutes - startMinutes) * PIXELS_PER_MINUTE, 24, GRID_HEIGHT - top);
 
       return {
@@ -363,29 +369,37 @@ function TimeSlotCard({
 }
 
 function TimeAxis() {
+  const LABEL_HEIGHT = 16;
+
   const labels = useMemo(() => {
     const values: Array<{ label: string; top: number }> = [];
-    for (let hour = 8; hour <= 20; hour += 1) {
-      const minutes = hour * 60;
+
+    // Labels are strict 60-minute intervals from the grid start (08:30, 09:30, ...).
+    for (let minutes = GRID_START_MINUTES; minutes <= GRID_END_MINUTES; minutes += 60) {
       values.push({
         label: minutesToTime(minutes),
-        top: (minutes - GRID_START_MINUTES) * PIXELS_PER_MINUTE,
+        top: getGridTopFromMinutes(minutes),
       });
     }
+
     return values;
   }, []);
 
   return (
     <div className="relative h-full w-full">
-      {labels.map((label) => (
-        <div
-          key={label.top}
-          className="absolute right-1.5 -translate-y-1/2 text-[12px] font-semibold tabular-nums text-[color:var(--text)]/90"
-          style={{ top: `${label.top}px` }}
-        >
-          {label.label}
-        </div>
-      ))}
+      {labels.map((label) => {
+        const adjustedTop = clamp(label.top - LABEL_HEIGHT / 2, 0, GRID_HEIGHT - LABEL_HEIGHT);
+
+        return (
+          <div
+            key={label.top}
+            className="absolute right-1.5 text-[12px] font-semibold tabular-nums leading-none text-[color:var(--text)]/90"
+            style={{ top: `${adjustedTop}px` }}
+          >
+            {label.label}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -396,7 +410,24 @@ export default function Timetable({ modules, entries, onAddEntry, onUpdateEntry,
   const [editingEntry, setEditingEntry] = useState<TimetableEntry | null>(null);
   const [editDraft, setEditDraft] = useState<Draft>(DEFAULT_DRAFT);
   const [viewportWidth, setViewportWidth] = useState<number>(() => (typeof window !== 'undefined' ? window.innerWidth : 0));
+  const [showAlignmentGuides, setShowAlignmentGuides] = useState(false);
   const todayDayOfWeek = new Date().getDay();
+
+  const alignmentTicks = useMemo(() => {
+    const highlighted = new Set(GUIDE_HIGHLIGHT_TIMES.map((timeValue) => timeToMinutes(timeValue)));
+    const ticks: Array<{ minutes: number; top: number; isMajor: boolean; isHighlighted: boolean }> = [];
+
+    for (let minutes = GRID_START_MINUTES; minutes <= GRID_END_MINUTES; minutes += 30) {
+      ticks.push({
+        minutes,
+        top: getGridTopFromMinutes(minutes),
+        isMajor: (minutes - GRID_START_MINUTES) % 60 === 0,
+        isHighlighted: highlighted.has(minutes),
+      });
+    }
+
+    return ticks;
+  }, []);
 
   useEffect(() => {
     if (!draft.moduleId && modules[0]?.id) {
@@ -489,25 +520,31 @@ export default function Timetable({ modules, entries, onAddEntry, onUpdateEntry,
   };
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div className="space-y-2">
-          <p className="text-[10px] uppercase tracking-[0.24em] text-[color:var(--muted)]">Workspace</p>
+    <div className="space-y-3">
+      <div>
+        <div className="flex items-center justify-between gap-3">
           <h1 className="text-3xl font-semibold tracking-tight text-[color:var(--text)]">Timetable</h1>
-          <p className="max-w-2xl text-sm text-[color:var(--muted)]">
-            Pick a module, choose lecture, lab, or tutorial, and add the weekly slot. Click a card to edit or delete it.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2 text-xs text-[color:var(--muted)]">
-          <span className="rounded-full border border-[color:var(--border)] bg-[color:var(--surface-med)] px-3 py-1.5">{modules.length} modules</span>
-          <span className="rounded-full border border-[color:var(--border)] bg-[color:var(--surface-med)] px-3 py-1.5">{entries.length} weekly slots</span>
+          {IS_DEV ? (
+            <button
+              type="button"
+              onClick={() => setShowAlignmentGuides((current) => !current)}
+              className={cn(
+                'rounded-full border px-3 py-1.5 text-[11px] font-semibold transition',
+                showAlignmentGuides
+                  ? 'border-[color:var(--accent)]/50 bg-[color:var(--accent)]/10 text-[color:var(--text)]'
+                  : 'border-[color:var(--border)] bg-[color:var(--surface-med)] text-[color:var(--muted)] hover:text-[color:var(--text)]'
+              )}
+            >
+              {showAlignmentGuides ? 'Hide alignment guides' : 'Show alignment guides'}
+            </button>
+          ) : null}
         </div>
       </div>
 
       <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface-low)] p-2 sm:p-3">
-        <div className="flex w-full min-w-0 gap-2 overflow-visible pt-1">
-          <div className="relative shrink-0 pr-1" style={{ width: `${TIME_RAIL_WIDTH}px`, height: `${GRID_HEIGHT + COLUMN_HEADER_HEIGHT}px` }}>
-            <div style={{ height: `${COLUMN_HEADER_HEIGHT}px` }} />
+        <div className="flex w-full min-w-0 gap-2 overflow-visible">
+          <div className="relative shrink-0 pr-1" style={{ width: `${TIME_RAIL_WIDTH}px`, height: `${GRID_HEIGHT + COLUMN_HEADER_HEIGHT + GRID_TOP_GAP}px` }}>
+            <div style={{ height: `${COLUMN_HEADER_HEIGHT + GRID_TOP_GAP}px` }} />
             <div className="relative" style={{ height: `${GRID_HEIGHT}px` }}>
               <TimeAxis />
             </div>
@@ -524,7 +561,7 @@ export default function Timetable({ modules, entries, onAddEntry, onUpdateEntry,
                     'relative flex min-w-0 flex-1 flex-col border-r border-[color:var(--border)]/20 last:border-r-0',
                     day.value === todayDayOfWeek && 'bg-[color:var(--accent)]/4'
                   )}
-                  style={{ height: `${GRID_HEIGHT + COLUMN_HEADER_HEIGHT}px` }}
+                  style={{ height: `${GRID_HEIGHT + COLUMN_HEADER_HEIGHT + GRID_TOP_GAP}px` }}
                 >
                   <div className={cn('flex h-[44px] items-center justify-between px-3 border-b border-[color:var(--border)]', day.value === todayDayOfWeek && 'border-b-[color:var(--accent)]/10') }>
                     <div className="min-w-0">
@@ -545,10 +582,30 @@ export default function Timetable({ modules, entries, onAddEntry, onUpdateEntry,
                   <div
                     className="relative"
                     style={{
+                      marginTop: `${GRID_TOP_GAP}px`,
                       height: `${GRID_HEIGHT}px`,
                       background: 'transparent',
                     }}
                   >
+                    {IS_DEV && showAlignmentGuides ? (
+                      <div className="pointer-events-none absolute inset-0 z-0" aria-hidden>
+                        {alignmentTicks.map((tick) => (
+                          <div
+                            key={tick.minutes}
+                            className={cn(
+                              'absolute left-0 right-0 border-t',
+                              tick.isHighlighted
+                                ? 'border-[color:var(--accent)]/70'
+                                : tick.isMajor
+                                  ? 'border-[color:var(--text)]/20'
+                                  : 'border-[color:var(--text)]/10 border-dashed'
+                            )}
+                            style={{ top: `${tick.top}px` }}
+                          />
+                        ))}
+                      </div>
+                    ) : null}
+
                     {positionedEntries.length === 0 ? (
                       <div className="absolute inset-0 flex items-start justify-center px-3 pt-4 text-center text-xs text-[color:var(--muted)]">
                         No classes yet.
