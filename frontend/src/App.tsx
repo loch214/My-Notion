@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Calendar,
+  CalendarClock,
   Bell,
   ChevronLeft,
   Home,
@@ -42,7 +43,7 @@ const WORKSPACE_NAV_ITEMS = [
   { id: 'home' as const, label: 'Home', icon: Home },
   { id: 'academic' as const, label: 'Academic', icon: Library },
   { id: 'personal' as const, label: 'Personal', icon: LayoutDashboard },
-  { id: 'timetable' as const, label: 'Timetable', icon: Calendar },
+  { id: 'timetable' as const, label: 'Timetable', icon: CalendarClock },
   { id: 'calendar' as const, label: 'Calendar', icon: Calendar },
   { id: 'notifications' as const, label: 'Notifications', icon: Bell },
   { id: 'settings' as const, label: 'Settings', icon: Settings },
