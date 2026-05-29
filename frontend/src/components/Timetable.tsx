@@ -32,7 +32,7 @@ const GRID_HEIGHT = (GRID_END_MINUTES - GRID_START_MINUTES) * PIXELS_PER_MINUTE;
 const COLUMN_HEADER_HEIGHT = 44;
 const GRID_TOP_GAP = 6;
 
-const TIME_RAIL_WIDTH = 38;
+const TIME_RAIL_WIDTH = 52;
 const IS_DEV = Boolean((import.meta as ImportMeta & { env?: { DEV?: boolean } }).env?.DEV);
 const GUIDE_HIGHLIGHT_TIMES = ['09:30', '09:45', '11:00'] as const;
 
@@ -429,7 +429,7 @@ function TimeAxis() {
         return (
           <div
             key={label.top}
-            className="absolute right-1.5 text-[12px] font-semibold tabular-nums leading-none text-[color:var(--text)]/90"
+            className="absolute right-0 flex w-full items-center justify-end pr-1.5 text-[12px] font-semibold tabular-nums leading-none text-[color:var(--text)]/90"
             style={{ top: `${adjustedTop}px` }}
           >
             {label.label}
@@ -710,24 +710,23 @@ export default function Timetable({ modules, entries, onAddEntry, onUpdateEntry,
       <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface-low)] p-2 sm:p-3">
         {/* Removed inner scroll so the whole page scrolls naturally */}
         <div className="overflow-x-auto overflow-y-hidden rounded-2xl" role="region" aria-label="Weekly timetable grid">
-          <div className="flex min-w-max gap-2">
+          <div className="flex min-w-max">
             <div
-              className="sticky left-0 z-30 shrink-0 bg-[color:var(--surface-low)] pr-1"
+              className="sticky left-0 z-30 shrink-0 bg-[color:var(--surface-low)]"
               style={{ width: `${TIME_RAIL_WIDTH}px`, height: `${GRID_HEIGHT + COLUMN_HEADER_HEIGHT + GRID_TOP_GAP}px` }}
             >
               <div style={{ height: `${COLUMN_HEADER_HEIGHT + GRID_TOP_GAP}px` }} />
                <div className="relative" style={{ height: `${GRID_HEIGHT}px` }}>
                  <TimeAxis />
                  {isNowInGridRange ? (
-                   <div className="pointer-events-none absolute right-0 z-20 flex items-center gap-1.5" aria-hidden style={{ top: `${clamp(getGridTopFromMinutes(nowMinutes), 0, GRID_HEIGHT - 1)}px`, transform: 'translateY(-50%)' }}>
+                   <div className="pointer-events-none absolute right-0 z-20 flex items-center" aria-hidden style={{ top: `${clamp(getGridTopFromMinutes(nowMinutes), 0, GRID_HEIGHT - 1)}px`, transform: 'translateY(-50%)' }}>
                      <div className="h-2 w-2 rounded-full bg-[color:var(--accent)] shadow-[0_0_12px_rgba(99,102,241,0.6)]" />
-                     <div className="h-0.5 w-3 bg-[color:var(--accent)]" />
                    </div>
                  ) : null}
                </div>
             </div>
 
-            <div className="flex min-w-0 flex-1 overflow-visible rounded-2xl border border-[color:var(--border)]" role="grid" aria-label="Timetable sessions by day and time">
+            <div className="flex min-w-0 flex-1 overflow-visible" role="grid" aria-label="Timetable sessions by day and time">
               {visibleDays.map((day) => {
                 const positionedEntries = layoutsByDay[day.value] ?? [];
                 const dayLabel = formatDayLabel(day.value);
@@ -736,7 +735,7 @@ export default function Timetable({ modules, entries, onAddEntry, onUpdateEntry,
                   <div
                     key={day.value}
                     className={cn(
-                      'relative flex min-w-[170px] flex-1 flex-col border-r border-[color:var(--border)]/20 last:border-r-0',
+                      'relative flex min-w-[170px] flex-1 flex-col border-l border-[color:var(--border)]/20 first:border-l-0',
                       day.value === todayDayOfWeek && 'bg-[color:var(--accent)]/4'
                     )}
                     style={{ height: `${GRID_HEIGHT + COLUMN_HEADER_HEIGHT + GRID_TOP_GAP}px` }}
@@ -805,13 +804,12 @@ export default function Timetable({ modules, entries, onAddEntry, onUpdateEntry,
                          </div>
                        ) : null}
 
-                        {/* Current time line - shows blue line across timetable only when alignment guides are ON */}
-                        {isNowInGridRange && showAlignmentGuides ? (
-                          <div className="pointer-events-none absolute left-0 right-0 z-10" aria-hidden style={{ top: `${clamp(getGridTopFromMinutes(nowMinutes), 0, GRID_HEIGHT - 1)}px`, transform: 'translateY(-50%)' }}>
-                            <div className="border-t-2 border-[color:var(--accent)]" />
-                          </div>
-                        ) : null}
-
+                      {/* Current time line across all grid columns (always visible) */}
+                      {isNowInGridRange ? (
+                        <div className="pointer-events-none absolute left-0 right-0 z-10" aria-hidden style={{ top: `${clamp(getGridTopFromMinutes(nowMinutes), 0, GRID_HEIGHT - 1)}px`, transform: 'translateY(-50%)' }}>
+                          <div className="border-t-2 border-[color:var(--accent)]/70" />
+                        </div>
+                      ) : null}
 
                       {positionedEntries.length === 0 ? (
                         <div className="absolute inset-0 flex items-start justify-center px-3 pt-4 text-center text-xs text-[color:var(--muted)]">
