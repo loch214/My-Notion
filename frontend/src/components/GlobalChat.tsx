@@ -11,7 +11,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { AppState, ChatMessage, ChatSession } from '../types';
+import { AppState, ChatMessage, ChatSession, TimetableEntry } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import Markdown from 'react-markdown';
 import { AI_MODELS, AIModelId, DEFAULT_AI_MODEL } from '../lib/models';
@@ -27,6 +27,8 @@ interface GlobalChatProps {
   state: AppState;
   saveGlobalChatMessage: (message: ChatMessage) => Promise<void>;
   refreshWorkspace: () => Promise<void>;
+  timetableEntries: TimetableEntry[];
+  onAction: (action: { action: string; [key: string]: unknown }) => Promise<void> | void;
 }
 
 const LOCAL_CONV_KEY = 'myNotion.globalChats';
@@ -83,7 +85,7 @@ function summarizeTitle(text: string) {
   return words.length > 40 ? `${words.slice(0, 37)}...` : words;
 }
 
-export function GlobalChat({ onClose, state, saveGlobalChatMessage, refreshWorkspace }: GlobalChatProps) {
+export function GlobalChat({ onClose, state, saveGlobalChatMessage, refreshWorkspace, timetableEntries, onAction }: GlobalChatProps) {
   const DRAWER_MIN_WIDTH = 460;
   const DRAWER_DEFAULT_WIDTH = 560;
   const [input, setInput] = React.useState('');
@@ -324,10 +326,17 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage, refreshWorks
             tasks: state.tasks,
             events: state.events,
             modules: state.modules.map((module) => ({
+                id: module.id,
               title: module.title,
               code: module.code,
+                color: module.color,
               fileCount: module.files.length,
             })),
+              timetableEntries: timetableEntries.map((entry) => ({
+                ...entry,
+                moduleTitle: state.modules.find((module) => module.id === entry.moduleId)?.title ?? null,
+                moduleCode: state.modules.find((module) => module.id === entry.moduleId)?.code ?? null,
+              })),
           },
         }),
       });
@@ -336,6 +345,12 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage, refreshWorks
 
       if (data.action === 'switch_theme' && typeof data.theme === 'string' && isThemeId(data.theme)) {
         setTheme(data.theme);
+      }
+
+      if (data.action && onAction) {
+        await onAction(data);
+      } else if (data.action) {
+        await refreshWorkspace();
       }
 
       const modelMessage: ChatMessage = {
@@ -357,9 +372,6 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage, refreshWorks
         }));
       }
 
-      if (data.action) {
-        await refreshWorkspace();
-      }
     } catch (error) {
       console.error(error);
     } finally {

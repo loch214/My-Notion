@@ -561,6 +561,44 @@ export default function App() {
     setTimetableEntries((current) => current.map((entry) => (entry.id === id ? { ...entry, ...updates } : entry)));
   }, []);
 
+  const handleChatAction = useCallback(async (action: { action: string; [key: string]: unknown }) => {
+    switch (action.action) {
+      case 'refresh_workspace':
+        await refreshWorkspace();
+        return;
+      case 'create_timetable_entry': {
+        const timetableEntry = action.timetableEntry as Omit<TimetableEntry, 'id'> | undefined;
+        if (timetableEntry) handleAddTimetableEntry(timetableEntry);
+        return;
+      }
+      case 'update_timetable_entry': {
+        const timetableEntryId = action.timetableEntryId as string | undefined;
+        const updates = action.updates as Partial<Omit<TimetableEntry, 'id'>> | undefined;
+        if (timetableEntryId && updates) handleUpdateTimetableEntry(timetableEntryId, updates);
+        return;
+      }
+      case 'delete_timetable_entry': {
+        const timetableEntryId = action.timetableEntryId as string | undefined;
+        if (timetableEntryId) handleRemoveTimetableEntry(timetableEntryId);
+        return;
+      }
+      case 'delete_module': {
+        const deletedModule = action.deletedModule as { id?: string } | undefined;
+        if (deletedModule?.id && activeModuleId === deletedModule.id) {
+          setActiveModuleId(null);
+        }
+        await refreshWorkspace();
+        return;
+      }
+      case 'create_module':
+      case 'update_module':
+        await refreshWorkspace();
+        return;
+      default:
+        return;
+    }
+  }, [activeModuleId, handleAddTimetableEntry, handleRemoveTimetableEntry, handleUpdateTimetableEntry, refreshWorkspace]);
+
   const landingModuleCodes = useMemo(
     () => state.modules.slice(0, 4).map((m) => m.code),
     [state.modules]
@@ -894,6 +932,8 @@ export default function App() {
             state={state}
             saveGlobalChatMessage={saveGlobalChatMessage}
             refreshWorkspace={refreshWorkspace}
+            timetableEntries={timetableEntries}
+            onAction={handleChatAction}
           />
         )}
       </AnimatePresence>

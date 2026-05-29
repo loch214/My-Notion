@@ -28,6 +28,21 @@ type WorkspaceDocumentLike = {
   save: () => Promise<WorkspaceDocumentLike>;
 };
 
+type TimetableEntryLike = {
+  id: string;
+  moduleId: string;
+  kind: 'lecture' | 'lab' | 'tutorial';
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  reminderMinutes?: number;
+  room?: string;
+};
+
+type ChatRuntimeContext = {
+  timetableEntries?: TimetableEntryLike[];
+};
+
 let fallbackWorkspace: WorkspaceDocumentLike | null = null;
 
 function createFallbackWorkspace(): WorkspaceDocumentLike {
@@ -73,8 +88,8 @@ The app has a Global AI Chat (this one) accessible from anywhere, and a Module A
 
 YOUR ROLE IN GLOBAL CHAT:
 - You are a smart personal assistant who knows everything happening in Lochana's workspace
-- You have access to: all module names and file counts, all tasks (personal and academic) with due dates, all calendar events, and general app context
-- Answer questions about tasks, deadlines, upcoming events, module status, and general life organization
+  - You have access to: all module names and file counts, all tasks (personal and academic) with due dates, all calendar events, the timetable / class schedule, and general app context
+  - Answer questions about tasks, deadlines, upcoming events, module status, timetable sessions, and general life organization
 - You can also answer normal general questions (date/time facts, common knowledge, everyday queries) naturally.
 - If asked something academic or study-related, you can help but remind Lochana to use the Module Chat for deeper lecture-based study since that chat has access to the actual uploaded files
 
@@ -126,7 +141,8 @@ MISTAKE HANDLING:
 - Explain the mistake clearly and give hints so Lochana can fix it themselves
 
 PROJECT / COMPLEX TASK MODE:
-- For app actions (tasks/events/modules/theme), execute immediately using tools with sensible defaults.
+- For app actions (tasks/events/modules/timetable/theme), execute immediately using tools with sensible defaults.
+- For module and timetable changes, use the matching tool directly when you have enough information; do not turn the request into a back-and-forth unless a required identifier is genuinely missing.
 - Ask follow-up questions only if the request is impossible to execute safely (for example, deleting an item with no identifiable title).
 - For broader external projects (outside the app), you can ask a few clarifying questions before giving a full solution.
 
@@ -219,7 +235,15 @@ RESTRICTIONS — DO NOT:
 
 type SupportedModel = keyof typeof MODEL_PROVIDERS;
 
-type ChatAction = { action: 'switch_theme'; theme: string } | { action: 'refresh_workspace' };
+type ChatAction =
+  | { action: 'switch_theme'; theme: string }
+  | { action: 'refresh_workspace' }
+  | { action: 'create_timetable_entry'; timetableEntry: TimetableEntryLike }
+  | { action: 'update_timetable_entry'; timetableEntryId: string; updates: Partial<TimetableEntryLike> }
+  | { action: 'delete_timetable_entry'; timetableEntryId: string }
+  | { action: 'delete_module'; deletedModule?: any; deletedCount?: number; deletedTaskCount?: number }
+  | { action: 'create_module'; module?: any }
+  | { action: 'update_module'; module?: any };
 
 type ChatReply = {
   text: string;
@@ -353,6 +377,96 @@ const CHAT_TOOL_DECLARATIONS: FunctionDeclaration[] = [
     },
   },
   {
+    name: 'update_module',
+    description: 'Update an existing academic module by searching for it with an identifier, title, or code.',
+    parametersJsonSchema: {
+      type: 'object',
+      properties: {
+        identifier: { type: 'string', description: 'Module id, title, or code' },
+        title: { type: 'string', description: 'Optional new title' },
+        code: { type: 'string', description: 'Optional new module code' },
+        color: { type: 'string', description: 'Optional module color' },
+      },
+      required: ['identifier'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'delete_module',
+    description: 'Delete one module or all modules by searching for an identifier, title, or code.',
+    parametersJsonSchema: {
+      type: 'object',
+      properties: {
+        identifier: { type: 'string', description: 'Module id, title, code, or __ALL__' },
+        deleteAll: { type: 'boolean', description: 'Delete all modules when true' },
+      },
+      required: ['identifier'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'create_timetable_entry',
+    description: 'Create a new timetable class slot.',
+    parametersJsonSchema: {
+      type: 'object',
+      properties: {
+        moduleIdentifier: { type: 'string', description: 'Module id, title, or code' },
+        kind: { type: 'string', enum: ['lecture', 'lab', 'tutorial'] },
+        dayOfWeek: { type: 'number', minimum: 0, maximum: 6 },
+        startTime: { type: 'string', description: 'Start time in HH:MM format' },
+        endTime: { type: 'string', description: 'End time in HH:MM format' },
+        reminderMinutes: { type: 'number', minimum: 0 },
+        room: { type: 'string' },
+      },
+      required: ['moduleIdentifier', 'kind', 'dayOfWeek', 'startTime', 'endTime'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'update_timetable_entry',
+    description: 'Update an existing timetable class slot.',
+    parametersJsonSchema: {
+      type: 'object',
+      properties: {
+        identifier: { type: 'string', description: 'Timetable entry id or description to search for' },
+        moduleIdentifier: { type: 'string', description: 'Optional module id, title, or code' },
+        kind: { type: 'string', enum: ['lecture', 'lab', 'tutorial'] },
+        dayOfWeek: { type: 'number', minimum: 0, maximum: 6 },
+        startTime: { type: 'string', description: 'Start time in HH:MM format' },
+        endTime: { type: 'string', description: 'End time in HH:MM format' },
+        reminderMinutes: { type: 'number', minimum: 0 },
+        room: { type: 'string' },
+      },
+      required: ['identifier'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'delete_timetable_entry',
+    description: 'Delete a timetable class slot.',
+    parametersJsonSchema: {
+      type: 'object',
+      properties: {
+        identifier: { type: 'string', description: 'Timetable entry id or description to search for' },
+      },
+      required: ['identifier'],
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'get_timetable',
+    description: 'Fetch timetable entries or filter them by day or module query.',
+    parametersJsonSchema: {
+      type: 'object',
+      properties: {
+        dayOfWeek: { type: 'number', minimum: 0, maximum: 6 },
+        moduleQuery: { type: 'string' },
+        kind: { type: 'string', enum: ['lecture', 'lab', 'tutorial'] },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
     name: 'switch_theme',
     description: 'Switch the app theme.',
     parametersJsonSchema: {
@@ -429,6 +543,57 @@ function findBestMatch<T>(items: T[], title: string, getTitle: (item: T) => stri
   return scored[0]?.item ?? null;
 }
 
+function findBestModuleMatch(workspaceModules: any[], identifier: string) {
+  const normalized = normalizeText(identifier).toLowerCase();
+  if (!normalized) return null;
+
+  const direct = workspaceModules.find((module: any) => {
+    const id = String(module?.id ?? '').toLowerCase();
+    const title = String(module?.title ?? '').toLowerCase();
+    const code = String(module?.code ?? '').toLowerCase();
+    return id === normalized || title === normalized || code === normalized;
+  });
+  if (direct) return direct;
+
+  const fuzzy = findBestMatch(workspaceModules, normalized, (module: any) => `${module?.title ?? ''} ${module?.code ?? ''}`.trim());
+  return fuzzy ?? null;
+}
+
+function getTimetableEntries(runtimeContext: ChatRuntimeContext | undefined): TimetableEntryLike[] {
+  return Array.isArray(runtimeContext?.timetableEntries) ? runtimeContext.timetableEntries : [];
+}
+
+function formatDayName(dayOfWeek: number) {
+  return ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dayOfWeek] ?? 'Sunday';
+}
+
+function findBestTimetableMatch(entries: TimetableEntryLike[], identifier: string, workspaceModules: any[]) {
+  const normalized = normalizeText(identifier).toLowerCase();
+  if (!normalized) return null;
+
+  const direct = entries.find((entry) => entry.id.toLowerCase() === normalized);
+  if (direct) return direct;
+
+  const matchedModule = findBestModuleMatch(workspaceModules, normalized);
+  if (matchedModule) {
+    const moduleEntries = entries.filter((entry) => entry.moduleId === matchedModule.id);
+    if (moduleEntries.length === 1) return moduleEntries[0];
+
+    const kindMatch = moduleEntries.find((entry) => normalized.includes(entry.kind));
+    if (kindMatch) return kindMatch;
+
+    return moduleEntries[0] ?? null;
+  }
+
+  const kindMatch = entries.find((entry) => normalized.includes(entry.kind));
+  if (kindMatch) return kindMatch;
+
+  const dayMatch = entries.find((entry) => normalized.includes(formatDayName(entry.dayOfWeek).toLowerCase()));
+  if (dayMatch) return dayMatch;
+
+  return findBestMatch(entries, normalized, (entry) => `${entry.kind} ${formatDayName(entry.dayOfWeek)} ${entry.startTime} ${entry.endTime}`);
+}
+
 function resolveThemeId(theme: unknown) {
   const rawTheme = normalizeText(theme);
   if (!rawTheme) return null;
@@ -464,6 +629,12 @@ function inferAllowedFunctionNames(message: string) {
   }
   if (/(delete|remove|discard).*(event)|event.*(delete|remove|discard)/i.test(text)) allowed.add('delete_event');
   if (/(create|add|new).*(module)|module.*(create|add|new)/i.test(text)) allowed.add('create_module');
+  if (/(edit|update|change|rename).*(module)|module.*(edit|update|change|rename)/i.test(text)) allowed.add('update_module');
+  if (/(delete|remove|discard).*(module)|module.*(delete|remove|discard)|delete all academic modules|delete all modules/i.test(text)) allowed.add('delete_module');
+  if (/(create|add|new|schedule).*(timetable|class slot|class slots|session|lecture|lab|tutorial)|(?:lecture|lab|tutorial).*(create|add|new|schedule)/i.test(text)) allowed.add('create_timetable_entry');
+  if (/(edit|update|change|move).*(timetable|class slot|class slots|session|lecture|lab|tutorial)|(?:timetable|class slot|class slots|session|lecture|lab|tutorial).*(edit|update|change|move)/i.test(text)) allowed.add('update_timetable_entry');
+  if (/(delete|remove|discard).*(timetable|class slot|class slots|session|lecture|lab|tutorial)|(?:timetable|class slot|class slots|session|lecture|lab|tutorial).*(delete|remove|discard)/i.test(text)) allowed.add('delete_timetable_entry');
+  if (/(timetable|schedule|class\s*slot|class\s*slots|lecture|lab|tutorial|session)|\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b|\bwhat\s+(?:sessions?|classes?|slots?)\b|\bwhen\s+is\b|\bwhat\s+do\s+i\s+have\b|\bdo\s+i\s+have\b/i.test(text)) allowed.add('get_timetable');
   if (/(theme|color|palette|switch|change look|change theme)/i.test(text) || /\b(different|another)\s+one\b/i.test(text)) {
     allowed.add('switch_theme');
   }
@@ -473,8 +644,9 @@ function inferAllowedFunctionNames(message: string) {
   return allowed.size > 0 ? Array.from(allowed) : undefined;
 }
 
-async function executeChatTool(name: string, args: Record<string, unknown>) {
+async function executeChatTool(name: string, args: Record<string, unknown>, runtimeContext: ChatRuntimeContext = {}) {
   const workspace = await getOrCreateWorkspace();
+  const timetableEntries = getTimetableEntries(runtimeContext);
 
   switch (name) {
     case 'create_task': {
@@ -606,6 +778,159 @@ async function executeChatTool(name: string, args: Record<string, unknown>) {
       workspace.modules.push(module as any);
       await workspace.save();
       return { action: { action: 'refresh_workspace' }, response: { output: { success: true, module } } };
+    }
+    case 'update_module': {
+      const identifier = normalizeText(args.identifier);
+      if (!identifier) throw new Error('Module identifier is required.');
+
+      const module = findBestModuleMatch(workspace.modules as any[], identifier);
+      if (!module) throw new Error(`No module matched "${identifier}".`);
+
+      const nextTitle = normalizeText(args.title) || module.title;
+      const nextCode = normalizeText(args.code) || module.code;
+      const nextColorRaw = normalizeText(args.color).toLowerCase();
+      const nextColor = ['blue', 'amber', 'emerald', 'purple', 'rose'].includes(nextColorRaw) ? nextColorRaw : module.color;
+
+      module.title = nextTitle;
+      module.code = nextCode;
+      module.color = nextColor;
+      module.updatedAt = new Date();
+      await workspace.save();
+      return { action: { action: 'refresh_workspace' }, response: { output: { success: true, module } } };
+    }
+    case 'delete_module': {
+      const deleteAllRequested =
+        args.deleteAll === true ||
+        normalizeText(args.deleteAll).toLowerCase() === 'true' ||
+        normalizeText(args.identifier).toLowerCase() === '__all__';
+
+      if (deleteAllRequested) {
+        const deletedCount = workspace.modules.length;
+        const deletedTaskCount = workspace.tasks.filter((task: any) => task.moduleId).length;
+        workspace.modules = [];
+        workspace.tasks = workspace.tasks.filter((task: any) => !task.moduleId) as any;
+        await workspace.save();
+        return {
+          action: { action: 'delete_module', deletedCount },
+          response: { output: { success: true, deletedCount, deletedTaskCount } },
+        };
+      }
+
+      const identifier = normalizeText(args.identifier);
+      if (!identifier) throw new Error('Module identifier is required.');
+
+      const module = findBestModuleMatch(workspace.modules as any[], identifier);
+      if (!module) throw new Error(`No module matched "${identifier}".`);
+
+      const deletedTaskCount = workspace.tasks.filter((task: any) => task.moduleId === module.id).length;
+      workspace.modules = workspace.modules.filter((item: any) => item.id !== module.id) as any;
+      workspace.tasks = workspace.tasks.filter((task: any) => task.moduleId !== module.id) as any;
+      await workspace.save();
+      return {
+        action: { action: 'delete_module', deletedModule: module, deletedTaskCount },
+        response: { output: { success: true, deletedModule: module, deletedTaskCount } },
+      };
+    }
+    case 'create_timetable_entry': {
+      const moduleIdentifier = normalizeText(args.moduleIdentifier);
+      const kindRaw = normalizeText(args.kind).toLowerCase();
+      const dayOfWeek = Number(args.dayOfWeek);
+      const startTime = normalizeText(args.startTime);
+      const endTime = normalizeText(args.endTime);
+      const reminderMinutesValue = args.reminderMinutes;
+      const room = normalizeText(args.room) || undefined;
+
+      if (!moduleIdentifier || !['lecture', 'lab', 'tutorial'].includes(kindRaw) || !Number.isInteger(dayOfWeek) || dayOfWeek < 0 || dayOfWeek > 6 || !startTime || !endTime) {
+        throw new Error('Module, kind, dayOfWeek, startTime, and endTime are required for timetable entries.');
+      }
+
+      const module = findBestModuleMatch(workspace.modules as any[], moduleIdentifier);
+      if (!module) throw new Error(`No module matched "${moduleIdentifier}".`);
+
+      const reminderMinutes = typeof reminderMinutesValue === 'number' && Number.isFinite(reminderMinutesValue) ? reminderMinutesValue : 0;
+      const timetableEntry = {
+        id: uuidv4(),
+        moduleId: module.id,
+        kind: kindRaw as TimetableEntryLike['kind'],
+        dayOfWeek,
+        startTime,
+        endTime,
+        reminderMinutes,
+        room,
+      };
+
+      return {
+        action: { action: 'create_timetable_entry', timetableEntry },
+        response: { output: { success: true, timetableEntry, module } },
+      };
+    }
+    case 'update_timetable_entry': {
+      const identifier = normalizeText(args.identifier);
+      if (!identifier) throw new Error('Timetable entry identifier is required.');
+
+      const entry = findBestTimetableMatch(timetableEntries, identifier, workspace.modules as any[]);
+      if (!entry) throw new Error(`No timetable entry matched "${identifier}".`);
+
+      const updates: Record<string, unknown> = {};
+
+      if (args.moduleIdentifier) {
+        const module = findBestModuleMatch(workspace.modules as any[], normalizeText(args.moduleIdentifier));
+        if (!module) throw new Error(`No module matched "${normalizeText(args.moduleIdentifier)}".`);
+        updates.moduleId = module.id;
+      }
+
+      const nextKind = normalizeText(args.kind).toLowerCase();
+      if (['lecture', 'lab', 'tutorial'].includes(nextKind)) updates.kind = nextKind;
+      if (Number.isInteger(Number(args.dayOfWeek))) updates.dayOfWeek = Number(args.dayOfWeek);
+      if (normalizeText(args.startTime)) updates.startTime = normalizeText(args.startTime);
+      if (normalizeText(args.endTime)) updates.endTime = normalizeText(args.endTime);
+      if (typeof args.reminderMinutes === 'number' && Number.isFinite(args.reminderMinutes)) updates.reminderMinutes = args.reminderMinutes;
+      if (normalizeText(args.room)) updates.room = normalizeText(args.room);
+
+      return {
+        action: { action: 'update_timetable_entry', timetableEntryId: entry.id, updates },
+        response: { output: { success: true, timetableEntryId: entry.id, updates, timetableEntry: entry } },
+      };
+    }
+    case 'delete_timetable_entry': {
+      const identifier = normalizeText(args.identifier);
+      if (!identifier) throw new Error('Timetable entry identifier is required.');
+
+      const entry = findBestTimetableMatch(timetableEntries, identifier, workspace.modules as any[]);
+      if (!entry) throw new Error(`No timetable entry matched "${identifier}".`);
+
+      return {
+        action: { action: 'delete_timetable_entry', timetableEntryId: entry.id },
+        response: { output: { success: true, timetableEntryId: entry.id, timetableEntry: entry } },
+      };
+    }
+    case 'get_timetable': {
+      const dayOfWeekValue = args.dayOfWeek;
+      const moduleQuery = normalizeText(args.moduleQuery);
+      const kind = normalizeText(args.kind).toLowerCase();
+
+      const dayOfWeek = typeof dayOfWeekValue === 'number' && Number.isFinite(dayOfWeekValue) ? dayOfWeekValue : undefined;
+      const moduleMatch = moduleQuery ? findBestModuleMatch(workspace.modules as any[], moduleQuery) : null;
+
+      const entries = timetableEntries
+        .filter((entry) => (dayOfWeek === undefined ? true : entry.dayOfWeek === dayOfWeek))
+        .filter((entry) => (kind ? entry.kind === kind : true))
+        .filter((entry) => {
+          if (!moduleQuery) return true;
+          if (moduleMatch) return entry.moduleId === moduleMatch.id;
+          return `${entry.kind} ${entry.dayOfWeek} ${entry.startTime} ${entry.endTime}`.toLowerCase().includes(moduleQuery);
+        })
+        .map((entry) => {
+          const module = workspace.modules.find((item: any) => item.id === entry.moduleId);
+          return {
+            ...entry,
+            moduleTitle: module?.title ?? null,
+            moduleCode: module?.code ?? null,
+            dayLabel: formatDayName(entry.dayOfWeek),
+          };
+        });
+
+      return { response: { output: { success: true, entries, total: entries.length } } };
     }
     case 'switch_theme': {
       const theme = resolveThemeId(args.theme);
@@ -907,7 +1232,8 @@ async function runGemini(
   history: any[],
   message: string,
   attachments: any[] = [],
-  toolDeclarations: FunctionDeclaration[] = []
+  toolDeclarations: FunctionDeclaration[] = [],
+  runtimeContext: ChatRuntimeContext = {}
 ): Promise<ChatReply | null> {
   const client = getGeminiClient();
   if (!client) return null;
@@ -974,7 +1300,7 @@ async function runGemini(
     for (const call of functionCalls) {
       let toolResult;
       try {
-        toolResult = await executeChatTool(call.name ?? '', (call.args ?? {}) as Record<string, unknown>);
+        toolResult = await executeChatTool(call.name ?? '', (call.args ?? {}) as Record<string, unknown>, runtimeContext);
       } catch (error: any) {
         toolResult = {
           response: {
@@ -1089,12 +1415,38 @@ function formatGroqToolResponse(name: string, response: any) {
       }
       return 'I created the module.';
     }
+    case 'update_module': {
+      const module = output?.module;
+      if (module?.title && module?.code) {
+        return `I updated the module "${module.title}" (${module.code}).`;
+      }
+      return 'I updated the module.';
+    }
+    case 'delete_module':
+      if (typeof output?.deletedCount === 'number') {
+        return output.deletedCount === 0 ? 'There were no modules to delete.' : `I deleted all ${output.deletedCount} modules.`;
+      }
+      return output?.deletedModule?.title ? `I deleted the module "${output.deletedModule.title}".` : 'I deleted the module.';
+    case 'create_timetable_entry': {
+      const timetableEntry = output?.timetableEntry;
+      const module = output?.module;
+      if (timetableEntry && module?.title) {
+        return `I added a ${timetableEntry.kind} slot for ${module.title} on ${formatDayName(timetableEntry.dayOfWeek)}.`;
+      }
+      return 'I added the timetable slot.';
+    }
+    case 'update_timetable_entry':
+      return output?.timetableEntryId ? 'I updated the timetable slot.' : 'I updated the timetable.';
+    case 'delete_timetable_entry':
+      return output?.timetableEntry ? `I deleted the ${output.timetableEntry.kind} slot for ${output.timetableEntry.moduleTitle ?? 'that module'}.` : 'I deleted the timetable slot.';
     case 'switch_theme':
       return output?.themeName ? `I switched the app theme to ${output.themeName}.` : 'I switched the app theme.';
     case 'get_tasks':
       return Array.isArray(output?.tasks) ? `Here are your ${output.tasks.length} tasks.` : 'Here are your tasks.';
     case 'get_events':
       return Array.isArray(output?.events) ? `Here are your ${output.events.length} calendar events.` : 'Here are your calendar events.';
+    case 'get_timetable':
+      return Array.isArray(output?.entries) ? `Here are your ${output.entries.length} timetable slots.` : 'Here is your timetable.';
     default:
       return 'Done.';
   }
@@ -1159,6 +1511,26 @@ function extractModuleArgsFromMessage(message: string) {
     code: codeMatch?.[1]?.trim() ?? '',
     color: '',
   };
+}
+
+function extractModuleIdentifierFromMessage(message: string) {
+  const trimmed = message.trim();
+  const forMatch = trimmed.match(/\bfor\s+(.+?)(?:\s+(?:on|at|from|in|during)\b|[,.!?]|$)/i);
+  if (forMatch?.[1]) {
+    return forMatch[1].trim().replace(/[,.:-]$/, '');
+  }
+
+  const moduleMatch = trimmed.match(/\bmodule\s+(?:called|named)?\s+(.+?)(?:\s+(?:on|at|from|in|during)\b|[,.!?]|$)/i);
+  if (moduleMatch?.[1]) {
+    return moduleMatch[1].trim().replace(/[,.:-]$/, '');
+  }
+
+  const codeMatch = trimmed.match(/\b(?:code|id)\s+([A-Za-z0-9_-]+)\b/i);
+  if (codeMatch?.[1]) {
+    return codeMatch[1].trim();
+  }
+
+  return extractModuleArgsFromMessage(message).title || extractModuleArgsFromMessage(message).code || '';
 }
 
 function normalizeTimeString(value: string) {
@@ -1322,7 +1694,7 @@ function extractEventArgsFromMessage(message: string) {
   return {};
 }
 
-async function tryGroqLocalFallback(message: string, toolDeclarations: FunctionDeclaration[] = []): Promise<ChatReply | null> {
+async function tryGroqLocalFallback(message: string, toolDeclarations: FunctionDeclaration[] = [], runtimeContext: ChatRuntimeContext = {}): Promise<ChatReply | null> {
   const allowedFunctionNames = inferAllowedFunctionNames(message);
   if (!allowedFunctionNames || allowedFunctionNames.length === 0) return null;
 
@@ -1348,9 +1720,38 @@ async function tryGroqLocalFallback(message: string, toolDeclarations: FunctionD
     args = extractEventArgsFromMessage(message);
   } else if (candidateName === 'create_module') {
     args = extractModuleArgsFromMessage(message);
+  } else if (candidateName === 'delete_module') {
+    const title = extractModuleArgsFromMessage(message);
+    args = { identifier: title.title || title.code || '__ALL__', deleteAll: /all/i.test(message) };
+  } else if (candidateName === 'update_module') {
+    const parsed = extractModuleArgsFromMessage(message);
+    args = { identifier: parsed.title || parsed.code || message, title: parsed.title || undefined, code: parsed.code || undefined, color: parsed.color || undefined };
+  } else if (candidateName === 'create_timetable_entry') {
+    const moduleIdentifier = extractModuleIdentifierFromMessage(message);
+    const dayMatch = message.match(/\b(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/i);
+    const kindMatch = message.match(/\b(lecture|lab|tutorial)\b/i);
+    const timeMatch = message.match(/(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\s*(?:to|-|until)\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)/i);
+    args = {
+      moduleIdentifier,
+      kind: kindMatch?.[1]?.toLowerCase() || 'lecture',
+      dayOfWeek: dayMatch ? ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'].indexOf(dayMatch[1].toLowerCase()) : 1,
+      startTime: timeMatch ? normalizeTimeString(timeMatch[1]) : '09:00',
+      endTime: timeMatch ? normalizeTimeString(timeMatch[2]) : '10:00',
+    };
+  } else if (candidateName === 'update_timetable_entry' || candidateName === 'delete_timetable_entry') {
+    const title = extractModuleArgsFromMessage(message).title || message;
+    args = { identifier: title };
+  } else if (candidateName === 'get_timetable') {
+    const dayMatch = message.match(/\b(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/i);
+    const kindMatch = message.match(/\b(lecture|lab|tutorial)\b/i);
+    args = {
+      dayOfWeek: dayMatch ? ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'].indexOf(dayMatch[1].toLowerCase()) : undefined,
+      kind: kindMatch?.[1]?.toLowerCase(),
+      moduleQuery: extractModuleArgsFromMessage(message).title || extractModuleArgsFromMessage(message).code || undefined,
+    };
   }
 
-  const toolResult = await executeChatTool(candidateName, args);
+  const toolResult = await executeChatTool(candidateName, args, runtimeContext);
   const text = formatGroqToolResponse(candidateName, toolResult.response);
   return {
     text,
@@ -1386,7 +1787,8 @@ async function runGroq(
   history: any[],
   message: string,
   attachments: any[] = [],
-  toolDeclarations: FunctionDeclaration[] = []
+  toolDeclarations: FunctionDeclaration[] = [],
+  runtimeContext: ChatRuntimeContext = {}
 ): Promise<ChatReply | null> {
   const client = getGroqClient();
   if (!client) return null;
@@ -1512,7 +1914,7 @@ async function runGroq(
         }
 
         console.log('[Groq] executing tool', call.function?.name, parsedArguments);
-        toolResult = await executeChatTool(call.function?.name ?? '', parsedArguments as Record<string, unknown>);
+        toolResult = await executeChatTool(call.function?.name ?? '', parsedArguments as Record<string, unknown>, runtimeContext);
         console.log('[Groq] tool result for', call.function?.name, JSON.stringify(toolResult?.response ?? toolResult).slice(0,400));
       } catch (error: any) {
         console.error('[Groq] tool execution failed', error?.message ?? error);
@@ -1629,7 +2031,13 @@ async function generateActionAwareChatReply(params: {
   contextLabel: string;
   attachments?: any[];
   toolDeclarations?: FunctionDeclaration[];
+  runtimeContext?: ChatRuntimeContext;
 }): Promise<ChatReply> {
+  if ((params.toolDeclarations?.length ?? 0) > 0) {
+    const directToolReply = await tryGroqLocalFallback(params.message, params.toolDeclarations ?? [], params.runtimeContext ?? {});
+    if (directToolReply) return directToolReply;
+  }
+
   const provider = MODEL_PROVIDERS[params.model];
   const geminiKeyMissing = !process.env.GEMINI_API_KEY;
   const groqKeyMissing = !process.env.GROQ_API_KEY;
@@ -1644,14 +2052,14 @@ async function generateActionAwareChatReply(params: {
 
   try {
     if (provider === 'gemini') {
-      const reply = await runGemini(params.model, params.systemInstruction, params.history, params.message, params.attachments, params.toolDeclarations ?? []);
+      const reply = await runGemini(params.model, params.systemInstruction, params.history, params.message, params.attachments, params.toolDeclarations ?? [], params.runtimeContext ?? {});
       if (reply !== null) return reply;
     }
 
     if (provider === 'groq') {
       if (groqKeyMissing) {
         // Try local fallback first (deterministic tool execution)
-        const localFallback = await tryGroqLocalFallback(params.message, params.toolDeclarations ?? []);
+        const localFallback = await tryGroqLocalFallback(params.message, params.toolDeclarations ?? [], params.runtimeContext ?? {});
         if (localFallback) return localFallback;
 
         // If Gemini is available, attempt it as a remote fallback
@@ -1663,7 +2071,8 @@ async function generateActionAwareChatReply(params: {
             params.history,
             geminiFallbackContext.message,
             params.attachments,
-            params.toolDeclarations ?? []
+            params.toolDeclarations ?? [],
+            params.runtimeContext ?? {}
           );
           if (geminiFallback) return geminiFallback;
         }
@@ -1671,14 +2080,14 @@ async function generateActionAwareChatReply(params: {
         return { text: await buildLocalFallbackText(params.message, params.contextLabel, params.history) };
       }
 
-      const reply = await runGroq(params.model, params.systemInstruction, params.history, params.message, params.attachments, params.toolDeclarations ?? []);
+      const reply = await runGroq(params.model, params.systemInstruction, params.history, params.message, params.attachments, params.toolDeclarations ?? [], params.runtimeContext ?? {});
       if (reply !== null) return reply;
     }
   } catch (error: any) {
     console.error(`${provider} chat error:`, error);
 
     if (provider === 'groq') {
-      const localFallback = await tryGroqLocalFallback(params.message, params.toolDeclarations ?? []);
+      const localFallback = await tryGroqLocalFallback(params.message, params.toolDeclarations ?? [], params.runtimeContext ?? {});
       if (localFallback) {
         return localFallback;
       }
@@ -1705,7 +2114,8 @@ async function generateActionAwareChatReply(params: {
           params.history,
           geminiFallbackContext.message,
           params.attachments,
-          params.toolDeclarations ?? []
+          params.toolDeclarations ?? [],
+          params.runtimeContext ?? {}
         );
 
         if (geminiFallback) return geminiFallback;
@@ -1762,6 +2172,9 @@ app.post('/api/chat/global', async (req, res) => {
     const { message, history = [], context, model = 'gemini-2.5-flash', attachments = [] } = req.body;
     const selectedModel = safeModel(model);
     const provider = MODEL_PROVIDERS[selectedModel];
+    const runtimeContext: ChatRuntimeContext = {
+      timetableEntries: Array.isArray(context?.timetableEntries) ? context.timetableEntries : [],
+    };
     
     const workspace = await getOrCreateWorkspace();
     let allExtractedText = '';
@@ -1799,16 +2212,13 @@ app.post('/api/chat/global', async (req, res) => {
       attachments,
       contextLabel: `global assistant (${provider})`,
       toolDeclarations: CHAT_TOOL_DECLARATIONS,
+      runtimeContext,
     });
 
     res.json({
       role: 'model',
       text: reply.text,
-      ...(reply.action && reply.action.action === 'switch_theme'
-        ? { action: reply.action.action, theme: reply.action.theme }
-        : reply.action
-          ? { action: reply.action.action }
-          : {}),
+      ...(reply.action ?? {}),
     });
   } catch (error: any) {
     console.error('Global Chat Error:', error);
@@ -1897,6 +2307,7 @@ app.post('/api/chat/module', async (req, res) => {
       attachments,
       contextLabel: `module assistant for ${moduleName} (${provider})`,
       toolDeclarations: CHAT_TOOL_DECLARATIONS,
+      runtimeContext: {},
     });
 
     let titlePromise = Promise.resolve('');
@@ -1906,10 +2317,7 @@ app.post('/api/chat/module', async (req, res) => {
 
     const response: any = { role: 'model', text: reply.text };
     if (reply.action) {
-      response.action = reply.action.action;
-      if (reply.action.action === 'switch_theme') {
-        response.theme = reply.action.theme;
-      }
+      Object.assign(response, reply.action);
     }
     if (title) response.title = title;
     if (newFilesSaved > 0) response.files = dbModule?.files;
