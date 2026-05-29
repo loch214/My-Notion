@@ -795,6 +795,8 @@ export default function App() {
                     tasks={state.tasks}
                     onOpenModule={setActiveModuleId}
                     onAddModule={addModule}
+                    onEditModule={updateModule}
+                    onRemoveModule={removeModule}
                     onToggleTask={toggleTask}
                     onAddTask={addTask}
                     onEditTask={updateTask}

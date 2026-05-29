@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Module, Task } from '../types';
-import { BookOpen, FileText, MessageSquare, Plus, ChevronDown, Calendar } from 'lucide-react';
+import { BookOpen, FileText, MessageSquare, Plus, ChevronDown, Calendar, Edit, Trash2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { TaskList } from './TaskList';
 
@@ -17,6 +17,8 @@ interface AcademicOverviewProps {
   tasks: Task[];
   onOpenModule: (moduleId: string) => void;
   onAddModule: (title: string, code: string, color: Module['color']) => void;
+  onEditModule?: (moduleId: string, updates: Partial<Module>) => void;
+  onRemoveModule?: (moduleId: string) => void;
   onToggleTask: (taskId: string) => void;
   onAddTask: (title: string, dueDate?: string, moduleId?: string) => void;
   onEditTask?: (taskId: string, updates: Partial<Task>) => void;
@@ -32,6 +34,8 @@ export function AcademicOverview({
   onAddTask,
   onEditTask,
   onRemoveTask,
+  onEditModule,
+  onRemoveModule,
 }: AcademicOverviewProps) {
   const ACADEMIC_GENERAL_ID = '__academic__';
   const [isAdding, setIsAdding] = useState(false);
@@ -39,6 +43,10 @@ export function AcademicOverview({
   const [newCode, setNewCode] = useState('');
   const [newColor, setNewColor] = useState<Module['color']>('blue');
   const [sortOrder, setSortOrder] = useState<'alpha' | 'newest'>('newest');
+  const [editingModule, setEditingModule] = useState<Module | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editCode, setEditCode] = useState('');
+  const [editColor, setEditColor] = useState<Module['color']>('blue');
 
   const getBadgeColors = (color: Module['color']) => {
     switch (color) {
@@ -142,7 +150,7 @@ export function AcademicOverview({
                 spotlight={true}
                 interactive={true}
                 onClick={() => onOpenModule(module.id)}
-                className="card-pad text-left bg-[color:var(--surface-low)]"
+                className="card-pad text-left bg-[color:var(--surface-low)] relative"
               >
                 <div className="mb-3 flex items-start justify-between gap-4">
                   <div className={cn('rounded-xl p-2.5', getBadgeColors(module.color))}>
@@ -151,6 +159,28 @@ export function AcademicOverview({
                   <span className="rounded-full border border-[color:var(--border)] bg-[color:var(--surface-med)] px-2.5 py-0.5 text-[10px] uppercase tracking-[0.15em] text-[color:var(--muted)] font-mono">
                     {module.code}
                   </span>
+                </div>
+                <div className="absolute right-3 top-3 flex gap-2">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setEditingModule(module); setEditTitle(module.title); setEditCode(module.code); setEditColor(module.color); }}
+                    className="rounded-full p-1 text-[color:var(--muted)] opacity-80 transition-all duration-150 ease hover:opacity-100 hover:bg-[color:var(--surface-med)]"
+                    aria-label="Edit module"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!onRemoveModule) return;
+                      if (confirm(`Delete module "${module.title}"? This cannot be undone.`)) {
+                        onRemoveModule(module.id);
+                      }
+                    }}
+                    className="rounded-full p-1 text-[color:var(--muted)] opacity-80 transition-all duration-150 ease hover:opacity-100 hover:bg-[color:var(--surface-med)]"
+                    aria-label="Delete module"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
                 <h3 className="text-base font-bold font-heading text-[color:var(--text)] line-clamp-1 group-hover:text-[color:var(--accent)] transition-all duration-150 ease">
                   {module.title}
@@ -261,6 +291,69 @@ export function AcademicOverview({
             </Button>
             <Button type="submit" variant="primary" className="flex-1">
               Create Space
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Edit module Modal */}
+      <Modal
+        isOpen={!!editingModule}
+        onClose={() => setEditingModule(null)}
+        title="Edit module"
+        subtitle="Update module details"
+        maxWidthClassName="max-w-md"
+      >
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          if (!editingModule || !onEditModule) return;
+          onEditModule(editingModule.id, { title: editTitle, code: editCode, color: editColor });
+          setEditingModule(null);
+        }} className="space-y-4">
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-[color:var(--muted)] uppercase tracking-wider">Module Title</label>
+            <Input
+              required
+              autoFocus
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-[color:var(--muted)] uppercase tracking-wider">Module Code</label>
+            <Input
+              required
+              value={editCode}
+              onChange={(e) => setEditCode(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="mb-2 block text-xs font-semibold text-[color:var(--muted)] uppercase tracking-wider">Theme Color</label>
+            <div className="flex flex-wrap gap-2">
+              {(['blue', 'amber', 'emerald', 'purple', 'rose'] as Module['color'][]).map((color) => (
+                <button
+                  key={color}
+                  type="button"
+                  onClick={() => setEditColor(color)}
+                  className={cn(
+                    'h-9 rounded-full px-4 text-xs font-semibold transition-all duration-150 ease border',
+                    editColor === color
+                      ? 'bg-[color:var(--accent)] border-[color:var(--accent)] text-[color:var(--on-accent)] shadow-sm'
+                      : 'bg-[color:var(--surface-low)] border-[color:var(--border)] text-[color:var(--muted)] hover:text-[color:var(--text)]'
+                  )}
+                >
+                  {color.charAt(0).toUpperCase() + color.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex gap-2 pt-4">
+            <Button type="button" variant="secondary" onClick={() => setEditingModule(null)} className="flex-1">
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" className="flex-1">
+              Save Changes
             </Button>
           </div>
         </form>
