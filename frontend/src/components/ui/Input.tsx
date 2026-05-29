@@ -56,9 +56,30 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
   ({ className, error, children, ...props }, ref) => {
     return (
       <div className="relative w-full">
+        <style>{`
+          select {
+            position: relative;
+          }
+          select option {
+            background-color: var(--surface-med, #1a254f);
+            color: var(--text, #e5e7eb);
+            padding: 10px 8px;
+            line-height: 1.5;
+            border: none;
+          }
+          select option:checked {
+            background: linear-gradient(var(--accent, #6366f1), var(--accent, #6366f1));
+            background-color: var(--accent, #6366f1);
+            color: #ffffff;
+          }
+          select option:hover {
+            background-color: var(--accent, #6366f1);
+            color: #ffffff;
+          }
+        `}</style>
         <select
           className={cn(
-            'flex h-11 w-full appearance-none rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-low)] px-4 py-2.5 pr-10 text-sm text-[color:var(--text)] transition-all duration-150 ease hover:border-[color:var(--border-focus)]/30 focus:border-[color:var(--border-focus)] focus:ring-2 focus:ring-[color:var(--accent)]/15 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50',
+            'flex h-11 w-full appearance-none rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-low)] px-4 py-2.5 pr-10 text-sm text-[color:var(--text)] transition-all duration-150 ease hover:border-[color:var(--border-focus)]/30 focus:border-[color:var(--border-focus)] focus:ring-2 focus:ring-[color:var(--accent)]/15 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer',
             error ? 'border-rose-500 focus:ring-rose-500/20 focus:border-rose-500' : '',
             className
           )}

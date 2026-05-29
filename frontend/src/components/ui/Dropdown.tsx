@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../../lib/utils';
 
@@ -26,6 +27,7 @@ export function Dropdown({
   placeholder = 'Select option',
 }: DropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [menuStyle, setMenuStyle] = useState<React.CSSProperties | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   const selectedOption = options.find((opt) => opt.id === selectedId);
@@ -39,6 +41,38 @@ export function Dropdown({
     document.addEventListener('mousedown', handleOutsideClick);
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, []);
+
+  useEffect(() => {
+    if (!isOpen || !dropdownRef.current) {
+      setMenuStyle(null);
+      return;
+    }
+
+    const updateMenuPosition = () => {
+      const rect = dropdownRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const width = Math.max(rect.width, 180);
+      const left = Math.min(Math.max(12, rect.left), window.innerWidth - width - 12);
+      const top = rect.bottom + 8;
+
+      setMenuStyle({
+        position: 'fixed',
+        left,
+        top,
+        width,
+        zIndex: 10000,
+      });
+    };
+
+    updateMenuPosition();
+    window.addEventListener('resize', updateMenuPosition);
+    window.addEventListener('scroll', updateMenuPosition, true);
+    return () => {
+      window.removeEventListener('resize', updateMenuPosition);
+      window.removeEventListener('scroll', updateMenuPosition, true);
+    };
+  }, [isOpen]);
 
   return (
     <div ref={dropdownRef} className="relative inline-block w-full text-left">
@@ -72,49 +106,53 @@ export function Dropdown({
         </svg>
       </button>
 
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: -10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: -10 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 28 }}
-            className={cn(
-              'absolute right-0 z-30 mt-2 w-full min-w-[180px] origin-top-right overflow-hidden rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-high)] p-1.5 shadow-lg shadow-black/35 focus:outline-none',
-              menuClassName
-            )}
-          >
-            <div className="space-y-0.5">
-              {options.map((option) => {
-                const isSelected = option.id === selectedId;
-                return (
-                  <button
-                    key={option.id}
-                    type="button"
-                    onClick={() => {
-                      onSelect(option.id);
-                      setIsOpen(false);
-                    }}
-                    className={cn(
-                      'flex w-full items-center justify-between rounded-xl px-4 py-2.5 text-left text-sm transition-all duration-150 ease',
-                      isSelected
-                        ? 'bg-[color:var(--accent)] text-[color:var(--on-accent)] font-medium'
-                        : 'text-[color:var(--text)] hover:bg-[color:var(--surface-low)] hover:text-[color:var(--text)]'
-                    )}
-                  >
-                    <span className="truncate">{option.label}</span>
-                    {option.badge && (
-                      <span className={cn('text-xs ml-2', isSelected ? 'text-[color:var(--on-accent)]/80' : 'text-[color:var(--muted)]')}>
-                        {option.badge}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {isOpen && menuStyle
+        ? ReactDOM.createPortal(
+            <AnimatePresence>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+                style={menuStyle}
+                className={cn(
+                  'overflow-hidden rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-high)] p-1.5 shadow-lg shadow-black/35 focus:outline-none',
+                  menuClassName
+                )}
+              >
+                <div className="space-y-0.5">
+                  {options.map((option) => {
+                    const isSelected = option.id === selectedId;
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() => {
+                          onSelect(option.id);
+                          setIsOpen(false);
+                        }}
+                        className={cn(
+                          'flex w-full items-center justify-between rounded-xl px-4 py-2.5 text-left text-sm transition-all duration-150 ease',
+                          isSelected
+                            ? 'bg-[color:var(--accent)] text-[color:var(--on-accent)] font-medium'
+                            : 'text-[color:var(--text)] hover:bg-[color:var(--surface-low)] hover:text-[color:var(--text)]'
+                        )}
+                      >
+                        <span className="truncate">{option.label}</span>
+                        {option.badge && (
+                          <span className={cn('ml-2 text-xs', isSelected ? 'text-[color:var(--on-accent)]/80' : 'text-[color:var(--muted)]')}>
+                            {option.badge}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            </AnimatePresence>,
+            document.body
+          )
+        : null}
     </div>
   );
 }
