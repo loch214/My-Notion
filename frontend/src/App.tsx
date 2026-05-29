@@ -105,6 +105,7 @@ export default function App() {
     removeTask, 
     updateTask, 
     updateModule, 
+    removeModule,
     saveGlobalChatMessage, 
     addEvent, 
     removeEvent, 
@@ -795,8 +796,8 @@ export default function App() {
                     tasks={state.tasks}
                     onOpenModule={setActiveModuleId}
                     onAddModule={addModule}
-                    onEditModule={updateModule}
-                    onRemoveModule={removeModule}
+                      onEditModule={updateModule}
+                      onRemoveModule={removeModule}
                     onToggleTask={toggleTask}
                     onAddTask={addTask}
                     onEditTask={updateTask}

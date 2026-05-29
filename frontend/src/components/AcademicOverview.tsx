@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Module, Task } from '../types';
-import { BookOpen, FileText, MessageSquare, Plus, ChevronDown, Calendar, Edit, Trash2 } from 'lucide-react';
+import { BookOpen, FileText, MessageSquare, Plus, ChevronDown, Calendar, Pencil, Trash2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { TaskList } from './TaskList';
 
@@ -17,12 +17,12 @@ interface AcademicOverviewProps {
   tasks: Task[];
   onOpenModule: (moduleId: string) => void;
   onAddModule: (title: string, code: string, color: Module['color']) => void;
-  onEditModule?: (moduleId: string, updates: Partial<Module>) => void;
-  onRemoveModule?: (moduleId: string) => void;
   onToggleTask: (taskId: string) => void;
   onAddTask: (title: string, dueDate?: string, moduleId?: string) => void;
   onEditTask?: (taskId: string, updates: Partial<Task>) => void;
   onRemoveTask?: (taskId: string) => void;
+  onEditModule?: (moduleId: string, updates: Partial<Module>) => void;
+  onRemoveModule?: (moduleId: string) => void;
 }
 
 export function AcademicOverview({
@@ -43,7 +43,8 @@ export function AcademicOverview({
   const [newCode, setNewCode] = useState('');
   const [newColor, setNewColor] = useState<Module['color']>('blue');
   const [sortOrder, setSortOrder] = useState<'alpha' | 'newest'>('newest');
-  const [editingModule, setEditingModule] = useState<Module | null>(null);
+  // edit module state
+  const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState('');
   const [editCode, setEditCode] = useState('');
   const [editColor, setEditColor] = useState<Module['color']>('blue');
@@ -150,37 +151,44 @@ export function AcademicOverview({
                 spotlight={true}
                 interactive={true}
                 onClick={() => onOpenModule(module.id)}
-                className="card-pad text-left bg-[color:var(--surface-low)] relative"
+                className="card-pad text-left bg-[color:var(--surface-low)]"
               >
                 <div className="mb-3 flex items-start justify-between gap-4">
                   <div className={cn('rounded-xl p-2.5', getBadgeColors(module.color))}>
                     <BookOpen className="h-5 w-5" />
                   </div>
-                  <span className="rounded-full border border-[color:var(--border)] bg-[color:var(--surface-med)] px-2.5 py-0.5 text-[10px] uppercase tracking-[0.15em] text-[color:var(--muted)] font-mono">
-                    {module.code}
-                  </span>
-                </div>
-                <div className="absolute right-3 top-3 flex gap-2">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setEditingModule(module); setEditTitle(module.title); setEditCode(module.code); setEditColor(module.color); }}
-                    className="rounded-full p-1 text-[color:var(--muted)] opacity-80 transition-all duration-150 ease hover:opacity-100 hover:bg-[color:var(--surface-med)]"
-                    aria-label="Edit module"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (!onRemoveModule) return;
-                      if (confirm(`Delete module "${module.title}"? This cannot be undone.`)) {
-                        onRemoveModule(module.id);
-                      }
-                    }}
-                    className="rounded-full p-1 text-[color:var(--muted)] opacity-80 transition-all duration-150 ease hover:opacity-100 hover:bg-[color:var(--surface-med)]"
-                    aria-label="Delete module"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <div className="ml-auto flex items-center gap-2">
+                    <span className="rounded-full border border-[color:var(--border)] bg-[color:var(--surface-med)] px-2.5 py-0.5 text-[10px] uppercase tracking-[0.15em] text-[color:var(--muted)] font-mono">
+                      {module.code}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingModuleId(module.id);
+                        setEditTitle(module.title);
+                        setEditCode(module.code);
+                        setEditColor(module.color || 'blue');
+                      }}
+                      className="p-1 rounded-md text-[color:var(--muted)] hover:text-[color:var(--text)] hover:bg-[color:var(--surface-med)]"
+                      aria-label={`Edit ${module.title}`}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (confirm(`Delete "${module.title}"? This cannot be undone.`)) {
+                          onRemoveModule && onRemoveModule(module.id);
+                        }
+                      }}
+                      className="p-1 rounded-md text-[color:var(--muted)] hover:text-red-400 hover:bg-[color:var(--surface-med)]"
+                      aria-label={`Delete ${module.title}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
                 <h3 className="text-base font-bold font-heading text-[color:var(--text)] line-clamp-1 group-hover:text-[color:var(--accent)] transition-all duration-150 ease">
                   {module.title}
@@ -298,34 +306,31 @@ export function AcademicOverview({
 
       {/* Edit module Modal */}
       <Modal
-        isOpen={!!editingModule}
-        onClose={() => setEditingModule(null)}
+        isOpen={!!editingModuleId}
+        onClose={() => setEditingModuleId(null)}
         title="Edit module"
         subtitle="Update module details"
         maxWidthClassName="max-w-md"
       >
-        <form onSubmit={(e) => {
-          e.preventDefault();
-          if (!editingModule || !onEditModule) return;
-          onEditModule(editingModule.id, { title: editTitle, code: editCode, color: editColor });
-          setEditingModule(null);
-        }} className="space-y-4">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!editingModuleId) return;
+            onEditModule && onEditModule(editingModuleId, { title: editTitle, code: editCode, color: editColor });
+            setEditingModuleId(null);
+            setEditTitle('');
+            setEditCode('');
+            setEditColor('blue');
+          }}
+          className="space-y-4"
+        >
           <div>
             <label className="mb-1.5 block text-xs font-semibold text-[color:var(--muted)] uppercase tracking-wider">Module Title</label>
-            <Input
-              required
-              autoFocus
-              value={editTitle}
-              onChange={(e) => setEditTitle(e.target.value)}
-            />
+            <Input required autoFocus value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Artificial Intelligence" />
           </div>
           <div>
             <label className="mb-1.5 block text-xs font-semibold text-[color:var(--muted)] uppercase tracking-wider">Module Code</label>
-            <Input
-              required
-              value={editCode}
-              onChange={(e) => setEditCode(e.target.value)}
-            />
+            <Input required value={editCode} onChange={(e) => setEditCode(e.target.value)} placeholder="CS-301" />
           </div>
           <div>
             <label className="mb-2 block text-xs font-semibold text-[color:var(--muted)] uppercase tracking-wider">Theme Color</label>
@@ -349,11 +354,11 @@ export function AcademicOverview({
           </div>
 
           <div className="flex gap-2 pt-4">
-            <Button type="button" variant="secondary" onClick={() => setEditingModule(null)} className="flex-1">
+            <Button type="button" variant="secondary" onClick={() => setEditingModuleId(null)} className="flex-1">
               Cancel
             </Button>
             <Button type="submit" variant="primary" className="flex-1">
-              Save Changes
+              Save changes
             </Button>
           </div>
         </form>
