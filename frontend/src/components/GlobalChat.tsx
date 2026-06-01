@@ -14,7 +14,7 @@ import { motion } from 'motion/react';
 import { AppState, ChatMessage, ChatSession, TimetableEntry } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import Markdown from 'react-markdown';
-import { AI_MODELS, AIModelId, DEFAULT_AI_MODEL } from '../lib/models';
+import { AI_MODELS, AIModelId, DEFAULT_AI_MODEL, readStoredAIModel, writeStoredAIModel } from '../lib/models';
 import { useTheme } from '../context/ThemeContext';
 import { isThemeId } from '../lib/themes/applyTheme';
 
@@ -34,6 +34,7 @@ interface GlobalChatProps {
 const LOCAL_CONV_KEY = 'myNotion.globalChats';
 const LOCAL_ACTIVE_KEY = 'myNotion.globalChat.activeId';
 const LOCAL_DRAWER_WIDTH_KEY = 'myNotion.globalChat.drawerWidth';
+const LOCAL_MODEL_KEY = 'myNotion.globalChat.model';
 let didSeedInitialChatThisLoad = false;
 
 function readSessions(): ChatSession[] {
@@ -90,7 +91,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage, refreshWorks
   const DRAWER_DEFAULT_WIDTH = 560;
   const [input, setInput] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
-  const [model, setModel] = React.useState<AIModelId>(DEFAULT_AI_MODEL);
+  const [model, setModel] = React.useState<AIModelId>(() => readStoredAIModel(LOCAL_MODEL_KEY, DEFAULT_AI_MODEL));
   const [attachments, setAttachments] = React.useState<{ name: string; type: string; data: string }[]>([]);
   const [isMobile, setIsMobile] = React.useState(false);
   const [sidebarOpen, setSidebarOpen] = React.useState(true);
@@ -115,6 +116,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage, refreshWorks
   const { setTheme } = useTheme();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const scrollRef = React.useRef<HTMLDivElement>(null);
+  const drawerRef = React.useRef<HTMLDivElement>(null);
   const isResizingRef = React.useRef(false);
   const resizeStartXRef = React.useRef(0);
   const resizeStartWidthRef = React.useRef(DRAWER_DEFAULT_WIDTH);
@@ -174,11 +176,18 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage, refreshWorks
   }, [drawerWidth]);
 
   React.useEffect(() => {
+    writeStoredAIModel(LOCAL_MODEL_KEY, model);
+  }, [model]);
+
+  React.useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
       if (!isResizingRef.current || isMobile) return;
       const deltaX = event.clientX - resizeStartXRef.current;
       const next = clampDrawerWidth(resizeStartWidthRef.current - deltaX);
-      setDrawerWidth(next);
+      // Write directly to the DOM during drag to avoid React re-render per pixel
+      if (drawerRef.current) {
+        drawerRef.current.style.width = `${next}px`;
+      }
     };
 
     const handleMouseUp = () => {
@@ -186,6 +195,13 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage, refreshWorks
       isResizingRef.current = false;
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
+      // Sync React state on mouseup only
+      if (drawerRef.current) {
+        const finalWidth = parseFloat(drawerRef.current.style.width);
+        if (Number.isFinite(finalWidth)) {
+          setDrawerWidth(finalWidth);
+        }
+      }
     };
 
     window.addEventListener('mousemove', handleMouseMove);

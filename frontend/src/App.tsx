@@ -666,6 +666,7 @@ export default function App() {
           isNavbarVisible ? 'workspace-navbar-slot--visible' : 'workspace-navbar-slot--hidden'
         )}
         aria-hidden={!isNavbarVisible}
+        style={{ willChange: 'transform, opacity, margin-bottom' }}
       >
         <div className={cn('workspace-navbar-inner', !isNavbarVisible && 'pointer-events-none')}>
           <WorkspaceNavbar {...navbarProps} />
@@ -677,6 +678,7 @@ export default function App() {
           'workspace-body-row relative flex min-h-0 flex-1 flex-col gap-3 md:flex-row md:gap-4 lg:gap-6',
           !isNavbarVisible && 'workspace-body-row--nav-hidden'
         )}
+        style={{ willChange: 'padding-top' }}
       >
         
         {/* 2. Responsive sidebar drawer overlays (Mobile only) */}
@@ -749,15 +751,22 @@ export default function App() {
         {/* Sidebar — full height, separate from content navbar */}
         <div
           className={cn(
-            'relative hidden min-h-0 shrink-0 self-stretch md:flex md:flex-col transition-[width] duration-300 ease',
-            isSidebarOpen ? 'w-[clamp(12rem,16vw,15.5rem)]' : 'w-[clamp(4.5rem,4.5vw,5rem)]'
+            'relative hidden min-h-0 shrink-0 self-stretch md:flex md:flex-col',
+            isSidebarOpen ? 'sidebar-open' : 'sidebar-closed'
           )}
+          style={{
+            width: isSidebarOpen ? 'clamp(12rem,16vw,15.5rem)' : 'clamp(4.5rem,4.5vw,5rem)',
+            transition: 'width 300ms ease',
+            willChange: 'width',
+            contain: 'layout style paint',
+          }}
         >
           <aside
             className={cn(
-              'workspace-sidebar-panel flex h-full flex-col py-4 transition-[padding] duration-300 ease',
+              'workspace-sidebar-panel flex h-full flex-col py-4',
               isSidebarOpen ? 'px-4' : 'px-3'
             )}
+            style={{ willChange: 'padding', contain: 'layout style paint' }}
           >
           <div className="flex flex-col flex-1 justify-between">
             <div className="space-y-4">
@@ -814,6 +823,7 @@ export default function App() {
         <div
           ref={setMainScrollEl}
           className="workspace-main-panel min-h-0 min-w-0 flex-1"
+          style={{ contain: 'layout style paint' }}
         >
           <div className="workspace-main-content">
           {activeTab === 'home' ? (

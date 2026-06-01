@@ -3,7 +3,7 @@ import { Module, UploadedFile, ChatMessage, Task, ChatSession } from '../types';
 import { ChevronLeft, FileText, Upload, FileUp, Sparkles, MessageSquare, Loader2, X, ChevronDown, CheckSquare, Plus, Paperclip, Image as ImageIcon, PanelLeftClose, PanelLeftOpen, ArrowRight } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import Markdown from 'react-markdown';
-import { AI_MODELS, AIModelId, DEFAULT_AI_MODEL } from '../lib/models';
+import { AI_MODELS, AIModelId, DEFAULT_AI_MODEL, readStoredAIModel, writeStoredAIModel } from '../lib/models';
 import { TaskList } from './TaskList';
 import { cn } from '../lib/utils';
 import { useTheme } from '../context/ThemeContext';
@@ -29,6 +29,8 @@ interface ModuleDetailProps {
   refreshWorkspace: () => Promise<void>;
 }
 
+const LOCAL_MODEL_KEY = 'myNotion.moduleChat.model';
+
 export function ModuleDetail({
   module,
   tasks,
@@ -44,7 +46,7 @@ export function ModuleDetail({
   const [isUploading, setIsUploading] = useState(false);
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
-  const [chatModel, setChatModel] = useState<AIModelId>(DEFAULT_AI_MODEL);
+  const [chatModel, setChatModel] = useState<AIModelId>(() => readStoredAIModel(LOCAL_MODEL_KEY, DEFAULT_AI_MODEL));
   const [fileSort, setFileSort] = useState<'newest' | 'oldest' | 'alpha'>('newest');
   const [chatAttachments, setChatAttachments] = useState<{ name: string; type: string; data: string }[]>([]);
   
@@ -96,6 +98,10 @@ export function ModuleDetail({
       setIsMobileSessionsOpen(false);
     }
   }, [activeTab]);
+
+  React.useEffect(() => {
+    writeStoredAIModel(LOCAL_MODEL_KEY, chatModel);
+  }, [chatModel]);
 
   const handleNewChat = () => {
     const newSession = {

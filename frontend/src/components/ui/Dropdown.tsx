@@ -29,12 +29,16 @@ export function Dropdown({
   const [isOpen, setIsOpen] = useState(false);
   const [menuStyle, setMenuStyle] = useState<React.CSSProperties | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   const selectedOption = options.find((opt) => opt.id === selectedId);
 
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const clickedInsideTrigger = dropdownRef.current?.contains(target) ?? false;
+      const clickedInsideMenu = menuRef.current?.contains(target) ?? false;
+      if (!clickedInsideTrigger && !clickedInsideMenu) {
         setIsOpen(false);
       }
     };
@@ -110,6 +114,8 @@ export function Dropdown({
         ? ReactDOM.createPortal(
             <AnimatePresence>
               <motion.div
+                ref={menuRef}
+                onMouseDown={(event) => event.stopPropagation()}
                 initial={{ opacity: 0, scale: 0.95, y: -10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: -10 }}

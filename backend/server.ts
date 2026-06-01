@@ -235,6 +235,16 @@ RESTRICTIONS — DO NOT:
 
 type SupportedModel = keyof typeof MODEL_PROVIDERS;
 
+const MODEL_ALIASES: Record<string, SupportedModel> = {
+  'llama 3.3 70b': 'llama-3.3-70b-versatile',
+  'llama 3.3 70b versatile': 'llama-3.3-70b-versatile',
+  'llama': 'llama-3.3-70b-versatile',
+  'gemini flash': 'gemini-2.5-flash',
+  'gemini 2.5 flash': 'gemini-2.5-flash',
+  'gemini 3.1 pro': 'gemini-3.1-pro',
+  'gemini pro': 'gemini-3.1-pro',
+};
+
 type ChatAction =
   | { action: 'switch_theme'; theme: string }
   | { action: 'refresh_workspace' }
@@ -489,6 +499,19 @@ const CHAT_TOOL_DECLARATIONS: FunctionDeclaration[] = [
   },
   {
     name: 'get_events',
+    description: 'Fetch current events so the AI can reference them, optionally filtered by month or date.',
+    parametersJsonSchema: {
+      type: 'object',
+      properties: {
+        month: { type: 'number', minimum: 1, maximum: 12, description: 'Optional month number to filter events by' },
+        date: { type: 'string', description: 'Optional YYYY-MM-DD date filter' },
+        upcoming: { type: 'boolean', description: 'Optional flag to return upcoming events only' },
+      },
+      additionalProperties: false,
+    },
+  },
+  {
+    name: 'get_events',
     description: 'Fetch current events so the AI can reference them.',
     parametersJsonSchema: {
       type: 'object',
@@ -544,7 +567,12 @@ function findBestMatch<T>(items: T[], title: string, getTitle: (item: T) => stri
 }
 
 function findBestModuleMatch(workspaceModules: any[], identifier: string) {
-  const normalized = normalizeText(identifier).toLowerCase();
+  const normalized = normalizeText(identifier)
+    .toLowerCase()
+    .replace(/\bmodules?\b$/i, '')
+    .replace(/\bmodule\b$/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
   if (!normalized) return null;
 
   const direct = workspaceModules.find((module: any) => {
@@ -638,8 +666,8 @@ function inferAllowedFunctionNames(message: string) {
   if (/(theme|color|palette|switch|change look|change theme)/i.test(text) || /\b(different|another)\s+one\b/i.test(text)) {
     allowed.add('switch_theme');
   }
-  if (/\b(get|show|list|see).*(task|tasks)\b/i.test(text)) allowed.add('get_tasks');
-  if (/\b(get|show|list|see).*(event|events|calendar)\b/i.test(text)) allowed.add('get_events');
+  if (/\b(get|show|list|see).*(task|tasks)\b/i.test(text) || /\bwhat\s+tasks?\b/i.test(text) || /\bdo\s+i\s+have\s+any\s+tasks?\b/i.test(text)) allowed.add('get_tasks');
+  if (/\b(get|show|list|see).*(event|events|calendar)\b/i.test(text) || /\bwhat\s+events?\b/i.test(text) || /\bdo\s+i\s+have\s+any\s+events?\b/i.test(text) || /\bany\s+events?\b/i.test(text)) allowed.add('get_events');
 
   return allowed.size > 0 ? Array.from(allowed) : undefined;
 }
@@ -960,14 +988,34 @@ async function executeChatTool(name: string, args: Record<string, unknown>, runt
       return { response: { output: { success: true, tasks } } };
     }
     case 'get_events': {
-      const events = workspace.events.map((event: any) => ({
+      const month = typeof args.month === 'number' && Number.isFinite(args.month) ? args.month : undefined;
+      const dateFilter = normalizeText(args.date);
+      const upcomingOnly = args.upcoming === true || normalizeText(args.upcoming).toLowerCase() === 'true';
+      const today = new Date();
+
+      const events = workspace.events
+        .filter((event: any) => {
+          const startDate = new Date(event.startTime);
+          if (Number.isNaN(startDate.getTime())) return false;
+          if (dateFilter) {
+            return startDate.toISOString().slice(0, 10) === dateFilter;
+          }
+          if (typeof month === 'number') {
+            return startDate.getMonth() + 1 === month;
+          }
+          if (upcomingOnly) {
+            return startDate.getTime() >= today.getTime();
+          }
+          return true;
+        })
+        .map((event: any) => ({
         id: event.id,
         title: event.title,
         startTime: event.startTime,
         endTime: event.endTime,
         color: event.color,
         description: event.description ?? null,
-      }));
+        }));
       return { response: { output: { success: true, events } } };
     }
     default:
@@ -999,9 +1047,21 @@ function getGroqClient() {
 }
 
 function safeModel(model: unknown): SupportedModel {
-  if (typeof model === 'string' && model in MODEL_PROVIDERS) {
-    return model as SupportedModel;
+  if (typeof model === 'string') {
+    const trimmed = model.trim();
+    if (trimmed in MODEL_PROVIDERS) {
+      return trimmed as SupportedModel;
+    }
+
+    const normalized = trimmed.toLowerCase().replace(/[._]+/g, ' ').replace(/\s+/g, ' ').trim();
+    const alias = MODEL_ALIASES[normalized];
+    if (alias) {
+      console.warn(`[AI] resolved model alias "${trimmed}" -> "${alias}"`);
+      return alias;
+    }
   }
+
+  console.warn(`[AI] unknown model "${String(model)}"; falling back to llama-3.3-70b-versatile`);
   return 'llama-3.3-70b-versatile';
 }
 
@@ -1300,8 +1360,11 @@ async function runGemini(
     for (const call of functionCalls) {
       let toolResult;
       try {
+        console.log('[Gemini] executing tool', call.name, call.args);
         toolResult = await executeChatTool(call.name ?? '', (call.args ?? {}) as Record<string, unknown>, runtimeContext);
+        console.log('[Gemini] tool result for', call.name, JSON.stringify(toolResult?.response ?? toolResult).slice(0, 400));
       } catch (error: any) {
+        console.error('[Gemini] tool execution failed', error?.message ?? error);
         toolResult = {
           response: {
             error: error instanceof Error ? error.message : 'Tool execution failed.',
@@ -1442,11 +1505,34 @@ function formatGroqToolResponse(name: string, response: any) {
     case 'switch_theme':
       return output?.themeName ? `I switched the app theme to ${output.themeName}.` : 'I switched the app theme.';
     case 'get_tasks':
-      return Array.isArray(output?.tasks) ? `Here are your ${output.tasks.length} tasks.` : 'Here are your tasks.';
+      if (Array.isArray(output?.tasks)) {
+        if (output.tasks.length === 0) return 'You do not have any tasks right now.';
+        return `You have ${output.tasks.length} task${output.tasks.length === 1 ? '' : 's'}: ${output.tasks.map((task: any) => {
+          const dueText = task.dueDate ? ` due ${formatTaskDueDate(task.dueDate)}` : '';
+          const moduleText = task.moduleTitle ? ` for ${task.moduleTitle}` : '';
+          return `${task.title}${moduleText}${dueText}`;
+        }).join('; ')}.`;
+      }
+      return 'Here are your tasks.';
     case 'get_events':
-      return Array.isArray(output?.events) ? `Here are your ${output.events.length} calendar events.` : 'Here are your calendar events.';
+      if (Array.isArray(output?.events)) {
+        if (output.events.length === 0) return 'You do not have any calendar events right now.';
+        return `You have ${output.events.length} calendar event${output.events.length === 1 ? '' : 's'}: ${output.events.map((event: any) => {
+          const start = event.startTime ? new Date(event.startTime).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'unknown date';
+          return `${event.title} on ${start}`;
+        }).join('; ')}.`;
+      }
+      return 'Here are your calendar events.';
     case 'get_timetable':
-      return Array.isArray(output?.entries) ? `Here are your ${output.entries.length} timetable slots.` : 'Here is your timetable.';
+      if (Array.isArray(output?.entries)) {
+        if (output.entries.length === 0) return 'You do not have any timetable slots for that query.';
+        return `You have ${output.entries.length} timetable slot${output.entries.length === 1 ? '' : 's'}: ${output.entries.map((entry: any) => {
+          const moduleText = entry.moduleCode || entry.moduleTitle || 'Module';
+          const dayText = entry.dayLabel || formatDayName(entry.dayOfWeek);
+          return `${moduleText} ${entry.kind} on ${dayText} from ${entry.startTime} to ${entry.endTime}`;
+        }).join('; ')}.`;
+      }
+      return 'Here is your timetable.';
     default:
       return 'Done.';
   }
@@ -1505,7 +1591,13 @@ function extractModuleArgsFromMessage(message: string) {
   const match = trimmed.match(/^(?:add|create|new)\s+(?:a\s+)?module\s+(?:called|named)?\s+(.+)$/i);
   const rest = match?.[1]?.trim() ?? trimmed;
   const codeMatch = rest.match(/\b(?:code|id)\s+([A-Za-z0-9_-]+)\b/i);
-  const title = rest.replace(/\b(?:code|id)\s+[A-Za-z0-9_-]+\b/i, '').replace(/\s+with\s+color\s+.+$/i, '').trim().replace(/[,.;:-]$/, '').trim();
+  const title = rest
+    .replace(/\b(?:code|id)\s+[A-Za-z0-9_-]+\b/i, '')
+    .replace(/\s+with\s+color\s+.+$/i, '')
+    .replace(/\s+with$/i, '')
+    .trim()
+    .replace(/[,.;:-]$/, '')
+    .trim();
   return {
     title,
     code: codeMatch?.[1]?.trim() ?? '',
@@ -1566,6 +1658,21 @@ function parseDateFromText(dateText: string) {
   }
 
   const now = new Date();
+  const monthDayMatch = trimmed.match(/\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(?:\s*(?:st|nd|rd|th))?\b/i);
+  if (monthDayMatch) {
+    const monthName = monthDayMatch[1].toLowerCase();
+    const day = Number(monthDayMatch[2]);
+    const monthIndex = MONTH_INDEX[monthName];
+    if (monthIndex !== undefined && day >= 1 && day <= 31) {
+      let year = now.getFullYear();
+      const candidate = new Date(year, monthIndex, day);
+      if (candidate.getTime() < now.getTime()) {
+        year += 1;
+      }
+      return new Date(year, monthIndex, day).toISOString().slice(0, 10);
+    }
+  }
+
   const dayThisMonthMatch = trimmed.match(/\b(\d{1,2})(?:\s*(?:st|nd|rd|th))?\s*(?:of\s*)?(?:this\s*month)\b/i);
   if (dayThisMonthMatch) {
     const day = Number(dayThisMonthMatch[1]);
@@ -1575,10 +1682,10 @@ function parseDateFromText(dateText: string) {
     }
   }
 
-  const monthDayMatch = trimmed.match(/\b(\d{1,2})(?:\s*(?:st|nd|rd|th))?\s*(?:of\s*)?(january|february|march|april|may|june|july|august|september|october|november|december)\b/i);
-  if (monthDayMatch) {
-    const day = Number(monthDayMatch[1]);
-    const monthName = monthDayMatch[2].toLowerCase();
+  const dayMonthMatch = trimmed.match(/\b(\d{1,2})(?:\s*(?:st|nd|rd|th))?\s*(?:of\s*)?(january|february|march|april|may|june|july|august|september|october|november|december)\b/i);
+  if (dayMonthMatch) {
+    const day = Number(dayMonthMatch[1]);
+    const monthName = dayMonthMatch[2].toLowerCase();
     const monthIndex = MONTH_INDEX[monthName];
     if (monthIndex !== undefined && day >= 1 && day <= 31) {
       let year = now.getFullYear();
@@ -1617,7 +1724,7 @@ function extractEventArgsFromMessage(message: string) {
   const trimmed = message.trim();
 
   const directMatch = trimmed.match(
-    /^(?:add|create|new)\s+(?:an?\s+)?event\s+(?:called|named)?\s*(.+?)\s+on\s+(.+?)\s+from\s+(.+?)\s+to\s+(.+)$/i
+    /^(?:add|create|new)\s+(?:an?\s+)?event\s+(?:called|named)?\s*(.+?)\s+on\s+(.+?)\s+(?:at|from)\s+(.+?)\s+to\s+(.+)$/i
   );
 
   if (directMatch) {
@@ -1699,7 +1806,24 @@ async function tryGroqLocalFallback(message: string, toolDeclarations: FunctionD
   if (!allowedFunctionNames || allowedFunctionNames.length === 0) return null;
 
   const available = new Set(toolDeclarations.map((declaration) => declaration.name));
-  const candidateName = allowedFunctionNames.find((name) => available.has(name));
+  const candidatePriority: string[] = [
+    'create_timetable_entry',
+    'update_timetable_entry',
+    'delete_timetable_entry',
+    'create_event',
+    'delete_event',
+    'get_events',
+    'create_task',
+    'delete_task',
+    'toggle_task',
+    'get_tasks',
+    'get_timetable',
+    'create_module',
+    'update_module',
+    'delete_module',
+    'switch_theme',
+  ];
+  const candidateName = candidatePriority.find((name) => allowedFunctionNames.includes(name) && available.has(name));
   if (!candidateName) return null;
 
   let args: Record<string, unknown> = {};
@@ -1744,14 +1868,24 @@ async function tryGroqLocalFallback(message: string, toolDeclarations: FunctionD
   } else if (candidateName === 'get_timetable') {
     const dayMatch = message.match(/\b(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/i);
     const kindMatch = message.match(/\b(lecture|lab|tutorial)\b/i);
+    const hasExplicitModuleTarget = /\bfor\b|\bmodule\b\s+(?:called|named)|\bcode\b|\bid\b/i.test(message);
     args = {
       dayOfWeek: dayMatch ? ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'].indexOf(dayMatch[1].toLowerCase()) : undefined,
       kind: kindMatch?.[1]?.toLowerCase(),
-      moduleQuery: extractModuleArgsFromMessage(message).title || extractModuleArgsFromMessage(message).code || undefined,
+      moduleQuery: hasExplicitModuleTarget ? extractModuleIdentifierFromMessage(message) || extractModuleArgsFromMessage(message).title || extractModuleArgsFromMessage(message).code || undefined : undefined,
+    };
+  } else if (candidateName === 'get_events') {
+    const monthMatch = message.match(/\b(january|february|march|april|may|june|july|august|september|october|november|december)\b/i);
+    const parsedDate = parseDateFromText(message);
+    args = {
+      month: monthMatch ? MONTH_INDEX[monthMatch[1].toLowerCase()] + 1 : undefined,
+      date: parsedDate ?? undefined,
+      upcoming: /\bupcoming\b/i.test(message),
     };
   }
 
   const toolResult = await executeChatTool(candidateName, args, runtimeContext);
+  console.log('[AI] local fallback tool result for', candidateName, JSON.stringify(toolResult?.response ?? toolResult).slice(0, 400));
   const text = formatGroqToolResponse(candidateName, toolResult.response);
   return {
     text,
@@ -2172,6 +2306,7 @@ app.post('/api/chat/global', async (req, res) => {
     const { message, history = [], context, model = 'gemini-2.5-flash', attachments = [] } = req.body;
     const selectedModel = safeModel(model);
     const provider = MODEL_PROVIDERS[selectedModel];
+    console.log('[AI] global chat request', { requestedModel: model, selectedModel, provider });
     const runtimeContext: ChatRuntimeContext = {
       timetableEntries: Array.isArray(context?.timetableEntries) ? context.timetableEntries : [],
     };
@@ -2247,6 +2382,7 @@ app.post('/api/chat/module', async (req, res) => {
     const { message, moduleId, moduleName, files, history = [], model = 'gemini-2.5-flash', attachments = [], generateTitle = false } = req.body;
     const selectedModel = safeModel(model);
     const provider = MODEL_PROVIDERS[selectedModel];
+    console.log('[AI] module chat request', { requestedModel: model, selectedModel, provider, moduleId, moduleName });
 
     let extractedText = '';
     let dbModule: any = null;
@@ -2395,9 +2531,6 @@ connectDB();
 app.listen(PORT, () => {
   console.log(`\nBackend server running on http://localhost:${PORT}`);
   console.log('Make sure frontend is running on http://localhost:5173');
-  if (!process.env.ANTHROPIC_API_KEY) {
-    console.log('ANTHROPIC_API_KEY not set - Claude requests will use mock responses');
-  }
   if (!process.env.GEMINI_API_KEY) {
     console.log('GEMINI_API_KEY not set - Gemini requests will use mock responses');
   }
