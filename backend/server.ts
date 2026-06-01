@@ -24,6 +24,7 @@ type WorkspaceDocumentLike = {
   modules: any[];
   tasks: any[];
   events: any[];
+  readNotificationIds: string[];
   globalChat: { id: string; messages: any[] };
   save: () => Promise<WorkspaceDocumentLike>;
 };
@@ -53,6 +54,7 @@ function createFallbackWorkspace(): WorkspaceDocumentLike {
     modules: [],
     tasks: [],
     events: [],
+    readNotificationIds: [],
     globalChat: { id: uuidv4(), messages: [] },
     save: async () => fallbackWorkspace as WorkspaceDocumentLike,
   };
@@ -533,6 +535,7 @@ function getOrCreateWorkspace() {
       modules: [],
       tasks: [],
       events: [],
+      readNotificationIds: [],
       globalChat: { id: uuidv4(), messages: [] },
     });
     await created.save();

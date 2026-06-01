@@ -76,6 +76,7 @@ const workspaceSchema = new mongoose.Schema({
   modules: [moduleSchema],
   tasks: [taskSchema],
   events: [eventSchema],
+  readNotificationIds: [{ type: String }],
   globalChat: globalChatSchema,
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },

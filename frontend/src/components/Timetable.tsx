@@ -453,6 +453,7 @@ export default function Timetable({ modules, entries, onAddEntry, onUpdateEntry,
   const [editError, setEditError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string>('');
   const [currentTime, setCurrentTime] = useState(() => new Date());
+  const visibleDayCount = viewportWidth < 640 ? 3 : viewportWidth < 1024 ? 5 : 7;
 
   const alignmentTicks = useMemo(() => {
     const highlighted = new Set(GUIDE_HIGHLIGHT_TIMES.map((timeValue) => timeToMinutes(timeValue)));
@@ -545,7 +546,7 @@ export default function Timetable({ modules, entries, onAddEntry, onUpdateEntry,
     [modules]
   );
 
-  const visibleDays = DAY_TABS;
+  const visibleDays = useMemo(() => getVisibleDays(activeDay, visibleDayCount), [activeDay, visibleDayCount]);
   const nowMinutes = currentTime.getHours() * 60 + currentTime.getMinutes();
   const isNowInGridRange = nowMinutes >= GRID_START_MINUTES && nowMinutes <= GRID_END_MINUTES;
 
@@ -627,7 +628,7 @@ export default function Timetable({ modules, entries, onAddEntry, onUpdateEntry,
   };
 
   return (
-    <div className="space-y-3">
+    <div className="w-full min-w-0 space-y-3">
       <div>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-3xl font-semibold tracking-tight text-[color:var(--text)]">Timetable</h1>
@@ -735,7 +736,7 @@ export default function Timetable({ modules, entries, onAddEntry, onUpdateEntry,
                   <div
                     key={day.value}
                     className={cn(
-                      'relative flex min-w-[170px] flex-1 flex-col border-l border-[color:var(--border)]/20 first:border-l-0',
+                      'relative flex min-w-[140px] flex-1 flex-col border-l border-[color:var(--border)]/20 first:border-l-0 sm:min-w-[170px]',
                       day.value === todayDayOfWeek && 'bg-[color:var(--accent)]/4'
                     )}
                     style={{ height: `${GRID_HEIGHT + COLUMN_HEADER_HEIGHT + GRID_TOP_GAP}px` }}

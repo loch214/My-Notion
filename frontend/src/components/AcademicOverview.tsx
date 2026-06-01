@@ -84,6 +84,7 @@ export function AcademicOverview({
   const totalFiles = modules.reduce((sum, module) => sum + module.files.length, 0);
   const totalChats = modules.reduce((sum, module) => sum + Math.floor((module.chatHistory || []).length / 2), 0);
   const academicTasks = tasks.filter((task) => task.moduleId === ACADEMIC_GENERAL_ID);
+  const hasModules = sortedModules.length > 0;
 
   const sortOptions = [
     { id: 'newest', label: 'Recently added' },
@@ -200,8 +201,20 @@ export function AcademicOverview({
               </Card>
             ))}
             {sortedModules.length === 0 && (
-              <div className="col-span-full rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-med)]/35 py-12 text-center text-xs text-[color:var(--muted)]">
-                No active modules yet.
+              <div className="col-span-full rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-med)]/35 px-5 py-12 text-center">
+                <p className="text-sm font-semibold text-[color:var(--text)]">No active modules yet.</p>
+                <p className="mx-auto mt-1.5 max-w-md text-sm text-[color:var(--muted)]">
+                  Create your first module to unlock timetable slots, study files, and AI context.
+                </p>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => setIsAdding(true)}
+                  leftIcon={<Plus className="h-4 w-4" />}
+                  className="mt-4"
+                >
+                  Add first module
+                </Button>
               </div>
             )}
           </div>
@@ -209,10 +222,6 @@ export function AcademicOverview({
 
         <div className="space-y-4 min-w-0 xl:sticky xl:top-4">
           <Card spotlight={false} className="card-pad bg-[color:var(--surface-low)]">
-            <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.22em] text-[color:var(--muted)]">
-              <Plus className="h-3.5 w-3.5 text-[color:var(--accent)]" />
-              Quick task
-            </div>
             <TaskList
               tasks={academicTasks}
               onToggleTask={onToggleTask}
@@ -220,27 +229,26 @@ export function AcademicOverview({
               onEditTask={onEditTask}
               onRemoveTask={onRemoveTask}
               showAddControls={true}
-              showTaskGroups={false}
-              title="Add task"
+              showTaskGroups={true}
+              title="Academic tasks"
             />
           </Card>
 
-          <div className="flex items-center gap-2 text-base font-bold font-heading text-[color:var(--text)] pl-1">
-            <Calendar className="h-4.5 w-4.5 text-[color:var(--accent)]" />
-            Academic Agenda
-          </div>
-          <Card spotlight={false} className="card-pad bg-[color:var(--surface-low)]">
-            <TaskList
-              tasks={academicTasks}
-              onToggleTask={onToggleTask}
-              onAddTask={(title, dueDate) => onAddTask(title, dueDate, ACADEMIC_GENERAL_ID)}
-              onEditTask={onEditTask}
-              onRemoveTask={onRemoveTask}
-              showAddControls={false}
-              showTaskGroups={true}
-              title="Academic Tasks"
-            />
-          </Card>
+          {!hasModules && (
+            <Card spotlight={false} className="card-pad bg-[color:var(--surface-low)] border-dashed">
+              <div className="flex items-start gap-3">
+                <div className="rounded-xl bg-[color:var(--surface-med)] p-2 text-[color:var(--accent)]">
+                  <Calendar className="h-4.5 w-4.5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-[color:var(--text)]">Nothing here yet</p>
+                  <p className="mt-1 text-sm text-[color:var(--muted)]">
+                    Add a module first, then use this view for tasks tied to that course.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          )}
         </div>
       </div>
 

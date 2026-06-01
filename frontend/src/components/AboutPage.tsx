@@ -1,4 +1,4 @@
-import { ArrowUpRight, Github, Globe, Sparkles, Target, Workflow } from 'lucide-react';
+import { ArrowUpRight, CheckCircle2, Github, Globe, Sparkles, Target } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Card } from './ui/Card';
 import { SectionHeader } from './ui/SectionHeader';
@@ -25,6 +25,13 @@ const profileLinks = [
 const projectTraits = ['Modules, tasks, and schedule in one place.', 'An AI assistant for quick help.', 'Themes that stay out of the way.'] as const;
 
 const nextIdeas = ['Weekly recap cards.', 'Deadline warnings.', 'Keyboard-first launcher.'] as const;
+
+const gettingStartedSteps = [
+  'Create your first module in Academic.',
+  'Add one task with a due date in Personal or Academic Tasks.',
+  'Set one calendar event with a reminder.',
+  'Use the global AI chat for quick planning or status checks.',
+] as const;
 
 export function AboutPage() {
   return (
@@ -57,6 +64,29 @@ export function AboutPage() {
                 ))}
               </ul>
             </div>
+          </div>
+        </Card>
+
+        <Card spotlight={false} className="card-pad border border-[color:var(--border)] bg-[color:var(--surface-low)]/75">
+          <div className="mb-4 flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-[color:var(--accent)]" />
+            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[color:var(--muted)]">Getting Started</p>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            {gettingStartedSteps.map((step, index) => (
+              <div key={step} className="flex items-start gap-2 rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-med)]/45 px-3 py-2.5">
+                <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[color:var(--accent)]/20 text-[11px] font-semibold text-[color:var(--accent)]">
+                  {index + 1}
+                </span>
+                <p className="text-sm text-[color:var(--muted)]">{step}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 flex items-start gap-2 rounded-xl border border-[color:var(--border)] bg-[color:var(--surface-med)]/45 px-3 py-2.5">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-400" />
+            <p className="text-sm text-[color:var(--muted)]">
+              Tip: Notifications are generated from tasks, events, and timetable reminders. Once marked read, they now persist across sessions.
+            </p>
           </div>
         </Card>
 

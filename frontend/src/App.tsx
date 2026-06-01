@@ -35,6 +35,7 @@ import { useAutoHideNavbar } from './hooks/useAutoHideNavbar';
 import { loadRecentPage, saveRecentPage } from './lib/recentPage';
 import { buildWorkspaceNotifications, type WorkspaceNotificationItem, type WorkspaceTab } from './lib/notifications';
 import { addTimetableEntry, generateTimetableOccurrences, loadTimetableEntries, removeTimetableEntry, updateTimetableEntry } from './lib/timetable';
+import { API_BASE } from './lib/api';
 import { TimetableEntry } from './types';
 
 const READ_NOTIFICATION_STORAGE_KEY = 'my_notion_read_notifications';
@@ -83,6 +84,18 @@ function loadReadNotificationIds(): string[] {
 function saveReadNotificationIds(next: string[]) {
   localStorage.setItem(READ_NOTIFICATION_STORAGE_KEY, JSON.stringify(next));
   window.dispatchEvent(new CustomEvent(READ_NOTIFICATION_STORAGE_KEY, { detail: next }));
+}
+
+async function saveReadNotificationIdsToServer(next: string[]) {
+  try {
+    await fetch(`${API_BASE}/api/data/notifications/read`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ readNotificationIds: next }),
+    });
+  } catch (error) {
+    console.error('Error saving notification read state to server:', error);
+  }
 }
 
 type SearchResultKind = 'tab' | 'module' | 'task' | 'event';
@@ -210,6 +223,40 @@ export default function App() {
     return () => {
       window.removeEventListener('storage', handleStorage);
       window.removeEventListener(READ_NOTIFICATION_STORAGE_KEY, handleCustomUpdate as EventListener);
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const syncNotificationReadState = async () => {
+      try {
+        const response = await fetch(`${API_BASE}/api/data/notifications/read`);
+        if (!response.ok) return;
+        const data = await response.json();
+        const serverIds = Array.isArray(data?.readNotificationIds)
+          ? data.readNotificationIds.filter((value: unknown) => typeof value === 'string')
+          : [];
+
+        if (!isMounted) return;
+
+        setReadNotificationIds((current) => {
+          const merged = Array.from(new Set([...current, ...serverIds]));
+          saveReadNotificationIds(merged);
+          if (merged.length !== serverIds.length) {
+            void saveReadNotificationIdsToServer(merged);
+          }
+          return merged;
+        });
+      } catch (error) {
+        console.error('Error loading notification read state from server:', error);
+      }
+    };
+
+    void syncNotificationReadState();
+
+    return () => {
+      isMounted = false;
     };
   }, []);
 
@@ -523,6 +570,7 @@ export default function App() {
     setReadNotificationIds((current) => {
       const next = current.includes(notificationId) ? current : [...current, notificationId];
       saveReadNotificationIds(next);
+      void saveReadNotificationIdsToServer(next);
       return next;
     });
   }, []);
@@ -530,6 +578,7 @@ export default function App() {
   const markAllNotificationsRead = useCallback(() => {
     const next = Array.from(new Set([...readNotificationIds, ...notificationItems.map((item) => item.id)]));
     saveReadNotificationIds(next);
+    void saveReadNotificationIdsToServer(next);
     setReadNotificationIds(next);
   }, [notificationItems, readNotificationIds]);
 

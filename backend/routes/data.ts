@@ -12,6 +12,7 @@ type WorkspaceDocumentLike = {
   modules: any[];
   tasks: any[];
   events: any[];
+  readNotificationIds: string[];
   globalChat: { id: string; messages: any[] };
   save: () => Promise<WorkspaceDocumentLike>;
 };
@@ -26,6 +27,7 @@ function createFallbackWorkspace(): WorkspaceDocumentLike {
     modules: [],
     tasks: [],
     events: [],
+    readNotificationIds: [],
     globalChat: { id: uuidv4(), messages: [] },
     save: async () => fallbackWorkspace as WorkspaceDocumentLike,
   };
@@ -47,6 +49,7 @@ async function getOrCreateWorkspace() {
         modules: [],
         tasks: [],
         events: [],
+        readNotificationIds: [],
         globalChat: { id: uuidv4(), messages: [] },
       });
       await workspace.save();
@@ -279,6 +282,34 @@ router.get('/chat/global', async (req, res) => {
   }
 });
 
+// ===== NOTIFICATION READ STATE =====
+router.get('/notifications/read', async (req, res) => {
+  try {
+    const workspace = await getOrCreateWorkspace();
+    const readNotificationIds = Array.isArray((workspace as any).readNotificationIds)
+      ? (workspace as any).readNotificationIds.filter((value: unknown) => typeof value === 'string')
+      : [];
+    res.json({ readNotificationIds });
+  } catch (error) {
+    console.error('Error fetching notification read state:', error);
+    res.status(500).json({ error: 'Failed to fetch notification read state' });
+  }
+});
+
+router.put('/notifications/read', async (req, res) => {
+  try {
+    const incoming = Array.isArray(req.body?.readNotificationIds) ? req.body.readNotificationIds : [];
+    const readNotificationIds = Array.from(new Set(incoming.filter((value: unknown) => typeof value === 'string')));
+    const workspace = await getOrCreateWorkspace();
+    (workspace as any).readNotificationIds = readNotificationIds;
+    await workspace.save();
+    res.json({ success: true, readNotificationIds });
+  } catch (error) {
+    console.error('Error saving notification read state:', error);
+    res.status(500).json({ error: 'Failed to save notification read state' });
+  }
+});
+
 router.post('/chat/global/message', async (req, res) => {
   try {
     const message = req.body;
@@ -326,6 +357,7 @@ router.get('/workspace', async (req, res) => {
       modules: workspace.modules,
       tasks: workspace.tasks,
       events: workspace.events,
+      readNotificationIds: Array.isArray((workspace as any).readNotificationIds) ? (workspace as any).readNotificationIds : [],
       globalChatHistory: workspace.globalChat?.messages || [],
     });
   } catch (error) {

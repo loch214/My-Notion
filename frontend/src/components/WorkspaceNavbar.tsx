@@ -244,8 +244,8 @@ export function WorkspaceNavbar({
       : null;
 
   return (
-    <header className="workspace-navbar relative mx-[var(--workspace-edge-inset)] mt-[var(--workspace-nav-inset-top)] flex h-[var(--workspace-nav-bar)] items-center justify-between gap-3 rounded-[2rem] border border-[color:var(--nav-glass-border)] bg-[color:var(--surface-med)]/78 px-4 shadow-[0_8px_30px_rgba(4,10,28,0.3)] backdrop-blur-md sm:px-5">
-      <button type="button" onClick={onGoLanding} className="flex min-w-0 items-center gap-2 rounded-full px-1.5 py-1 text-left hover:bg-white/5">
+    <header className="workspace-navbar relative mx-[var(--workspace-edge-inset)] mt-[var(--workspace-nav-inset-top)] flex h-[var(--workspace-nav-bar)] items-center justify-between gap-3 rounded-[2rem] border border-[color:var(--nav-glass-border)] bg-[color:var(--surface-med)]/78 px-4 shadow-[0_8px_30px_rgba(4,10,28,0.3)] backdrop-blur-md sm:px-5 md:grid md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center md:gap-3">
+      <button type="button" onClick={onGoLanding} className="flex min-w-0 items-center gap-2 rounded-full px-1.5 py-1 text-left hover:bg-white/5 md:max-w-full md:justify-self-start">
         <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[color:var(--accent)]/22 text-[color:var(--text)] shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
           <Sparkles className="h-4 w-4" />
         </div>
@@ -256,7 +256,7 @@ export function WorkspaceNavbar({
         </div>
       </button>
 
-      <div className="hidden flex-1 items-center justify-center md:flex">
+      <div className="hidden items-center justify-center md:flex md:justify-self-center">
         <div 
           ref={searchRef} 
           className={cn(
@@ -286,7 +286,7 @@ export function WorkspaceNavbar({
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 md:justify-self-end">
         <button type="button" onClick={onOpenMobileSidebar} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--nav-glass-border)] bg-[color:var(--surface-low)]/75 text-[color:var(--muted)] hover:bg-white/10 hover:text-[color:var(--text)] md:hidden" aria-label="Open sidebar">
           <Menu className="h-4 w-4" />
         </button>

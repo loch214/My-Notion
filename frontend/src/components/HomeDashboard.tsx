@@ -38,6 +38,7 @@ export function HomeDashboard({
     () => state.modules.reduce((sum, module) => sum + module.files.length, 0),
     [state.modules]
   );
+  const isEmptyWorkspace = state.modules.length === 0 && state.tasks.length === 0 && state.events.length === 0;
 
   const upcomingEventCount = useMemo(() => {
     const now = Date.now();
@@ -118,8 +119,11 @@ export function HomeDashboard({
             <div className="min-w-0">
               <p className="text-sm font-medium text-[color:var(--muted)]">Recently visited</p>
               <p className="truncate text-lg font-semibold text-[color:var(--text)]">
-                {recentPage?.label ?? 'No page visited yet'}
+                {recentPage?.label ?? 'Nothing opened yet'}
               </p>
+              {!recentPage && (
+                <p className="mt-1 text-sm text-[color:var(--muted)]">Open any workspace area and it will appear here.</p>
+              )}
             </div>
           </div>
           {recentPage && onOpenRecent && (
@@ -166,6 +170,31 @@ export function HomeDashboard({
             ))}
           </div>
         </div>
+
+        {isEmptyWorkspace && (
+          <Card spotlight={false} className="card-pad bg-[color:var(--surface-low)] border-dashed">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--muted)]">Get started</p>
+                <h2 className="mt-1 text-xl font-bold font-heading text-[color:var(--text)]">Your workspace is empty</h2>
+                <p className="mt-1 max-w-2xl text-sm text-[color:var(--muted)]">
+                  Add a module, create a task, or ask the AI assistant a question to populate the workspace.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="primary" size="sm" onClick={onExploreAcademic}>
+                  Start with academics
+                </Button>
+                <Button variant="secondary" size="sm" onClick={onViewPersonal}>
+                  Create a task
+                </Button>
+                <Button variant="secondary" size="sm" onClick={onAskAi} leftIcon={<Sparkles className="h-4 w-4" />}>
+                  Ask AI
+                </Button>
+              </div>
+            </div>
+          </Card>
+        )}
       </div>
     </div>
   );

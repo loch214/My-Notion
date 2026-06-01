@@ -300,13 +300,14 @@ export function TaskList({ tasks, onToggleTask, onAddTask, onEditTask, onRemoveT
           </form>
         ) : tasks.length === 0 ? (
           <div className="surface-soft rounded-3xl border border-subtle px-4 py-6 text-center">
-            <p className="text-sm text-muted">No tasks yet. Start with your next task.</p>
+            <p className="text-sm font-medium text-[color:var(--text)]">No tasks yet.</p>
+            <p className="mt-1 text-sm text-muted">Add one task to start building momentum.</p>
             {showAddControls && (
               <button
                 onClick={() => setIsAddingTask(true)}
                 className="btn-primary mt-4"
               >
-                <Plus className="h-4 w-4" /> Add first task
+                <Plus className="h-4 w-4" /> Create first task
               </button>
             )}
           </div>
