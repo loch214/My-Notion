@@ -3,6 +3,7 @@ import { Module, UploadedFile, ChatMessage, Task, ChatSession } from '../types';
 import { ChevronLeft, FileText, Upload, FileUp, Sparkles, MessageSquare, Loader2, X, ChevronDown, CheckSquare, Plus, Paperclip, Image as ImageIcon, PanelLeftClose, PanelLeftOpen, ArrowRight } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import Markdown from 'react-markdown';
+import { API_BASE } from '../lib/api';
 import { AI_MODELS, AIModelId, DEFAULT_AI_MODEL, readStoredAIModel, writeStoredAIModel } from '../lib/models';
 import { TaskList } from './TaskList';
 import { cn } from '../lib/utils';
@@ -126,7 +127,7 @@ export function ModuleDetail({
     formData.append('file', file);
 
     try {
-      const res = await fetch('/api/upload', {
+      const res = await fetch(`${API_BASE}/api/upload`, {
         method: 'POST',
         body: formData,
       });
@@ -199,7 +200,7 @@ export function ModuleDetail({
     setIsChatLoading(true);
 
     try {
-      const res = await fetch('/api/chat/module', {
+      const res = await fetch(`${API_BASE}/api/chat/module`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

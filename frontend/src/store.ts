@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { AppState, Module, Task, Event, ChatMessage } from './types';
+import { API_BASE } from './lib/api';
 import { v4 as uuidv4 } from 'uuid';
 
 const DEFAULT_STATE: AppState = {
@@ -47,7 +48,7 @@ export function useAppStore() {
 
   const addModule = async (title: string, code: string, color: Module['color']) => {
     try {
-      const response = await fetch(`${API_BASE}/modules`, {
+      const response = await fetch(`${API_BASE}/api/data/modules`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, code, color })
@@ -66,7 +67,7 @@ export function useAppStore() {
 
   const removeModule = async (moduleId: string) => {
     try {
-      const response = await fetch(`${API_BASE}/modules/${moduleId}`, {
+      const response = await fetch(`${API_BASE}/api/data/modules/${moduleId}`, {
         method: 'DELETE'
       });
       if (!response.ok) throw new Error('Failed to delete module');
@@ -82,7 +83,7 @@ export function useAppStore() {
 
   const updateModule = async (moduleId: string, updates: Partial<Module>) => {
     try {
-      const response = await fetch(`${API_BASE}/modules/${moduleId}`, {
+      const response = await fetch(`${API_BASE}/api/data/modules/${moduleId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates)
@@ -101,7 +102,7 @@ export function useAppStore() {
 
   const addTask = async (title: string, dueDate?: string, moduleId?: string) => {
     try {
-      const response = await fetch(`${API_BASE}/tasks`, {
+      const response = await fetch(`${API_BASE}/api/data/tasks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, dueDate, moduleId })
@@ -122,7 +123,7 @@ export function useAppStore() {
     const task = state.tasks.find(t => t.id === taskId);
     if (!task) return;
     try {
-      const response = await fetch(`${API_BASE}/tasks/${taskId}`, {
+      const response = await fetch(`${API_BASE}/api/data/tasks/${taskId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ done: !task.done })
@@ -140,7 +141,7 @@ export function useAppStore() {
 
   const removeTask = async (taskId: string) => {
     try {
-      const response = await fetch(`${API_BASE}/tasks/${taskId}`, {
+      const response = await fetch(`${API_BASE}/api/data/tasks/${taskId}`, {
         method: 'DELETE'
       });
       if (!response.ok) throw new Error('Failed to delete task');
@@ -156,7 +157,7 @@ export function useAppStore() {
 
   const updateTask = async (taskId: string, updates: Partial<Task>) => {
     try {
-      const response = await fetch(`${API_BASE}/tasks/${taskId}`, {
+      const response = await fetch(`${API_BASE}/api/data/tasks/${taskId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates)
@@ -175,7 +176,7 @@ export function useAppStore() {
 
   const addEvent = async (title: string, startTime: string, endTime: string, color: Event['color'] = 'blue', description?: string, reminderMinutes?: number | null) => {
     try {
-      const response = await fetch(`${API_BASE}/events`, {
+      const response = await fetch(`${API_BASE}/api/data/events`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, startTime, endTime, color, description, reminderMinutes })
@@ -194,7 +195,7 @@ export function useAppStore() {
 
   const removeEvent = async (eventId: string) => {
     try {
-      const response = await fetch(`${API_BASE}/events/${eventId}`, {
+      const response = await fetch(`${API_BASE}/api/data/events/${eventId}`, {
         method: 'DELETE'
       });
       if (!response.ok) throw new Error('Failed to delete event');
@@ -210,7 +211,7 @@ export function useAppStore() {
 
   const updateEvent = async (eventId: string, updates: Partial<Event>) => {
     try {
-      const response = await fetch(`${API_BASE}/events/${eventId}`, {
+      const response = await fetch(`${API_BASE}/api/data/events/${eventId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates)
@@ -229,7 +230,7 @@ export function useAppStore() {
 
   const saveGlobalChatMessage = async (message: ChatMessage) => {
     try {
-      await fetch(`${API_BASE}/chat/global/message`, {
+      await fetch(`${API_BASE}/api/data/chat/global/message`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(message)
@@ -247,7 +248,7 @@ export function useAppStore() {
   const saveModuleChatMessage = async (moduleId: string, role: 'user' | 'model', text: string) => {
     try {
       const timestamp = new Date().toISOString();
-      await fetch(`${API_BASE}/chat/module/${moduleId}/message`, {
+      await fetch(`${API_BASE}/api/data/chat/module/${moduleId}/message`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: uuidv4(), role, text, timestamp })

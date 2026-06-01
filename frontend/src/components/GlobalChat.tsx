@@ -14,6 +14,7 @@ import { motion } from 'motion/react';
 import { AppState, ChatMessage, ChatSession, TimetableEntry } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import Markdown from 'react-markdown';
+import { API_BASE } from '../lib/api';
 import { AI_MODELS, AIModelId, DEFAULT_AI_MODEL, readStoredAIModel, writeStoredAIModel } from '../lib/models';
 import { useTheme } from '../context/ThemeContext';
 import { isThemeId } from '../lib/themes/applyTheme';
@@ -330,7 +331,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage, refreshWorks
     try {
       await saveGlobalChatMessage(userMessage);
 
-      const response = await fetch('/api/chat/global', {
+      const response = await fetch(`${API_BASE}/api/chat/global`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
