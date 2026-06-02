@@ -37,6 +37,7 @@ import { buildWorkspaceNotifications, type WorkspaceNotificationItem, type Works
 import { addTimetableEntry, generateTimetableOccurrences, loadTimetableEntries, removeTimetableEntry, updateTimetableEntry } from './lib/timetable';
 import { API_BASE } from './lib/api';
 import { TimetableEntry } from './types';
+import { usePwaInstallPrompt } from './hooks/usePwaInstallPrompt';
 
 const READ_NOTIFICATION_STORAGE_KEY = 'my_notion_read_notifications';
 
@@ -163,6 +164,7 @@ export default function App() {
   const [mainScrollEl, setMainScrollEl] = useState<HTMLDivElement | null>(null);
   const [readNotificationIds, setReadNotificationIds] = useState<string[]>(() => loadReadNotificationIds());
   const [timetableEntries, setTimetableEntries] = useState<TimetableEntry[]>(() => loadTimetableEntries());
+  const pwaInstall = usePwaInstallPrompt();
   
   const searchRef = useRef<HTMLDivElement | null>(null);
 
@@ -883,6 +885,11 @@ export default function App() {
               onViewPersonal={() => navigateToTab('personal')}
               onAskAi={() => setIsAiPanelOpen(true)}
               onOpenRecent={recentPage && recentPage.tab !== 'home' ? openRecentPage : undefined}
+              pwaInstall={{
+                canInstall: pwaInstall.canInstall,
+                isInstalled: pwaInstall.isInstalled,
+                onInstall: pwaInstall.promptInstall,
+              }}
               className="min-w-0"
             />
           ) : (

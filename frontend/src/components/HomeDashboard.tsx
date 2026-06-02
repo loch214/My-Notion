@@ -15,6 +15,12 @@ import { Button } from './ui/Button';
 import { Card } from './ui/Card';
 import { cn } from '../lib/utils';
 
+type PwaInstallState = {
+  canInstall: boolean;
+  isInstalled: boolean;
+  onInstall: () => void | Promise<void>;
+};
+
 interface HomeDashboardProps {
   state: AppState;
   recentPage: RecentPage | null;
@@ -22,6 +28,7 @@ interface HomeDashboardProps {
   onViewPersonal: () => void;
   onAskAi: () => void;
   onOpenRecent?: () => void;
+  pwaInstall?: PwaInstallState;
   className?: string;
 }
 
@@ -32,6 +39,7 @@ export function HomeDashboard({
   onViewPersonal,
   onAskAi,
   onOpenRecent,
+  pwaInstall,
   className,
 }: HomeDashboardProps) {
   const documentCount = useMemo(
@@ -148,6 +156,25 @@ export function HomeDashboard({
             Ask AI Assistant
           </Button>
         </div>
+
+        {pwaInstall?.canInstall && !pwaInstall.isInstalled && (
+          <Card spotlight={false} className="card-pad border border-[color:var(--border)] bg-[color:var(--surface-low)]/75">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--muted)]">Mobile app</p>
+                <h2 className="mt-1 text-xl font-bold font-heading text-[color:var(--text)]">Install My-Notion on your phone</h2>
+                <p className="mt-1 max-w-2xl text-sm text-[color:var(--muted)]">
+                  This adds the app to your home screen and makes it feel like a mobile app without changing the desktop version.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="primary" size="sm" onClick={pwaInstall.onInstall}>
+                  Install app
+                </Button>
+              </div>
+            </div>
+          </Card>
+        )}
 
         <div className="card-pad rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-low)]">
           <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[color:var(--muted)]">
