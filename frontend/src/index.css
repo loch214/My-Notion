@@ -347,10 +347,11 @@ h1, h2, h3, h4, h5, h6 {
   left: var(--workspace-edge-inset);
   right: var(--workspace-edge-inset);
   top: calc(var(--workspace-nav-chrome) + var(--workspace-edge-inset));
-  bottom: var(--workspace-edge-inset);
+  bottom: calc(var(--workspace-edge-inset) + env(safe-area-inset-bottom, 0px));
   width: auto;
   max-width: none;
   border-radius: 1.75rem;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
 }
 
 .workspace-chat-drawer {

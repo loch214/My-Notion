@@ -290,6 +290,9 @@ export function WorkspaceNavbar({
         <button type="button" onClick={onOpenMobileSidebar} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--nav-glass-border)] bg-[color:var(--surface-low)]/75 text-[color:var(--muted)] hover:bg-white/10 hover:text-[color:var(--text)] md:hidden" aria-label="Open sidebar">
           <Menu className="h-4 w-4" />
         </button>
+        <button type="button" onClick={() => onSearchOpen(!isSearchOpen)} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--nav-glass-border)] bg-[color:var(--surface-low)]/75 text-[color:var(--muted)] hover:bg-white/10 hover:text-[color:var(--text)] md:hidden" aria-label="Search">
+          <Search className="h-4 w-4" />
+        </button>
         <button ref={notificationsButtonRef} type="button" onClick={onOpenNotifications} className="relative flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--nav-glass-border)] bg-[color:var(--surface-low)]/75 text-[color:var(--muted)] hover:bg-white/10 hover:text-[color:var(--text)]" aria-label="Notifications">
           <Bell className="h-4 w-4" />
           {upcomingCount > 0 ? <span className="absolute -right-1 -top-1 rounded-full bg-[color:var(--accent)] px-1.5 py-0.5 text-[10px] font-semibold text-white">{upcomingCount}</span> : null}
@@ -299,6 +302,33 @@ export function WorkspaceNavbar({
           Say Hello
         </button>
       </div>
+
+      {isSearchOpen && (
+        <div className="absolute inset-x-0 top-full z-50 px-4 py-3 md:hidden">
+          <div ref={searchRef} className="relative">
+            <div className="flex items-center gap-2 rounded-2xl border border-[color:var(--nav-glass-border)] bg-[color:var(--surface-low)]/95 px-3 py-2 shadow-2xl">
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchQuery}
+                onChange={(event) => onSearchChange(event.target.value)}
+                onFocus={() => onSearchOpen(true)}
+                placeholder="Search anything..."
+                className="w-full bg-transparent text-sm text-[color:var(--text)] outline-none placeholder:text-[color:var(--muted)]"
+              />
+              <button
+                type="button"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-[color:var(--muted)] hover:bg-white/10 hover:text-[color:var(--text)]"
+                onClick={() => onSearchOpen(false)}
+                aria-label="Close search"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+          {searchResultsPopover}
+        </div>
+      )}
 
       {notificationsPopover}
     </header>

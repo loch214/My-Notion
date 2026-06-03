@@ -263,6 +263,17 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const onResize = () => {
+      if (window.innerWidth >= 768) {
+        setIsMobileSidebarOpen(false);
+      }
+    };
+
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  useEffect(() => {
     localStorage.setItem('my_notion_tab', activeTab);
   }, [activeTab]);
 
@@ -888,7 +899,9 @@ export default function App() {
               pwaInstall={{
                 canInstall: pwaInstall.canInstall,
                 isInstalled: pwaInstall.isInstalled,
-                onInstall: pwaInstall.promptInstall,
+                onInstall: async () => {
+                  await pwaInstall.promptInstall();
+                },
               }}
               className="min-w-0"
             />
