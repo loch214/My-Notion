@@ -54,7 +54,7 @@ export function ModuleDetail({
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const [isMobileSessionsOpen, setIsMobileSessionsOpen] = useState(false);
   const { setTheme } = useTheme();
 
@@ -276,17 +276,17 @@ export function ModuleDetail({
     <div className="flex min-h-0 flex-col text-[color:var(--text)]">
       
       {/* 1. Module Header */}
-      <header className="mb-6 flex shrink-0 flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
+      <header className={`flex shrink-0 flex-col sm:flex-row sm:items-start sm:justify-between ${activeTab === 'chat' ? 'mb-1 gap-1.5' : 'mb-6 gap-2.5'}`}>
         <div>
           <button 
             onClick={onBack} 
-            className="mb-2 inline-flex items-center gap-1.5 text-xs text-[color:var(--muted)] transition-all duration-150 ease hover:text-[color:var(--text)]"
+            className={`inline-flex items-center gap-1.5 text-[color:var(--muted)] transition-all duration-150 ease hover:text-[color:var(--text)] ${activeTab === 'chat' ? 'mb-0.5 text-[10px]' : 'mb-2 text-xs'}`}
           >
-            <ChevronLeft className="h-3.5 w-3.5" /> Back to overview
+            <ChevronLeft className="h-3 w-3" /> Back to overview
           </button>
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-3xl font-bold font-heading tracking-tight">{module.title}</h1>
-            <span className="rounded-full border border-[color:var(--border)] bg-[color:var(--surface-low)] px-3 py-0.5 text-xs font-mono text-[color:var(--muted)]">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className={`font-bold font-heading tracking-tight ${activeTab === 'chat' ? 'text-xl' : 'text-3xl'}`}>{module.title}</h1>
+            <span className={`rounded-full border border-[color:var(--border)] bg-[color:var(--surface-low)] px-2 py-0.5 font-mono text-[color:var(--muted)] ${activeTab === 'chat' ? 'text-[10px]' : 'text-xs'}`}>
               {module.code}
             </span>
           </div>
@@ -294,7 +294,7 @@ export function ModuleDetail({
       </header>
 
       {/* 2. Responsive Tabs and Model selects */}
-      <div className="mb-6 flex flex-col gap-3 border-b border-[color:var(--border)] pb-3 lg:flex-row lg:items-end lg:justify-between shrink-0">
+      <div className={`flex flex-col gap-2 border-b border-[color:var(--border)] lg:flex-row lg:items-end lg:justify-between shrink-0 ${activeTab === 'chat' ? 'mb-0 pb-2' : 'mb-6 pb-3 gap-3'}`}>
         <div className="flex-1 min-w-0 pr-4">
           <Tabs
             tabs={detailTabs}
@@ -397,7 +397,7 @@ export function ModuleDetail({
         )}
 
         {activeTab === 'chat' && (
-          <div className="flex min-h-[min(70vh,680px)] max-h-[70vh] flex-col gap-4 lg:flex-row">
+          <div className="flex min-h-[min(80vh,680px)] max-h-[80vh] flex-col gap-4 lg:flex-row">
             
             {/* Desktop Sessions list sidebar (Collapsible) */}
             <div className={cn(
@@ -632,9 +632,6 @@ export function ModuleDetail({
                     </button>
                   </div>
                 </form>
-                <div className="mt-2 text-center text-[9px] uppercase tracking-[0.2em] text-[color:var(--muted)] opacity-60">
-                  Grounded in your module files.
-                </div>
               </div>
 
             </div>
