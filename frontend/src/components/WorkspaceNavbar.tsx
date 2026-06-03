@@ -55,21 +55,29 @@ export function WorkspaceNavbar({
   onGoLanding,
   onOpenAi,
 }: WorkspaceNavbarProps) {
+  const desktopSearchRef = useRef<HTMLDivElement>(null);
+  const mobileSearchRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const notificationsButtonRef = useRef<HTMLButtonElement | null>(null);
   const [searchPopoverStyle, setSearchPopoverStyle] = useState<CSSProperties | null>(null);
   const [notificationsPopoverStyle, setNotificationsPopoverStyle] = useState<CSSProperties | null>(null);
 
   useEffect(() => {
-    if (!isSearchOpen || !searchRef.current) {
+    if (!isSearchOpen) {
       setSearchPopoverStyle(null);
       return;
     }
 
     const updateStyle = () => {
-      const rect = searchRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      setSearchPopoverStyle({ position: 'fixed', left: rect.left, top: rect.bottom + 10, width: rect.width, zIndex: 220 });
+      let activeEl = desktopSearchRef.current;
+      if (mobileSearchRef.current && mobileSearchRef.current.offsetWidth > 0) {
+        activeEl = mobileSearchRef.current;
+      }
+      if (!activeEl) return;
+      const rect = activeEl.getBoundingClientRect();
+      if (rect.width > 0) {
+        setSearchPopoverStyle({ position: 'fixed', left: rect.left, top: rect.bottom + 10, width: rect.width, zIndex: 220 });
+      }
     };
 
     updateStyle();
@@ -77,16 +85,15 @@ export function WorkspaceNavbar({
     window.addEventListener('scroll', updateStyle, true);
     
     const observer = new ResizeObserver(updateStyle);
-    if (searchRef.current) {
-      observer.observe(searchRef.current);
-    }
+    if (desktopSearchRef.current) observer.observe(desktopSearchRef.current);
+    if (mobileSearchRef.current) observer.observe(mobileSearchRef.current);
 
     return () => {
       window.removeEventListener('resize', updateStyle);
       window.removeEventListener('scroll', updateStyle, true);
       observer.disconnect();
     };
-  }, [isSearchOpen, searchRef]);
+  }, [isSearchOpen]);
 
   useEffect(() => {
     if (!isNotificationsOpen || !notificationsButtonRef.current) {
@@ -256,7 +263,7 @@ export function WorkspaceNavbar({
       : null;
 
   return (
-    <header className="workspace-navbar relative mx-[var(--workspace-edge-inset)] mt-[var(--workspace-nav-inset-top)] flex h-[var(--workspace-nav-bar)] items-center justify-between gap-3 rounded-[2rem] border border-[color:var(--nav-glass-border)] bg-[color:var(--surface-med)]/78 px-4 shadow-[0_8px_30px_rgba(4,10,28,0.3)] backdrop-blur-sm will-change-transform transform-gpu sm:px-5 md:grid md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center md:gap-3">
+    <header ref={searchRef} className="workspace-navbar relative mx-[var(--workspace-edge-inset)] mt-[var(--workspace-nav-inset-top)] flex h-[var(--workspace-nav-bar)] items-center justify-between gap-3 rounded-[2rem] border border-[color:var(--nav-glass-border)] bg-[color:var(--surface-med)]/78 px-4 shadow-[0_8px_30px_rgba(4,10,28,0.3)] backdrop-blur-sm will-change-transform transform-gpu sm:px-5 md:grid md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center md:gap-3">
       <button type="button" onClick={onGoLanding} className="flex min-w-0 items-center gap-2 rounded-full px-1.5 py-1 text-left hover:bg-white/5 md:max-w-full md:justify-self-start">
         <div className="min-w-0 flex items-center gap-2 text-base">
           <span className="truncate font-semibold text-[color:var(--text)]">My-Notion</span>
@@ -267,7 +274,7 @@ export function WorkspaceNavbar({
 
       <div className="hidden items-center justify-center md:flex md:justify-self-center">
         <div 
-          ref={searchRef} 
+          ref={desktopSearchRef} 
           className={cn(
             "relative transition-all duration-300 ease-in-out",
             isSearchOpen ? "w-[400px]" : "w-[240px]"
@@ -314,7 +321,7 @@ export function WorkspaceNavbar({
 
       {isSearchOpen && (
         <div className="absolute inset-x-0 top-full z-50 px-4 py-3 md:hidden">
-          <div ref={searchRef} className="relative">
+          <div ref={mobileSearchRef} className="relative">
             <div className="flex items-center gap-2 rounded-2xl border border-[color:var(--nav-glass-border)] bg-[color:var(--surface-low)]/95 px-3 py-2 shadow-2xl">
               <input
                 ref={searchInputRef}
