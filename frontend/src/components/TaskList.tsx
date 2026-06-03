@@ -187,7 +187,7 @@ export function TaskList({ tasks, onToggleTask, onAddTask, onEditTask, onRemoveT
         {showTaskGroups && renderGroup("No Date", noDate)}
 
         {showAddControls && isAddingTask ? (
-          <form onSubmit={handleAddTask} className="surface rounded-3xl p-4 mt-2">
+          <form ref={dateRef} onSubmit={handleAddTask} className="surface rounded-3xl p-4 mt-2">
             <input
               autoFocus
               value={newTaskTitle}
@@ -195,21 +195,9 @@ export function TaskList({ tasks, onToggleTask, onAddTask, onEditTask, onRemoveT
               placeholder="What needs to be done?"
               className="surface-soft mb-3 w-full rounded-2xl px-4 py-3 text-sm outline-none transition-all duration-150 ease focus:ring-2 focus:ring-[color:var(--accent)]/40 text-[color:var(--text)]"
             />
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex flex-wrap gap-2">
-                <div ref={dateRef} className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setIsDateOpen((open) => !open)}
-                    className="surface-soft flex items-center gap-2 rounded-2xl px-4 py-2 text-sm transition-all duration-150 ease hover:text-[color:var(--text)]"
-                  >
-                    <CalendarIcon className="h-4 w-4 text-muted" />
-                    {selectedDueDate ? format(selectedDueDate, 'MMM d, yyyy') : 'No due date'}
-                    <ChevronDown className="h-4 w-4 text-muted" />
-                  </button>
-                  {isDateOpen && (
-                    <div className="absolute bottom-full left-0 z-30 mb-2 w-64 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl surface border border-subtle p-2.5 shadow-lg">
-                      <div className="mb-2.5 flex items-center justify-between gap-2">
+            {isDateOpen && (
+              <div className="mb-3 w-full sm:w-64 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-[color:var(--border)] surface-soft p-2.5 shadow-lg">
+                <div className="mb-2.5 flex items-center justify-between gap-2">
                         <button
                           type="button"
                           onClick={() => setCalendarMonth((month) => subMonths(month, 1))}
@@ -284,9 +272,19 @@ export function TaskList({ tasks, onToggleTask, onAddTask, onEditTask, onRemoveT
                           Today
                         </button>
                       </div>
-                    </div>
-                  )}
-                </div>
+              </div>
+            )}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsDateOpen((open) => !open)}
+                    className="surface-soft flex items-center gap-2 rounded-2xl px-4 py-2 text-sm transition-all duration-150 ease hover:text-[color:var(--text)]"
+                  >
+                    <CalendarIcon className="h-4 w-4 text-muted" />
+                    {selectedDueDate ? format(selectedDueDate, 'MMM d, yyyy') : 'No due date'}
+                    <ChevronDown className="h-4 w-4 text-muted" />
+                  </button>
               </div>
               <div className="flex gap-2">
                 <button type="button" onClick={() => setIsAddingTask(false)} className="btn-secondary">

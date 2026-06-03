@@ -97,11 +97,12 @@ export function WorkspaceNavbar({
     const updateStyle = () => {
       const rect = notificationsButtonRef.current?.getBoundingClientRect();
       if (!rect) return;
+      const actualRight = Math.max(12, window.innerWidth - rect.right);
       setNotificationsPopoverStyle({
         position: 'fixed',
-        right: Math.max(12, window.innerWidth - rect.right),
+        right: actualRight,
         top: rect.bottom + 10,
-        width: Math.min(26 * 16, Math.max(18 * 16, window.innerWidth - rect.left - 12)),
+        width: Math.min(416, window.innerWidth - 12 - actualRight),
         zIndex: 220,
       });
     };

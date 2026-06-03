@@ -197,9 +197,9 @@ export default function CalendarView({
       />
 
       <div className="grid min-h-0 gap-4 xl:flex-1 xl:grid-cols-[minmax(0,1.55fr)_minmax(18rem,0.72fr)] xl:items-start">
-        <Card spotlight={false} className="card-pad min-w-0 w-full shrink-0 bg-[color:var(--surface-low)] border border-[color:var(--border)] xl:h-full xl:min-h-[calc(100dvh-12.5rem)]">
-          <div className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)]">
-            <div className="grid grid-cols-7 gap-1 pb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[color:var(--muted)] text-center border-b border-[color:var(--border)] mb-1.5">
+        <Card spotlight={false} className="card-pad min-w-0 w-full shrink-0 bg-[color:var(--surface-low)] border border-[color:var(--border)]">
+          <div className="flex flex-col">
+            <div className="grid grid-cols-7 gap-1 sm:gap-1.5 pb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[color:var(--muted)] text-center border-b border-[color:var(--border)] mb-1.5">
             {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((label) => (
               <div key={label} className="py-1">
                 {label}
@@ -207,7 +207,7 @@ export default function CalendarView({
             ))}
             </div>
 
-            <div className="grid grid-cols-7 gap-1 min-h-0">
+            <div className="grid grid-cols-7 gap-1 sm:gap-1.5 min-h-0">
             {calendarDays.map((date) => {
               const key = format(date, 'yyyy-MM-dd');
               const dayEvents = eventsByDay[key] || [];
@@ -220,12 +220,12 @@ export default function CalendarView({
                   type="button"
                   onClick={() => openDay(date)}
                   className={cn(
-                    'min-h-[84px] rounded-xl border p-2.5 text-left transition-all duration-150 ease flex flex-col justify-between hover:bg-[color:var(--surface-high)]/35 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)]/15 xl:min-h-[88px]',
+                    'min-h-[80px] sm:min-h-[96px] xl:min-h-[110px] rounded-xl border p-1.5 sm:p-2 text-left transition-all duration-150 ease flex flex-col justify-start hover:bg-[color:var(--surface-high)]/35 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)]/15',
                     isCurrentMonth ? 'bg-[color:var(--surface-med)]/30 border-[color:var(--border)]' : 'bg-transparent border-transparent opacity-30 pointer-events-none',
                     isToday ? 'border-[color:var(--accent)]/45 bg-[color:var(--accent)]/5' : ''
                   )}
                 >
-                  <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center justify-between w-full mb-1 sm:mb-1.5">
                     <span className={cn('text-xs font-bold font-mono', isToday ? 'text-[color:var(--accent)]' : 'text-[color:var(--text)]')}>
                       {format(date, 'd')}
                     </span>
