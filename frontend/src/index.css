@@ -346,14 +346,14 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .workspace-mobile-drawer {
-  left: var(--workspace-edge-inset);
-  right: var(--workspace-edge-inset);
-  top: calc(var(--workspace-nav-chrome) + var(--workspace-edge-inset));
-  bottom: calc(var(--workspace-edge-inset) + env(safe-area-inset-bottom, 0px));
-  width: auto;
-  max-width: none;
-  border-radius: 1.75rem;
-  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  left: 0;
+  right: auto;
+  top: calc(var(--workspace-nav-inset-top) + var(--workspace-nav-bar) + 0.5rem);
+  bottom: 0;
+  width: 80vw;
+  max-width: 320px;
+  border-radius: 0 1.75rem 0 0;
+  padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
 }
 
 .workspace-chat-drawer {

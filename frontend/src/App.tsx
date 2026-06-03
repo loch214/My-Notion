@@ -737,7 +737,7 @@ export default function App() {
 
       <div
         className={cn(
-          'workspace-body-row relative flex min-h-0 flex-1 flex-col gap-3 md:flex-row md:gap-4 lg:gap-6',
+          'workspace-body-row relative flex min-h-0 flex-1 flex-col gap-3 md:flex-row md:gap-4 lg:gap-6 max-md:pb-24',
           !isNavbarVisible && 'workspace-body-row--nav-hidden'
         )}
         style={{ willChange: 'transform' }}
@@ -1003,8 +1003,36 @@ export default function App() {
           </div>
         </div>
       </div>
+      
+      {/* Mobile Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 z-[60] flex h-16 items-center justify-around border-t border-[color:var(--border)] bg-[color:var(--surface-med)]/85 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_rgba(0,0,0,0.25)] backdrop-blur-md will-change-transform transform-gpu md:hidden">
+        {WORKSPACE_NAV_ITEMS.filter((tab) => ['home', 'academic', 'personal', 'timetable'].includes(tab.id)).map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => navigateToTab(tab.id)}
+              className={cn(
+                'flex flex-col items-center gap-1 rounded-xl px-4 py-1 text-[10px] transition-colors',
+                isActive ? 'text-[color:var(--accent)] font-semibold' : 'text-[color:var(--muted)] hover:text-[color:var(--text)]'
+              )}
+            >
+              <Icon className="h-5 w-5" />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+        <button
+          onClick={() => setIsMobileSidebarOpen(true)}
+          className="flex flex-col items-center gap-1 rounded-xl px-4 py-1 text-[10px] text-[color:var(--muted)] transition-colors hover:text-[color:var(--text)]"
+        >
+          <Menu className="h-5 w-5" />
+          <span>More</span>
+        </button>
+      </nav>
 
-      {/* 4. Global Drawer Assistant (Sidebar panel on desktop, slide modal on mobile) */}
+      {/* Global Modals/Drawers */}
       <AnimatePresence>
         {isAiPanelOpen && (
           <GlobalChat

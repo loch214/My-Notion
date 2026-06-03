@@ -263,8 +263,8 @@ export function WorkspaceNavbar({
       : null;
 
   return (
-    <header ref={searchRef} className="workspace-navbar relative mx-[var(--workspace-edge-inset)] mt-[var(--workspace-nav-inset-top)] flex h-[var(--workspace-nav-bar)] items-center justify-between gap-3 rounded-[2rem] border border-[color:var(--nav-glass-border)] bg-[color:var(--surface-med)]/78 px-4 shadow-[0_8px_30px_rgba(4,10,28,0.3)] backdrop-blur-sm will-change-transform transform-gpu sm:px-5 md:grid md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center md:gap-3">
-      <button type="button" onClick={onGoLanding} className="flex min-w-0 items-center gap-2 rounded-full px-1.5 py-1 text-left hover:bg-white/5 md:max-w-full md:justify-self-start">
+    <header ref={searchRef} className="workspace-navbar relative mx-[var(--workspace-edge-inset)] mt-[var(--workspace-nav-inset-top)] grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] h-[var(--workspace-nav-bar)] items-center gap-2 md:gap-3 rounded-[2rem] border border-[color:var(--nav-glass-border)] bg-[color:var(--surface-med)]/78 px-3 shadow-[0_8px_30px_rgba(4,10,28,0.3)] backdrop-blur-sm will-change-transform transform-gpu sm:px-5">
+      <button type="button" onClick={onGoLanding} className="flex min-w-0 items-center gap-2 rounded-full px-1.5 py-1 text-left hover:bg-white/5 md:max-w-full justify-self-start">
         <div className="min-w-0 flex items-center gap-2 text-base">
           <span className="truncate font-semibold text-[color:var(--text)]">My-Notion</span>
           <span className="text-[color:var(--muted)]">/</span>
@@ -272,11 +272,11 @@ export function WorkspaceNavbar({
         </div>
       </button>
 
-      <div className="hidden items-center justify-center md:flex md:justify-self-center">
+      <div className="flex items-center justify-center justify-self-center">
         <div 
           ref={desktopSearchRef} 
           className={cn(
-            "relative transition-all duration-300 ease-in-out",
+            "relative transition-all duration-300 ease-in-out hidden md:block",
             isSearchOpen ? "w-[400px]" : "w-[240px]"
           )}
         >
@@ -300,22 +300,19 @@ export function WorkspaceNavbar({
           </div>
           {searchResultsPopover}
         </div>
-      </div>
-
-      <div className="flex items-center gap-2 md:justify-self-end">
-        <button type="button" onClick={onOpenMobileSidebar} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--nav-glass-border)] bg-[color:var(--surface-low)]/75 text-[color:var(--muted)] hover:bg-white/10 hover:text-[color:var(--text)] md:hidden" aria-label="Open sidebar">
-          <Menu className="h-4 w-4" />
-        </button>
         <button type="button" onClick={() => onSearchOpen(!isSearchOpen)} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--nav-glass-border)] bg-[color:var(--surface-low)]/75 text-[color:var(--muted)] hover:bg-white/10 hover:text-[color:var(--text)] md:hidden" aria-label="Search">
           <Search className="h-4 w-4" />
         </button>
+      </div>
+
+      <div className="flex items-center gap-2 justify-self-end">
         <button ref={notificationsButtonRef} type="button" onClick={onOpenNotifications} className="relative flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--nav-glass-border)] bg-[color:var(--surface-low)]/75 text-[color:var(--muted)] hover:bg-white/10 hover:text-[color:var(--text)]" aria-label="Notifications">
           <Bell className="h-4 w-4" />
           {upcomingCount > 0 ? <span className="absolute -right-1 -top-1 rounded-full bg-[color:var(--accent)] px-1.5 py-0.5 text-[10px] font-semibold text-white">{upcomingCount}</span> : null}
         </button>
-        <button type="button" onClick={onOpenAi} className="inline-flex h-10 items-center gap-2 rounded-full border border-[color:var(--nav-glass-border)] bg-gradient-to-r from-[color:var(--accent)]/85 to-[color:var(--accent-2)]/85 px-4 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(99,102,241,0.35)] hover:brightness-110">
-          <Sparkles className="h-4 w-4" />
-          Say Hello
+        <button type="button" onClick={onOpenAi} className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-[color:var(--nav-glass-border)] bg-gradient-to-r from-[color:var(--accent)]/85 to-[color:var(--accent-2)]/85 px-4 max-md:w-10 max-md:px-0 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(99,102,241,0.35)] hover:brightness-110">
+          <Sparkles className="h-4 w-4 shrink-0" />
+          <span className="hidden md:inline">Say Hello</span>
         </button>
       </div>
 
