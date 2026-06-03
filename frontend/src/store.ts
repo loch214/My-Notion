@@ -17,7 +17,7 @@ export function useAppStore() {
 
   const refreshWorkspace = async () => {
     try {
-      const response = await fetch(`${API_BASE}/workspace`);
+      const response = await fetch(`${API_BASE}/api/data/workspace`);
       if (!response.ok) throw new Error('Failed to load workspace');
       const data = await response.json();
       setState({
