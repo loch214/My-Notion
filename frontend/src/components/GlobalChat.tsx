@@ -397,7 +397,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage, refreshWorks
   };
 
   return (
-    <div className="fixed inset-0 z-[90] flex justify-end p-0 md:p-2 max-md:items-start">
+    <div className="fixed inset-0 z-[90]">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -412,7 +412,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage, refreshWorks
         animate={isMobile ? { y: 0 } : { x: 0 }}
         exit={isMobile ? { y: '100%' } : { x: '100%' }}
         transition={{ type: 'tween', duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-        className="workspace-chat-drawer relative z-[90] flex flex-col overflow-hidden border border-[color:var(--border)] bg-[color:var(--surface-med)]/96 text-[color:var(--text)] shadow-[0_10px_30px_rgba(0,0,0,0.38)] backdrop-blur-md"
+        className="workspace-chat-drawer z-[90] flex flex-col overflow-hidden border border-[color:var(--border)] bg-[color:var(--surface-med)]/96 text-[color:var(--text)] shadow-[0_10px_30px_rgba(0,0,0,0.38)] backdrop-blur-md"
         style={!isMobile ? { width: `${drawerWidth}px` } : undefined}
       >
         {!isMobile && (
