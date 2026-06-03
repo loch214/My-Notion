@@ -220,7 +220,7 @@ export default function CalendarView({
                   type="button"
                   onClick={() => openDay(date)}
                   className={cn(
-                    'min-h-[80px] sm:min-h-[96px] xl:min-h-[110px] rounded-xl border p-1.5 sm:p-2 text-left transition-all duration-150 ease flex flex-col justify-start hover:bg-[color:var(--surface-high)]/35 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)]/15',
+                    'min-h-[55px] sm:min-h-[80px] xl:min-h-[100px] rounded-xl border p-1.5 sm:p-2 text-left transition-all duration-150 ease flex flex-col justify-start hover:bg-[color:var(--surface-high)]/35 focus:outline-none focus:ring-2 focus:ring-[color:var(--accent)]/15',
                     isCurrentMonth ? 'bg-[color:var(--surface-med)]/30 border-[color:var(--border)]' : 'bg-transparent border-transparent opacity-30 pointer-events-none',
                     isToday ? 'border-[color:var(--accent)]/45 bg-[color:var(--accent)]/5' : ''
                   )}

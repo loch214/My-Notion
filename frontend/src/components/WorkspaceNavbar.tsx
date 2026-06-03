@@ -97,14 +97,25 @@ export function WorkspaceNavbar({
     const updateStyle = () => {
       const rect = notificationsButtonRef.current?.getBoundingClientRect();
       if (!rect) return;
-      const actualRight = Math.max(12, window.innerWidth - rect.right);
-      setNotificationsPopoverStyle({
-        position: 'fixed',
-        right: actualRight,
-        top: rect.bottom + 10,
-        width: Math.min(416, window.innerWidth - 12 - actualRight),
-        zIndex: 220,
-      });
+      
+      if (window.innerWidth < 640) {
+        setNotificationsPopoverStyle({
+          position: 'fixed',
+          left: 12,
+          right: 12,
+          top: rect.bottom + 10,
+          zIndex: 220,
+        });
+      } else {
+        const actualRight = Math.max(12, window.innerWidth - rect.right);
+        setNotificationsPopoverStyle({
+          position: 'fixed',
+          right: actualRight,
+          top: rect.bottom + 10,
+          width: 416,
+          zIndex: 220,
+        });
+      }
     };
 
     updateStyle();
