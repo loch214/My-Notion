@@ -9,6 +9,7 @@ import {
   Paperclip,
   Image as ImageIcon,
   Trash2,
+  Menu,
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { AppState, ChatMessage, ChatSession, TimetableEntry } from '../types';
@@ -94,8 +95,8 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage, refreshWorks
   const [isLoading, setIsLoading] = React.useState(false);
   const [model, setModel] = React.useState<AIModelId>(() => readStoredAIModel(LOCAL_MODEL_KEY, DEFAULT_AI_MODEL));
   const [attachments, setAttachments] = React.useState<{ name: string; type: string; data: string }[]>([]);
-  const [isMobile, setIsMobile] = React.useState(false);
-  const [sidebarOpen, setSidebarOpen] = React.useState(true);
+  const [isMobile, setIsMobile] = React.useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+  const [sidebarOpen, setSidebarOpen] = React.useState(() => typeof window !== 'undefined' ? window.innerWidth >= 768 : true);
   const [conversations, setConversations] = React.useState<ChatSession[]>(() => readSessions());
   const [activeConvId, setActiveConvId] = React.useState<string | null>(() => {
     try {
@@ -431,17 +432,34 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage, refreshWorks
           <X className="h-5 w-5" />
         </button>
 
-        <div className="border-b border-[color:var(--border)] px-3 py-2 pr-14 shrink-0 bg-[color:var(--surface-low)]/30">
-          <Dropdown
-            options={modelOptions}
-            selectedId={model}
-            onSelect={(id) => setModel(id as AIModelId)}
-            placeholder="Select assistant model"
-          />
+        <div className="flex items-center gap-2 border-b border-[color:var(--border)] px-3 py-2 pr-14 shrink-0 bg-[color:var(--surface-low)]/30">
+          {isMobile && (
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="icon-btn shrink-0 text-[color:var(--muted)] hover:bg-[color:var(--surface-med)] hover:text-[color:var(--text)]"
+              aria-label="Toggle chats sidebar"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+          )}
+          <div className="flex-1 min-w-0">
+            <Dropdown
+              options={modelOptions}
+              selectedId={model}
+              onSelect={(id) => setModel(id as AIModelId)}
+              placeholder="Select assistant model"
+            />
+          </div>
         </div>
 
-        <div className="flex min-h-0 flex-1">
-          <aside className={`flex flex-col overflow-x-hidden border-r border-[color:var(--border)] bg-[color:var(--surface-low)]/40 shrink-0 transition-all duration-200 ease-in-out ${sidebarOpen ? 'w-60' : 'w-12'}`}>
+        <div className="relative flex min-h-0 flex-1">
+          {isMobile && sidebarOpen && (
+            <div
+              className="absolute inset-0 z-10 bg-black/40 backdrop-blur-[2px]"
+              onClick={() => setSidebarOpen(false)}
+            />
+          )}
+          <aside className={`flex flex-col overflow-x-hidden border-r border-[color:var(--border)] bg-[color:var(--surface-low)]/40 shrink-0 transition-all duration-200 ease-in-out max-md:absolute max-md:z-20 max-md:h-full max-md:bg-[color:var(--surface-med)] ${sidebarOpen ? 'w-60 max-md:w-64 max-md:translate-x-0 max-md:shadow-2xl' : 'w-12 max-md:w-64 max-md:-translate-x-full max-md:shadow-none max-md:border-r-0'}`}>
             <div className={`flex items-center justify-between gap-2 ${sidebarOpen ? 'border-b border-[color:var(--border)] px-2 py-2' : 'px-0 pt-3 pb-2 justify-center'}`}>
               {sidebarOpen ? (
                 <>
