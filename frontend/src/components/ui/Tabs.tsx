@@ -33,7 +33,7 @@ export function Tabs({
               key={tab.id}
               onClick={() => onChange(tab.id)}
               className={cn(
-                'relative flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-full transition-all duration-150 ease focus-visible:outline-none shrink-0',
+                'relative flex items-center gap-1.5 px-2.5 py-2 text-xs sm:px-3.5 sm:gap-2 sm:text-sm font-medium rounded-full transition-all duration-150 ease focus-visible:outline-none shrink-0 whitespace-nowrap',
                 isActive
                   ? 'text-[color:var(--on-accent)] font-semibold'
                   : 'text-[color:var(--muted)] hover:text-[color:var(--text)]',
