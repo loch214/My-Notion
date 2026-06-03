@@ -139,7 +139,9 @@ body {
   border: 1px solid var(--border);
   border-radius: 1rem;
   overflow: visible;
-  transition: all 0.15s ease;
+  transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  will-change: transform, border-color, background-color;
+  transform: translateZ(0);
 }
 
 .spotlight-card::before {
@@ -299,11 +301,13 @@ h1, h2, h3, h4, h5, h6 {
   padding-bottom: var(--workspace-edge-inset);
   padding-left: var(--workspace-edge-inset);
   padding-right: var(--workspace-edge-inset);
-  transition: padding-top var(--workspace-motion-duration) var(--workspace-motion-ease);
+  transition: transform var(--workspace-motion-duration) var(--workspace-motion-ease);
+  will-change: transform;
+  transform: translateY(0) translateZ(0);
 }
 
 .workspace-body-row--nav-hidden {
-  padding-top: var(--workspace-edge-inset);
+  transform: translateY(calc(-1 * var(--workspace-nav-chrome) + var(--workspace-edge-inset))) translateZ(0);
 }
 
 @media (min-width: 768px) {
@@ -323,18 +327,16 @@ h1, h2, h3, h4, h5, h6 {
   flex-shrink: 0;
   height: var(--workspace-nav-chrome);
   overflow: hidden;
-  transform: translateY(0);
+  transform: translateY(0) translateZ(0);
   margin-bottom: 0;
   transition:
     transform var(--workspace-motion-duration) var(--workspace-motion-ease),
-    margin-bottom var(--workspace-motion-duration) var(--workspace-motion-ease),
     opacity var(--workspace-motion-duration) var(--workspace-motion-ease);
-  will-change: transform, margin-bottom;
+  will-change: transform, opacity;
 }
 
 .workspace-navbar-slot--hidden {
-  transform: translateY(-100%);
-  margin-bottom: calc(-1 * var(--workspace-nav-chrome));
+  transform: translateY(-100%) translateZ(0);
   opacity: 0;
   pointer-events: none;
 }
@@ -419,7 +421,9 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 9999px;
   font-size: 0.875rem;
   font-weight: 500;
-  transition: all 0.15s ease;
+  transition: transform 0.15s ease, opacity 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  will-change: transform, opacity, background-color;
+  transform: translateZ(0);
 }
 
 .btn-primary {
@@ -451,7 +455,9 @@ h1, h2, h3, h4, h5, h6 {
   width: 2.5rem;
   padding: 0;
   border-radius: 9999px;
-  transition: all 0.15s ease;
+  transition: transform 0.15s ease, opacity 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+  will-change: transform, background-color, color;
+  transform: translateZ(0);
 }
 
 /* Animations */
@@ -490,9 +496,11 @@ input[type="checkbox"] {
 .landing-aurora {
   position: absolute;
   border-radius: 50%;
-  filter: blur(80px);
+  filter: blur(40px);
   opacity: 0.55;
   animation: landing-aurora-drift 28s ease-in-out infinite alternate;
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 .landing-aurora-a {
@@ -545,6 +553,7 @@ input[type="checkbox"] {
   opacity: 0.035;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   mix-blend-mode: overlay;
+  transform: translateZ(0);
 }
 
 .landing-hero {

@@ -151,7 +151,7 @@ export function WorkspaceNavbar({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.18 }}
             style={searchPopoverStyle}
-            className="overflow-hidden rounded-2xl border border-white/10 bg-[color:var(--surface-high)]/95 shadow-2xl backdrop-blur-xl"
+            className="overflow-hidden rounded-2xl border border-white/10 bg-[color:var(--surface-high)]/95 shadow-2xl backdrop-blur-sm will-change-transform transform-gpu"
           >
             <div className="border-b border-[color:var(--border)] px-4 py-2.5">
               <p className="text-[10px] uppercase tracking-[0.24em] text-[color:var(--muted)]">Search · {searchResults.length} results</p>
@@ -193,7 +193,7 @@ export function WorkspaceNavbar({
                 initial={{ opacity: 0, scale: 0.98, y: 8 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 transition={{ duration: 0.18 }}
-                className="overflow-hidden rounded-2xl border border-white/10 bg-[color:var(--surface-high)]/95 shadow-2xl backdrop-blur-xl"
+                className="overflow-hidden rounded-2xl border border-white/10 bg-[color:var(--surface-high)]/95 shadow-2xl backdrop-blur-sm will-change-transform transform-gpu"
               >
                 <div className="flex items-center justify-between gap-2 border-b border-[color:var(--border)] px-4 py-2.5">
                   <p className="text-[10px] uppercase tracking-[0.24em] text-[color:var(--muted)]">Notifications · {notificationItems.length}</p>
@@ -256,7 +256,7 @@ export function WorkspaceNavbar({
       : null;
 
   return (
-    <header className="workspace-navbar relative mx-[var(--workspace-edge-inset)] mt-[var(--workspace-nav-inset-top)] flex h-[var(--workspace-nav-bar)] items-center justify-between gap-3 rounded-[2rem] border border-[color:var(--nav-glass-border)] bg-[color:var(--surface-med)]/78 px-4 shadow-[0_8px_30px_rgba(4,10,28,0.3)] backdrop-blur-md sm:px-5 md:grid md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center md:gap-3">
+    <header className="workspace-navbar relative mx-[var(--workspace-edge-inset)] mt-[var(--workspace-nav-inset-top)] flex h-[var(--workspace-nav-bar)] items-center justify-between gap-3 rounded-[2rem] border border-[color:var(--nav-glass-border)] bg-[color:var(--surface-med)]/78 px-4 shadow-[0_8px_30px_rgba(4,10,28,0.3)] backdrop-blur-sm will-change-transform transform-gpu sm:px-5 md:grid md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] md:items-center md:gap-3">
       <button type="button" onClick={onGoLanding} className="flex min-w-0 items-center gap-2 rounded-full px-1.5 py-1 text-left hover:bg-white/5 md:max-w-full md:justify-self-start">
         <div className="min-w-0 flex items-center gap-2 text-base">
           <span className="truncate font-semibold text-[color:var(--text)]">My-Notion</span>

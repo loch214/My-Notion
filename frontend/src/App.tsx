@@ -728,7 +728,7 @@ export default function App() {
           isNavbarVisible ? 'workspace-navbar-slot--visible' : 'workspace-navbar-slot--hidden'
         )}
         aria-hidden={!isNavbarVisible}
-        style={{ willChange: 'transform, opacity, margin-bottom' }}
+        style={{ willChange: 'transform, opacity' }}
       >
         <div className={cn('workspace-navbar-inner', !isNavbarVisible && 'pointer-events-none')}>
           <WorkspaceNavbar {...navbarProps} />
@@ -740,7 +740,7 @@ export default function App() {
           'workspace-body-row relative flex min-h-0 flex-1 flex-col gap-3 md:flex-row md:gap-4 lg:gap-6',
           !isNavbarVisible && 'workspace-body-row--nav-hidden'
         )}
-        style={{ willChange: 'padding-top' }}
+        style={{ willChange: 'transform' }}
       >
         
         {/* 2. Responsive sidebar drawer overlays (Mobile only) */}
