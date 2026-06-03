@@ -721,7 +721,7 @@ export default function App() {
   }
 
   return (
-    <div className="app-shell relative flex h-[100dvh] flex-col overflow-hidden bg-[color:var(--app-bg)] text-[color:var(--text)] select-none">
+    <div className="app-shell relative flex min-h-[100dvh] flex-col max-md:h-[100dvh] max-md:overflow-hidden bg-[color:var(--app-bg)] text-[color:var(--text)] select-none">
       <div
         className={cn(
           'workspace-navbar-slot shrink-0',
@@ -813,7 +813,7 @@ export default function App() {
         {/* Sidebar — full height, separate from content navbar */}
         <div
           className={cn(
-            'relative hidden min-h-0 shrink-0 self-stretch md:flex md:flex-col',
+            'relative hidden min-h-0 shrink-0 max-md:self-stretch md:self-start md:flex md:flex-col md:sticky md:top-4 md:h-[calc(100vh-2rem)]',
             isSidebarOpen ? 'sidebar-open' : 'sidebar-closed'
           )}
           style={{

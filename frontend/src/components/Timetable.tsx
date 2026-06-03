@@ -640,7 +640,7 @@ export default function Timetable({ modules, entries, onAddEntry, onUpdateEntry,
                 type="button"
                 onClick={() => setShowAlignmentGuides((current) => !current)}
                 className={cn(
-                  'rounded-full border px-3 py-1.5 text-[11px] font-semibold transition',
+                  'rounded-full border px-3 py-1.5 text-[11px] font-semibold transition max-md:hidden',
                   showAlignmentGuides
                     ? 'border-[color:var(--accent)]/50 bg-[color:var(--accent)]/10 text-[color:var(--text)]'
                     : 'border-[color:var(--border)] bg-[color:var(--surface-med)] text-[color:var(--muted)] hover:text-[color:var(--text)]'
@@ -652,7 +652,7 @@ export default function Timetable({ modules, entries, onAddEntry, onUpdateEntry,
           </div>
         </div>
 
-        <div className="mt-2 flex flex-wrap items-center gap-2" role="tablist" aria-label="Select timetable day window">
+        <div className="mt-2 flex flex-wrap items-center gap-2 md:hidden" role="tablist" aria-label="Select timetable day window">
           <button
             type="button"
             className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[color:var(--border)] bg-[color:var(--surface-med)] text-[color:var(--muted)] transition hover:text-[color:var(--text)]"
@@ -708,7 +708,67 @@ export default function Timetable({ modules, entries, onAddEntry, onUpdateEntry,
         </div>
       </div>
 
-      <div className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface-low)] p-2 sm:p-3">
+      {/* Mobile Vertical List View */}
+      <div className="md:hidden mt-4 space-y-3 pb-8">
+        {entriesByDay[activeDay]?.length > 0 ? (
+          <>
+            {entriesByDay[activeDay].map((entry) => {
+              const module = modules.find((m) => m.id === entry.moduleId);
+              const kind = KIND_META[entry.kind];
+              const Icon = kind.icon;
+              return (
+                <button
+                  key={entry.id}
+                  type="button"
+                  onClick={() => openEdit(entry)}
+                  className="w-full flex items-stretch gap-3 text-left overflow-hidden rounded-[16px] border border-[color:var(--border)]/45 bg-[color:var(--surface-high)]/70 shadow-[0_8px_24px_-18px_rgba(15,23,42,0.9)] transition hover:-translate-y-0.5 hover:border-[color:var(--accent)]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent)]/65"
+                >
+                  <div className={cn("w-1.5 shrink-0", kind.accent)} />
+                  <div className="flex flex-1 items-center gap-3 py-3 pr-3">
+                    <div className="w-[4.5rem] shrink-0 text-center">
+                      <p className="font-semibold tabular-nums text-[color:var(--text)]">{formatTimeLabel(entry.startTime)}</p>
+                      <p className="text-[11px] tabular-nums text-[color:var(--muted)]">{formatTimeLabel(entry.endTime)}</p>
+                    </div>
+                    <div className="flex-1 min-w-0 border-l border-[color:var(--border)]/30 pl-3">
+                      <p className="truncate text-[15px] font-semibold text-[color:var(--text)]" title={module?.code ?? module?.title ?? 'Module'}>
+                        {module?.code ?? module?.title ?? 'Module'}
+                      </p>
+                      <p className="truncate text-[13px] text-[color:var(--muted)]">{module?.title}</p>
+                      <div className={cn('mt-1.5 inline-flex w-fit items-center gap-1.5 rounded-full border px-2 py-0.5 font-medium leading-tight text-[11px]', kind.badge)}>
+                        <Icon className="h-3 w-3" />
+                        {kind.label}
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              onClick={() => openAdd(activeDay)}
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-[color:var(--border)]/60 bg-transparent py-4 text-[14px] font-semibold text-[color:var(--muted)] transition hover:border-[color:var(--accent)]/50 hover:text-[color:var(--text)]"
+            >
+              <Plus className="h-4 w-4" />
+              Add another class
+            </button>
+          </>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-[color:var(--border)] p-8 text-center bg-[color:var(--surface-low)]/50">
+            <p className="text-[15px] text-[color:var(--muted)]">No classes for today</p>
+            <button
+              type="button"
+              onClick={() => openAdd(activeDay)}
+              className="mt-4 inline-flex items-center gap-2 rounded-full border border-[color:var(--border)] bg-[color:var(--surface-high)] px-5 py-2 text-[13px] font-semibold text-[color:var(--text)] transition hover:bg-white/10"
+            >
+              <Plus className="h-4 w-4" />
+              Add Class
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Desktop Grid View */}
+      <div className="hidden md:block rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface-low)] p-2 sm:p-3">
         {/* Removed inner scroll so the whole page scrolls naturally */}
         <div className="overflow-x-auto overflow-y-hidden rounded-2xl" role="region" aria-label="Weekly timetable grid">
           <div className="flex min-w-max">

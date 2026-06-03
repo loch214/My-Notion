@@ -156,14 +156,15 @@ export function WorkspaceNavbar({
             onMouseDown={(event) => event.stopPropagation()}
             initial={{ opacity: 0, scale: 0.98, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: 0.18 }}
+            exit={{ opacity: 0, scale: 0.98, y: 4 }}
+            transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
             style={searchPopoverStyle}
-            className="overflow-hidden rounded-2xl border border-white/10 bg-[color:var(--surface-high)]/95 shadow-2xl backdrop-blur-sm will-change-transform transform-gpu"
+            className="overflow-hidden rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-high)]/95 shadow-2xl backdrop-blur-md will-change-transform transform-gpu flex flex-col max-h-[60vh] md:max-h-[50vh]"
           >
-            <div className="border-b border-[color:var(--border)] px-4 py-2.5">
+            <div className="border-b border-[color:var(--border)] px-4 py-2.5 shrink-0">
               <p className="text-[10px] uppercase tracking-[0.24em] text-[color:var(--muted)]">Search · {searchResults.length} results</p>
             </div>
-            <div className="max-h-[20rem] overflow-y-auto p-1.5">
+            <div className="flex-1 overflow-y-auto p-1.5 overscroll-contain">
               {searchResults.length > 0 ? (
                 searchResults.map((result) => (
                   <button
@@ -264,20 +265,20 @@ export function WorkspaceNavbar({
 
   return (
     <header ref={searchRef} className="workspace-navbar relative mx-[var(--workspace-edge-inset)] mt-[var(--workspace-nav-inset-top)] grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] h-[var(--workspace-nav-bar)] items-center gap-2 md:gap-3 rounded-[2rem] border border-[color:var(--nav-glass-border)] bg-[color:var(--surface-med)]/78 px-3 shadow-[0_8px_30px_rgba(4,10,28,0.3)] backdrop-blur-sm will-change-transform transform-gpu sm:px-5">
-      <button type="button" onClick={onGoLanding} className="flex min-w-0 items-center gap-2 rounded-full px-1.5 py-1 text-left hover:bg-white/5 md:max-w-full justify-self-start">
+      <button type="button" onClick={onGoLanding} className={cn("flex min-w-0 items-center gap-2 rounded-full px-1.5 py-1 text-left hover:bg-white/5 md:max-w-full justify-self-start", isSearchOpen && "max-md:hidden")}>
         <div className="min-w-0 flex items-center gap-2 text-base">
           <span className="truncate font-semibold text-[color:var(--text)]">My-Notion</span>
-          <span className="text-[color:var(--muted)]">/</span>
-          <span className="truncate text-[color:var(--muted)]">{activeBreadcrumb}</span>
+          <span className="hidden md:inline text-[color:var(--muted)]">/</span>
+          <span className="hidden md:inline truncate text-[color:var(--muted)]">{activeBreadcrumb}</span>
         </div>
       </button>
 
-      <div className="flex items-center justify-center justify-self-center">
+      <div className={cn("flex items-center justify-center justify-self-center", isSearchOpen && "max-md:col-span-3 max-md:w-full")}>
         <div 
           ref={desktopSearchRef} 
           className={cn(
-            "relative transition-all duration-300 ease-in-out hidden md:block",
-            isSearchOpen ? "w-[400px]" : "w-[240px]"
+            "relative transition-all duration-300 ease-in-out",
+            isSearchOpen ? "w-full md:w-[400px]" : "hidden md:block md:w-[240px]"
           )}
         >
           <div className="flex items-center gap-2 rounded-full border border-[color:var(--nav-glass-border)] bg-[color:var(--surface-low)]/80 px-3 py-1.5">
@@ -290,22 +291,34 @@ export function WorkspaceNavbar({
               placeholder="Search anything..."
               className="w-full bg-transparent text-sm text-[color:var(--text)] outline-none placeholder:text-[color:var(--muted)]"
             />
-            <button 
-              type="button" 
-              className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/5 text-[color:var(--muted)] hover:bg-white/10 hover:text-[color:var(--text)]" 
-              onClick={() => onSearchOpen(!isSearchOpen)}
-            >
-              <Search className="h-3.5 w-3.5" />
-            </button>
+            {isSearchOpen ? (
+              <button 
+                type="button" 
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-[color:var(--muted)] hover:bg-white/10 hover:text-[color:var(--text)]" 
+                onClick={() => onSearchOpen(false)}
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            ) : (
+              <button 
+                type="button" 
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-[color:var(--muted)] hover:bg-white/10 hover:text-[color:var(--text)]" 
+                onClick={() => onSearchOpen(true)}
+              >
+                <Search className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
           {searchResultsPopover}
         </div>
-        <button type="button" onClick={() => onSearchOpen(!isSearchOpen)} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--nav-glass-border)] bg-[color:var(--surface-low)]/75 text-[color:var(--muted)] hover:bg-white/10 hover:text-[color:var(--text)] md:hidden" aria-label="Search">
-          <Search className="h-4 w-4" />
-        </button>
+        {!isSearchOpen && (
+          <button type="button" onClick={() => onSearchOpen(true)} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--nav-glass-border)] bg-[color:var(--surface-low)]/75 text-[color:var(--muted)] hover:bg-white/10 hover:text-[color:var(--text)] md:hidden" aria-label="Search">
+            <Search className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
-      <div className="flex items-center gap-2 justify-self-end">
+      <div className={cn("flex items-center gap-2 justify-self-end", isSearchOpen && "max-md:hidden")}>
         <button ref={notificationsButtonRef} type="button" onClick={onOpenNotifications} className="relative flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--nav-glass-border)] bg-[color:var(--surface-low)]/75 text-[color:var(--muted)] hover:bg-white/10 hover:text-[color:var(--text)]" aria-label="Notifications">
           <Bell className="h-4 w-4" />
           {upcomingCount > 0 ? <span className="absolute -right-1 -top-1 rounded-full bg-[color:var(--accent)] px-1.5 py-0.5 text-[10px] font-semibold text-white">{upcomingCount}</span> : null}
@@ -315,33 +328,6 @@ export function WorkspaceNavbar({
           <span className="hidden md:inline">Say Hello</span>
         </button>
       </div>
-
-      {isSearchOpen && (
-        <div className="absolute inset-x-0 top-full z-50 px-4 py-3 md:hidden">
-          <div ref={mobileSearchRef} className="relative">
-            <div className="flex items-center gap-2 rounded-2xl border border-[color:var(--nav-glass-border)] bg-[color:var(--surface-low)]/95 px-3 py-2 shadow-2xl">
-              <input
-                ref={searchInputRef}
-                type="text"
-                value={searchQuery}
-                onChange={(event) => onSearchChange(event.target.value)}
-                onFocus={() => onSearchOpen(true)}
-                placeholder="Search anything..."
-                className="w-full bg-transparent text-sm text-[color:var(--text)] outline-none placeholder:text-[color:var(--muted)]"
-              />
-              <button
-                type="button"
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-[color:var(--muted)] hover:bg-white/10 hover:text-[color:var(--text)]"
-                onClick={() => onSearchOpen(false)}
-                aria-label="Close search"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-          {searchResultsPopover}
-        </div>
-      )}
 
       {notificationsPopover}
     </header>

@@ -409,6 +409,7 @@ export function GlobalChat({ onClose, state, saveGlobalChatMessage, refreshWorks
       />
 
       <motion.div
+        ref={drawerRef}
         initial={isMobile ? { y: '100%' } : { x: '100%' }}
         animate={isMobile ? { y: 0 } : { x: 0 }}
         exit={isMobile ? { y: '100%' } : { x: '100%' }}

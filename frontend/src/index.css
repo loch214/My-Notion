@@ -87,7 +87,6 @@ html, body, #root {
   min-height: 100%;
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  overflow-x: hidden;
 }
 
 body {
@@ -286,9 +285,15 @@ h1, h2, h3, h4, h5, h6 {
   -ms-overflow-style: none;
 }
 
+@media (min-width: 768px) {
+  .workspace-main-panel {
+    overflow-y: visible;
+  }
+}
+
 .workspace-main-content {
   min-height: min-content;
-  padding: 1.5rem;
+  padding: 0.5rem;
 }
 
 @media (min-width: 768px) {
@@ -346,14 +351,13 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .workspace-mobile-drawer {
-  left: 0;
+  left: var(--workspace-edge-inset);
   right: auto;
-  top: calc(var(--workspace-nav-inset-top) + var(--workspace-nav-bar) + 0.5rem);
-  bottom: 0;
-  width: 80vw;
-  max-width: 320px;
-  border-radius: 0 1.75rem 0 0;
-  padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+  top: calc(var(--workspace-nav-chrome) + 0.25rem);
+  bottom: calc(4rem + env(safe-area-inset-bottom, 0px) + 0.5rem);
+  width: clamp(240px, 70vw, 320px);
+  border-radius: 1.5rem;
+  padding-bottom: 1rem;
 }
 
 .workspace-chat-drawer {
