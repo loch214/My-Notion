@@ -2413,6 +2413,7 @@ app.post('/api/chat/module', async (req, res) => {
     let newFilesSaved = 0;
     for (const att of attachments) {
       const isDoc = att.type === 'application/pdf' || att.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      const isImage = att.type.startsWith('image/');
       if (isDoc) {
         const text = await extractTextFromBase64(att.data, att.name);
         if (text) {
@@ -2424,6 +2425,14 @@ app.post('/api/chat/module', async (req, res) => {
               newFilesSaved++;
             }
           }
+        }
+      } else if (isImage) {
+        // Image will be passed to the AI model as vision input via the attachments parameter
+        // Add a note so the AI knows an image was attached, especially when no text is sent
+        if (!attachmentContext) {
+          attachmentContext = `[User attached an image: ${att.name}]\n`;
+        } else {
+          attachmentContext += `[User also attached an image: ${att.name}]\n`;
         }
       }
     }
@@ -2445,7 +2454,7 @@ app.post('/api/chat/module', async (req, res) => {
       message: attachmentContext ? `${message}\n\n[Attached Files Content]\n${attachmentContext}` : message,
       attachments,
       contextLabel: `module assistant for ${moduleName} (${provider})`,
-      toolDeclarations: CHAT_TOOL_DECLARATIONS,
+      toolDeclarations: [],
       runtimeContext: {},
     });
 

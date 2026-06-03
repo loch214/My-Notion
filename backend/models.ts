@@ -22,6 +22,7 @@ const fileSchema = new mongoose.Schema({
   name: { type: String, required: true },
   size: { type: Number, required: true },
   geminiFileUri: { type: String },
+  extractedText: { type: String, default: '' },
   uploadedAt: { type: Date, default: Date.now },
 });
 
