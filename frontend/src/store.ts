@@ -10,8 +10,6 @@ const DEFAULT_STATE: AppState = {
   globalChatHistory: []
 };
 
-const API_BASE = 'http://localhost:3001/api/data';
-
 export function useAppStore() {
   const [state, setState] = useState<AppState>(DEFAULT_STATE);
   const [isLoading, setIsLoading] = useState(true);
