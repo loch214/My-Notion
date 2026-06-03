@@ -1,6 +1,6 @@
 import { RefObject, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
-import { Bell, Menu, Search, Sparkles } from 'lucide-react';
+import { Bell, Menu, Search, Sparkles, X } from 'lucide-react';
 import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 import { WorkspaceNotificationItem } from '../lib/notifications';
