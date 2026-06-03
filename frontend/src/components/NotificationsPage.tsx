@@ -49,7 +49,7 @@ export function NotificationsPage({ items, onOpenItem, onMarkRead, onMarkAllRead
           { label: 'Tasks', value: items.filter((item) => item.kind === 'task').length },
           { label: 'Events', value: items.filter((item) => item.kind === 'event').length },
         ].map((stat) => (
-          <div key={stat.label} className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface-low)] p-4">
+          <div key={stat.label} className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface-low)] p-3 sm:p-4">
             <p className="text-xs uppercase tracking-[0.2em] text-[color:var(--muted)]">{stat.label}</p>
             <p className="mt-2 text-2xl font-semibold text-[color:var(--text)]">{stat.value}</p>
           </div>
@@ -63,7 +63,7 @@ export function NotificationsPage({ items, onOpenItem, onMarkRead, onMarkAllRead
             if (groupItems.length === 0) return null;
             const Icon = sectionIcon(severity);
             return (
-              <section key={severity} className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface-low)] p-4">
+              <section key={severity} className="rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface-low)] p-3 sm:p-4">
                 <div className="flex items-center justify-between gap-3 border-b border-[color:var(--border)] pb-3">
                   <div className="flex items-center gap-2">
                     <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[color:var(--surface-med)] text-[color:var(--accent)]">
@@ -84,13 +84,13 @@ export function NotificationsPage({ items, onOpenItem, onMarkRead, onMarkAllRead
                     <div
                       key={item.id}
                       className={cn(
-                        'flex items-start justify-between gap-3 rounded-2xl border px-4 py-3 transition-all duration-150 ease',
+                        'flex flex-col sm:flex-row sm:items-start justify-between gap-3 rounded-2xl border px-3 sm:px-4 py-3 transition-all duration-150 ease',
                         item.isRead
                           ? 'border-[color:var(--border)] bg-[color:var(--surface-med)]/60 opacity-70'
                           : 'border-[color:var(--border-focus)]/20 bg-[color:var(--surface-med)]'
                       )}
                     >
-                      <button type="button" className="min-w-0 flex-1 text-left" onClick={() => onOpenItem(item)}>
+                      <button type="button" className="min-w-0 w-full sm:flex-1 text-left" onClick={() => onOpenItem(item)}>
                         <div className="flex items-center gap-2">
                           <span className={cn('inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.18em]', item.kind === 'event' ? 'bg-[color:var(--accent)]/15 text-[color:var(--accent)]' : 'bg-[color:var(--surface-high)] text-[color:var(--muted)]')}>
                             {item.kind}
@@ -101,7 +101,7 @@ export function NotificationsPage({ items, onOpenItem, onMarkRead, onMarkAllRead
                         <p className="mt-0.5 text-sm text-[color:var(--muted)]">{item.subtitle}</p>
                       </button>
 
-                      <div className="flex shrink-0 flex-col items-end gap-2">
+                      <div className="flex w-full sm:w-auto sm:shrink-0 flex-row sm:flex-col items-center sm:items-end justify-end gap-2 mt-1 sm:mt-0 pt-3 sm:pt-0 border-t border-[color:var(--border)] sm:border-0">
                         <Button variant="secondary" size="sm" onClick={() => onOpenItem(item)} leftIcon={<ArrowRight className="h-3.5 w-3.5" />}>
                           Open
                         </Button>
@@ -129,7 +129,7 @@ export function NotificationsPage({ items, onOpenItem, onMarkRead, onMarkAllRead
           })}
         </div>
 
-        <div className="space-y-4 rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface-low)] p-4">
+        <div className="space-y-4 rounded-3xl border border-[color:var(--border)] bg-[color:var(--surface-low)] p-3 sm:p-4">
           <div>
             <p className="text-[10px] uppercase tracking-[0.24em] text-[color:var(--muted)]">Recent reminders</p>
             <h2 className="mt-1 text-sm font-semibold text-[color:var(--text)]">Latest items</h2>

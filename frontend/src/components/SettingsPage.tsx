@@ -25,7 +25,7 @@ function ThemePreviewCard({
       whileTap={{ scale: 0.98 }}
       transition={{ duration: 0.18, ease: [0.32, 0.72, 0, 1] }}
       className={cn(
-        'group relative w-full overflow-hidden rounded-2xl border p-4 text-left transition-all duration-200 ease',
+        'group relative w-full overflow-hidden rounded-2xl border p-3 sm:p-4 text-left transition-all duration-200 ease',
         'bg-[color:var(--surface-low)]/80 backdrop-blur-md',
         isActive
           ? 'border-[color:var(--accent)] shadow-[0_0_0_1px_var(--accent),0_12px_40px_var(--glow)]'
