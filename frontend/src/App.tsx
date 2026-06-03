@@ -743,72 +743,7 @@ export default function App() {
         style={{ willChange: 'transform' }}
       >
         
-        {/* 2. Responsive sidebar drawer overlays (Mobile only) */}
-        <AnimatePresence>
-          {isMobileSidebarOpen && (
-            <>
-              {/* Mobile overlay backdrop */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 0.5 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setIsMobileSidebarOpen(false)}
-                className="fixed inset-0 z-40 bg-black/60 md:hidden"
-              />
-              {/* Mobile Slide-in Drawer */}
-              <motion.aside
-                initial={{ x: '-100%' }}
-                animate={{ x: 0 }}
-                exit={{ x: '-100%' }}
-                transition={{ type: 'tween', duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-                className="workspace-mobile-drawer fixed z-40 flex flex-col justify-between border border-[color:var(--border)] bg-[color:var(--surface-low)] p-4 shadow-2xl md:hidden"
-              >
-                <div className="flex flex-col gap-6">
-                  {/* Top logo */}
-                  <div className="flex items-center justify-between pb-3 border-b border-[color:var(--border)]">
-                    <span className="font-heading tracking-tight font-bold text-[color:var(--text)]">Loch's Workspace</span>
-                    <button
-                      onClick={() => setIsMobileSidebarOpen(false)}
-                      className="rounded-full p-1.5 text-[color:var(--muted)] transition-all duration-150 ease hover:bg-[color:var(--surface-med)] hover:text-[color:var(--text)]"
-                      aria-label="Close sidebar"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                  {/* Nav List */}
-                  <nav className="flex flex-col gap-1">
-                    {WORKSPACE_NAV_ITEMS.map((tab) => {
-                      const Icon = tab.icon;
-                      const isActive = activeTab === tab.id;
-                      return (
-                        <button
-                          key={tab.id}
-                          onClick={() => {
-                            navigateToTab(tab.id);
-                            setIsMobileSidebarOpen(false);
-                          }}
-                          className={cn(
-                            'flex items-center gap-3 rounded-xl px-4 py-3.5 text-base font-medium transition-all duration-150 ease text-left w-full',
-                            isActive
-                              ? 'bg-[color:var(--accent)] text-[color:var(--on-accent)] font-semibold shadow-sm'
-                              : 'text-[color:var(--muted)] hover:bg-[color:var(--surface-med)] hover:text-[color:var(--text)]'
-                          )}
-                        >
-                          <Icon className="h-4 w-4 shrink-0" />
-                          <span>{tab.label}</span>
-                        </button>
-                      );
-                    })}
-                  </nav>
-                </div>
-                {/* Footer My Notion v1 */}
-                <div className="text-[10px] text-[color:var(--muted)] opacity-60 text-center py-2">
-                  My-Notion v1.0
-                </div>
-              </motion.aside>
-            </>
-          )}
-        </AnimatePresence>
+        {/* Mobile sidebar drawer overlay moved to root level */}
 
         {/* Sidebar — full height, separate from content navbar */}
         <div
@@ -1033,6 +968,72 @@ export default function App() {
       </nav>
 
       {/* Global Modals/Drawers */}
+      <AnimatePresence>
+        {isMobileSidebarOpen && (
+          <>
+            {/* Mobile overlay backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.5 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMobileSidebarOpen(false)}
+              className="fixed inset-0 z-40 bg-black/60 md:hidden"
+            />
+            {/* Mobile Slide-in Drawer */}
+            <motion.aside
+              initial={{ x: '-100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '-100%' }}
+              transition={{ type: 'tween', duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+              className="workspace-mobile-drawer fixed z-40 flex flex-col justify-between border border-[color:var(--border)] bg-[color:var(--surface-low)] p-4 shadow-2xl md:hidden"
+            >
+              <div className="flex flex-col gap-6">
+                {/* Top logo */}
+                <div className="flex items-center justify-between pb-3 border-b border-[color:var(--border)]">
+                  <span className="font-heading tracking-tight font-bold text-[color:var(--text)]">Loch's Workspace</span>
+                  <button
+                    onClick={() => setIsMobileSidebarOpen(false)}
+                    className="rounded-full p-1.5 text-[color:var(--muted)] transition-all duration-150 ease hover:bg-[color:var(--surface-med)] hover:text-[color:var(--text)]"
+                    aria-label="Close sidebar"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                {/* Nav List */}
+                <nav className="flex flex-col gap-1">
+                  {WORKSPACE_NAV_ITEMS.map((tab) => {
+                    const Icon = tab.icon;
+                    const isActive = activeTab === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => {
+                          navigateToTab(tab.id);
+                          setIsMobileSidebarOpen(false);
+                        }}
+                        className={cn(
+                          'flex items-center gap-3 rounded-xl px-4 py-3.5 text-base font-medium transition-all duration-150 ease text-left w-full',
+                          isActive
+                            ? 'bg-[color:var(--accent)] text-[color:var(--on-accent)] font-semibold shadow-sm'
+                            : 'text-[color:var(--muted)] hover:bg-[color:var(--surface-med)] hover:text-[color:var(--text)]'
+                        )}
+                      >
+                        <Icon className="h-4 w-4 shrink-0" />
+                        <span>{tab.label}</span>
+                      </button>
+                    );
+                  })}
+                </nav>
+              </div>
+              {/* Footer My Notion v1 */}
+              <div className="text-[10px] text-[color:var(--muted)] opacity-60 text-center py-2">
+                My-Notion v1.0
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {isAiPanelOpen && (
           <GlobalChat
