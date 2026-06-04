@@ -19,8 +19,6 @@ export function SectionHeader({
   size = 'default',
   ...props
 }: SectionHeaderProps) {
-  const comfortable = size === 'comfortable';
-
   return (
     <div
       className={cn(
@@ -29,35 +27,12 @@ export function SectionHeader({
       )}
       {...props}
     >
-      <div className="space-y-1.5">
-        {category && (
-          <p
-            className={cn(
-              'uppercase tracking-[0.24em] text-[color:var(--muted)] font-medium',
-              comfortable ? 'text-xs' : 'text-[10px]'
-            )}
-          >
-            {category}
-          </p>
-        )}
+      <div>
         <h1
-          className={cn(
-            'font-bold tracking-tight text-[color:var(--text)]',
-            comfortable ? 'text-4xl sm:text-[2.75rem]' : 'text-3xl'
-          )}
+          className="text-3xl font-bold tracking-tight text-[color:var(--text)]"
         >
           {title}
         </h1>
-        {subtitle && (
-          <p
-            className={cn(
-              'max-w-2xl text-[color:var(--muted)] leading-relaxed',
-              comfortable ? 'text-base sm:text-lg' : 'text-sm'
-            )}
-          >
-            {subtitle}
-          </p>
-        )}
       </div>
       {actions && (
         <div className="flex flex-wrap items-center gap-2 shrink-0 self-start sm:self-end">

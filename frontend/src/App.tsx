@@ -327,6 +327,10 @@ export default function App() {
     setActiveTab(tab);
     setActiveModuleId(tab === 'academic' ? moduleId : null);
     setIsMobileSidebarOpen(false);
+    // Scroll to top and show navbar on every page navigation
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    if (mainScrollEl) mainScrollEl.scrollTop = 0;
+    setIsNavbarVisible(true);
   };
 
   const enterWorkspace = () => {

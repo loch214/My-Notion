@@ -84,8 +84,7 @@ export function HomeDashboard({
     <div className={cn('w-full', className)}>
       <div className="mx-auto w-full max-w-[1400px] space-y-6">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--muted)]">Workspace overview</p>
-          <h1 className="mt-1 font-heading text-3xl font-bold tracking-tight text-[color:var(--text)]">
+          <h1 className="text-3xl font-bold tracking-tight text-[color:var(--text)]">
             Home
           </h1>
         </div>

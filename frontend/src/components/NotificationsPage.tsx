@@ -35,7 +35,6 @@ export function NotificationsPage({ items, onOpenItem, onMarkRead, onMarkAllRead
         <div className="space-y-2">
           <p className="text-[10px] uppercase tracking-[0.24em] text-[color:var(--muted)]">Alerts</p>
           <h1 className="text-3xl font-semibold tracking-tight text-[color:var(--text)]">Notifications</h1>
-          <p className="max-w-2xl text-sm text-[color:var(--muted)]">Tasks, timetable reminders, and event alerts are grouped here so you can clear them quickly without extra noise.</p>
         </div>
         <Button type="button" variant="secondary" onClick={onMarkAllRead} disabled={unreadCount === 0} leftIcon={<CheckCheck className="h-4 w-4" />}>
           Mark all read
