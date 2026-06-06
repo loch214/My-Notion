@@ -11,7 +11,7 @@ export default defineConfig(() => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['icon-192.png', 'icon-512.png'],
+        includeAssets: ['aes-192.png', 'aes-512.jpg'],
         manifest: {
           name: 'My-Notion',
           short_name: 'My-Notion',
@@ -24,14 +24,14 @@ export default defineConfig(() => {
           background_color: '#152138',
           icons: [
             {
-              src: '/icon-192.png',
+              src: '/aes-192.png',
               sizes: '192x192',
               type: 'image/png',
             },
             {
-              src: '/icon-512.png',
+              src: '/aes-512.jpg',
               sizes: '512x512',
-              type: 'image/png',
+              type: 'image/jpeg',
             },
           ],
         },
