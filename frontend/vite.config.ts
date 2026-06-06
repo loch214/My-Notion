@@ -11,7 +11,7 @@ export default defineConfig(() => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['rounded-corners-192.png', 'rounded-corners.jpg'],
+        includeAssets: ['rounded-corners-192.png', 'rounded-corners-512-fixed.jpg'],
         manifest: {
           name: 'My-Notion',
           short_name: 'My-Notion',
@@ -29,7 +29,7 @@ export default defineConfig(() => {
               type: 'image/png',
             },
             {
-              src: '/rounded-corners.jpg',
+              src: '/rounded-corners-512-fixed.jpg',
               sizes: '512x512',
               type: 'image/jpeg',
             },
