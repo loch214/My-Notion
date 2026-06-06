@@ -5,7 +5,9 @@ export type ThemeId =
   | 'crimson-noir'
   | 'sunset-synthwave'
   | 'obsidian-gold'
-  | 'aurora-dream';
+  | 'aurora-dream'
+  | 'arctic-dawn'
+  | 'amber-glow';
 
 export interface ThemeTokens {
   bgPrimary: string;

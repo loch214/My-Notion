@@ -307,11 +307,10 @@ h1, h2, h3, h4, h5, h6 {
   padding-left: var(--workspace-edge-inset);
   padding-right: var(--workspace-edge-inset);
   transition: transform var(--workspace-motion-duration) var(--workspace-motion-ease);
-  will-change: transform;
-  transform: translateY(0) translateZ(0);
 }
 
 .workspace-body-row--nav-hidden {
+  will-change: transform;
   transform: translateY(calc(-1 * var(--workspace-nav-chrome) + var(--workspace-edge-inset))) translateZ(0);
 }
 

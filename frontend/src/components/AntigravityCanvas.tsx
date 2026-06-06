@@ -404,11 +404,6 @@ export function AntigravityCanvas({ variant = 'default', moduleCodes = [] }: Ant
           ctx.roundRect(x, y, node.width, node.height, radius);
           ctx.stroke();
 
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.roundRect(x + 1, y + 1, node.width - 2, node.height * 0.42, radius - 2);
-          ctx.stroke();
         } else {
           ctx.fillStyle = node.bgColor;
           ctx.beginPath();
@@ -463,7 +458,7 @@ export function AntigravityCanvas({ variant = 'default', moduleCodes = [] }: Ant
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseleave', handleMouseLeave);
     };
-  }, [variant, moduleCodes.join('|')]);
+  }, [variant]);
 
   return (
     <canvas

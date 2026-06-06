@@ -744,35 +744,31 @@ export default function App() {
           'workspace-body-row relative flex min-h-0 flex-1 flex-col gap-3 md:flex-row md:gap-4 lg:gap-6 max-md:pb-24',
           !isNavbarVisible && 'workspace-body-row--nav-hidden'
         )}
-        style={{ willChange: 'transform' }}
       >
         
         {/* Mobile sidebar drawer overlay moved to root level */}
 
-        {/* Sidebar — full height, separate from content navbar */}
+        {/* Sidebar */}
         <div
           className={cn(
-            'relative hidden min-h-0 shrink-0 max-md:self-stretch md:self-start md:flex md:flex-col md:sticky md:top-4 md:h-[calc(100vh-2rem)]',
+            'hidden md:flex md:flex-col md:sticky md:top-4 md:self-start md:h-[calc(100dvh-2rem)]',
             isSidebarOpen ? 'sidebar-open' : 'sidebar-closed'
           )}
           style={{
             width: isSidebarOpen ? 'clamp(12rem,16vw,15.5rem)' : 'clamp(4.5rem,4.5vw,5rem)',
             transition: 'width 300ms ease',
-            willChange: 'width',
-            contain: 'layout style paint',
           }}
         >
           <aside
             className={cn(
-              'workspace-sidebar-panel flex h-full flex-col py-4',
+              'workspace-sidebar-panel flex h-full flex-col py-3',
               isSidebarOpen ? 'px-4' : 'px-3'
             )}
-            style={{ willChange: 'padding', contain: 'layout style paint' }}
           >
-          <div className="flex flex-col flex-1 justify-between">
-            <div className="space-y-4">
+          <div className="flex h-full flex-col">
+            <div className="space-y-1 overflow-y-auto flex-1">
               {/* Sidebar toggle buttons */}
-              <div className={cn('flex items-center justify-between pb-3 border-b border-[color:var(--border)]', isSidebarOpen ? '' : 'justify-center')}>
+              <div className={cn('flex items-center justify-between pb-2 border-b border-[color:var(--border)]', isSidebarOpen ? '' : 'justify-center')}>
                 {isSidebarOpen && (
                   <span className="text-xs font-bold uppercase tracking-wider text-[color:var(--muted)] font-heading">
                     Workspace
@@ -814,7 +810,7 @@ export default function App() {
             </div>
 
             {/* Footer details redesigned */}
-            <div className={cn('pt-4 border-t border-[color:var(--border)] text-[11px] text-[color:var(--muted)] opacity-60 text-center', isSidebarOpen ? '' : 'truncate')}>
+            <div className={cn('pt-4 border-t border-[color:var(--border)] text-[11px] text-[color:var(--muted)] opacity-60 text-center shrink-0', isSidebarOpen ? '' : 'truncate')}>
               {isSidebarOpen ? 'My-Notion v1.0 · Academic Tool' : 'v1.0'}
             </div>
           </div>
@@ -824,7 +820,6 @@ export default function App() {
         <div
           ref={setMainScrollEl}
           className="workspace-main-panel min-h-0 min-w-0 flex-1"
-          style={{ contain: 'layout style paint' }}
         >
           <div className="workspace-main-content">
           {activeTab === 'home' ? (
